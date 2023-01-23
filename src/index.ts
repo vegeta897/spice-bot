@@ -11,8 +11,7 @@ async function init() {
 	timestampLog('Initializing Spice Bot...')
 	await initDB()
 	await connectBot()
-	await initTwitter()
-	await initTwitch()
+	await Promise.all([initTwitch(), initTwitter()])
 	timestampLog('Spice Bot is ready!')
 }
 
