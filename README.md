@@ -4,7 +4,7 @@ A Discord bot for posting Twitch and Twitter activity
 
 ⚠️⚠️⚠️ **HEY WAIT** -- This bot is still in development while I finish rewriting everything!
 
-Spice Bot will automatically post tweets and Twitch stream notifications to your Discord server!
+Spice Bot will automatically post stream notifications and tweets to your Discord server!
 
 ## Features
 
@@ -29,9 +29,9 @@ This is not a public bot that you can invite, but you can set up your own Spice 
 
 * [NodeJS v16.9.0 or newer](https://nodejs.org/)
 * [A Discord bot](https://discordjs.guide/preparations/setting-up-a-bot-application.html)
-* [A Twitter Developer account](https://developer.twitter.com/en/apply-for-access)
 * [A Twitch App](https://dev.twitch.tv/console/apps/create)
 * [A host name or public IP with SSL](https://twurple.js.org/docs/getting-data/eventsub/listener-setup.html)
+* [A Twitter Developer account](https://developer.twitter.com/en/apply-for-access)
 
 ### Install
 
