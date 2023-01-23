@@ -57,15 +57,41 @@ export async function modifyData(data: Partial<DBData>) {
 }
 
 export function recordStream(
-	streamRecord: Partial<StreamRecord> & {
+	partialRecord: Partial<StreamRecord> & {
 		streamID: string
 		streamStatus: StreamRecord['streamStatus']
 	}
 ) {
-	streamRecord.startTime ||= Date.now()
-	streamRecord.games ||= []
-	modifyData({ streams: [...getStreamRecords(), streamRecord as StreamRecord] })
-	return cloneStreamRecord(streamRecord as StreamRecord) as StreamRecord
+	const streamRecord: StreamRecord = {
+		...partialRecord,
+		startTime: partialRecord.startTime || Date.now(),
+		games: partialRecord.games || [],
+	}
+	const streams = [...getData().streams, streamRecord]
+	const sortedTrimmed = sortByProp(streams, 'startTime').slice(-5)
+	modifyData({ streams: sortedTrimmed as StreamRecord[] })
+	return cloneStreamRecord(streamRecord) as StreamRecord
+}
+
+export function recordTweet({
+	messageID,
+	tweetID,
+	pingButtons,
+}: {
+	messageID: string
+	tweetID: string
+	pingButtons?: boolean
+}) {
+	const tweetRecord: TweetRecord = {
+		tweet_id: tweetID,
+		message_id: messageID,
+		recorded_time: Date.now(),
+	}
+	if (pingButtons) tweetRecord.pingButtons = 'posted'
+	const tweets = [...getData().tweets, tweetRecord]
+	const sortedTrimmed = sortByProp(tweets, 'tweet_id').slice(-20)
+	modifyData({ tweets: sortedTrimmed })
+	return { ...tweetRecord }
 }
 
 export function updateStreamRecord(
@@ -85,24 +111,6 @@ export function updateStreamRecord(
 	return cloneStreamRecord(updatedRecord) as StreamRecord
 }
 
-export function recordTweet({
-	messageID,
-	tweetID,
-	pingButtons,
-}: {
-	messageID: string
-	tweetID: string
-	pingButtons?: boolean
-}) {
-	const record: TweetRecord = {
-		tweet_id: tweetID,
-		message_id: messageID,
-		recorded_time: Date.now(),
-	}
-	if (pingButtons) record.pingButtons = 'posted'
-	modifyData({ tweets: [...getData().tweets, record] })
-}
-
 export function updateTweetRecord(tweetRecord: TweetRecord) {
 	const otherTweets = getTweetRecords().filter(
 		(t) => t.tweet_id !== tweetRecord.tweet_id
@@ -118,31 +126,11 @@ export function deleteTweetRecord(tweetRecord: TweetRecord) {
 	})
 }
 
-export function getStreamRecords(): StreamRecord[] {
-	const streamRecords = sortByProp(
-		getData().streams.map(cloneStreamRecord),
-		'startTime'
-	)
-	return truncateRecords(streamRecords, 'streams', 5)
-}
+export const getStreamRecords = () =>
+	getData().streams.map(cloneStreamRecord) as StreamRecord[]
 
-export function getTweetRecords(): TweetRecord[] {
-	const tweetRecords = sortByProp(
-		getData().tweets.map((tr) => ({ ...tr })),
-		'tweet_id'
-	)
-	return truncateRecords(tweetRecords, 'tweets', 20)
-}
-
-function truncateRecords<T extends 'streams' | 'tweets'>(
-	records: DBData[T],
-	type: T,
-	max: number
-) {
-	const truncated = records.slice(records.length - max)
-	if (truncated.length < records.length) modifyData({ [type]: truncated })
-	return truncated as DBData[T]
-}
+export const getTweetRecords = () =>
+	getData().tweets.map((tr) => ({ ...tr })) as TweetRecord[]
 
 const cloneStreamRecord = (
 	streamRecord: StreamRecord | DeepReadonly<StreamRecord>

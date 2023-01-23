@@ -17,8 +17,8 @@ export const formatDuration = (seconds: number) =>
 	)
 
 // Sort an array of objects by the specified prop key
-export const sortByProp = <T>(arr: T[], prop: keyof T) =>
-	arr.sort((a, b) => (a[prop] > b[prop] ? 1 : -1))
+export const sortByProp = <T>(arr: T[], prop: keyof T, reverse = false) =>
+	arr.sort((a, b) => (a[prop] > b[prop] ? 1 : -1) * (reverse ? -1 : 1))
 
 // https://stackoverflow.com/a/59700012/2612679
 export type DeepReadonly<T> = T extends Function // eslint-disable-line @typescript-eslint/ban-types
