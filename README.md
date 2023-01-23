@@ -1,6 +1,6 @@
 # Spice Bot 🌶️
 
-A Discord bot for posting Twitter and Twitch activity
+A Discord bot for posting Twitch and Twitter activity
 
 ⚠️⚠️⚠️ **HEY WAIT** -- This bot is still in development while I finish rewriting everything!
 
@@ -9,12 +9,12 @@ Spice Bot will automatically post tweets and Twitch stream notifications to your
 ## Features
 
 * 🔔 Notification roles that users can self-assign
-* 🐦 Tweet posts
-  * 💬 Options to include retweets and/or replies
-  * 🗑️ Automatic message removal when tweets are deleted
 * 🕹️ Twitch posts
   * 📰 Rich embeds with updating stream info and images
   * 🎞️ Twitch VOD archive link posted after each stream
+* 🐦 Tweet posts
+  * 💬 Options to include retweets and/or replies
+  * 🗑️ Automatic message removal when tweets are deleted
 * ♾️ Persistence
   * 🔄 State revival and verification for safe restarts
   * 🔍 Looks for any recent tweets or stream events missed while offline
@@ -23,7 +23,7 @@ Spice Bot will automatically post tweets and Twitch stream notifications to your
 
 ## How to use
 
-This is not a public bot you can invite, but you can set up your own Spice Bot if you have a server that can run NodeJS and a host name or public IP with SSL and a reverse proxy.
+This is not a public bot that you can invite, but you can set up your own Spice Bot if you have a server that can run NodeJS and a host name or public IP with SSL and a reverse proxy.
 
 ### Requirements
 
@@ -43,10 +43,6 @@ Rename or copy `.env.example` to `.env` and fill it out. All variables are requi
 
 | Variable | Description |
 | --- | --- |
-| `TWITTER_USERNAME` | The Twitter username to watch for tweets |
-| `TWITTER_TOKEN` | The bearer token for your Twitter app |
-| `TWITTER_INCLUDE_RETWEETS` | If set to "true", retweets will be posted (quote retweets will always be posted) |
-| `TWITTER_INCLUDE_REPLIES` | If set to "true", tweet replies will be posted |
 | `TWITCH_USERNAME` | The Twitch username to watch for streams |
 | `TWITCH_CLIENT_ID` | The client ID of your Twitch App |
 | `TWITCH_CLIENT_SECRET` | The client secret of your Twitch App |
@@ -54,10 +50,14 @@ Rename or copy `.env.example` to `.env` and fill it out. All variables are requi
 | `TWITCH_EVENTSUB_PATH_PREFIX` | The path to append to the host name, e.g. `twitch` |
 | `TWITCH_EVENTSUB_PORT` | The port for your server to listen to for Twitch events. This is internal only, for the reverse proxy |
 | `TWITCH_BANNER_URL` | _(optional)_ An image URL to use in stream notification embeds |
+| `TWITTER_USERNAME` | The Twitter username to watch for tweets |
+| `TWITTER_TOKEN` | The bearer token for your Twitter app |
+| `TWITTER_INCLUDE_RETWEETS` | If set to "true", retweets will be posted (quote retweets will always be posted) |
+| `TWITTER_INCLUDE_REPLIES` | If set to "true", tweet replies will be posted |
 | `DISCORD_BOT_TOKEN` | The token of your Discord bot |
 | `DISCORD_SERVER_ID` | The Discord server ID to post to |
-| `TWITCH_DISCORD_CHANNEL_ID` | The Discord channel ID to post Twitch streams to |
-| `TWITTER_DISCORD_CHANNEL_ID` | The Discord channel ID to post tweets to (this can be the same as the Twitch channel) |
+| `DISCORD_TWITCH_CHANNEL_ID` | The Discord channel ID to post Twitch streams to |
+| `DISCORD_TWITTER_CHANNEL_ID` | The Discord channel ID to post tweets to (this can be the same as the Twitch channel) |
 | `NICKNAME` | _(optional)_ A nickname for the streamer, used in stream notifications |
 
 ### Setup
