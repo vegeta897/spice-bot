@@ -9,14 +9,12 @@ import {
 } from 'discord.js'
 import { timestampLog } from './util.js'
 
-const TWITCH_PING_ROLE_NAME = 'stream-pings'
-const TWITTER_PING_ROLE_NAME = 'tweet-pings'
-
 let twitchPingRole: Role | undefined
 let twitterPingRole: Role | undefined
 
 type PingConfig = {
 	type: 'twitch' | 'twitter'
+	roleName: string
 	getRole: () => Role
 	btnAddID: string
 	btnRemoveID: string
@@ -29,6 +27,7 @@ type PingConfig = {
 const pingConfigs: Record<PingConfig['type'], PingConfig> = {
 	twitch: {
 		type: 'twitch',
+		roleName: 'stream-pings',
 		getRole: () => twitchPingRole!,
 		btnAddID: 'btnTwitchPingAdd',
 		btnRemoveID: 'btnTwitchPingRemove',
@@ -39,6 +38,7 @@ const pingConfigs: Record<PingConfig['type'], PingConfig> = {
 	},
 	twitter: {
 		type: 'twitter',
+		roleName: 'tweet-pings',
 		getRole: () => twitterPingRole!,
 		btnAddID: 'btnTwitterPingAdd',
 		btnRemoveID: 'btnTwitterPingRemove',
@@ -73,11 +73,11 @@ export async function initPings(bot: Client, server: Guild) {
 	const roles = await server.roles.fetch()
 	try {
 		twitchPingRole =
-			roles.find((role) => role.name === TWITCH_PING_ROLE_NAME) ||
-			(await server.roles.create({ name: TWITCH_PING_ROLE_NAME }))
+			roles.find((role) => role.name === pingConfigs.twitch.roleName) ||
+			(await server.roles.create({ name: pingConfigs.twitch.roleName }))
 		twitterPingRole =
-			roles.find((role) => role.name === TWITTER_PING_ROLE_NAME) ||
-			(await server.roles.create({ name: TWITTER_PING_ROLE_NAME }))
+			roles.find((role) => role.name === pingConfigs.twitter.roleName) ||
+			(await server.roles.create({ name: pingConfigs.twitter.roleName }))
 	} catch (e) {
 		console.log(e)
 		throw 'Error creating ping roles!'
