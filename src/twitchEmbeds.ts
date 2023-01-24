@@ -25,7 +25,12 @@ export function getStreamStartEmbed(streamRecord: StreamRecord) {
 		},
 	]
 	if (streamRecord.title) embed.setDescription(streamRecord.title)
-	if (streamRecord.thumbnailURL) embed.setThumbnail(streamRecord.thumbnailURL)
+	if (streamRecord.thumbnailURL) {
+		const thumbnailURL =
+			streamRecord.thumbnailURL +
+			(streamRecord.thumbnailIndex ? `?${streamRecord.thumbnailIndex}` : '')
+		embed.setThumbnail(thumbnailURL)
+	}
 	if (streamRecord.games.length > 0) {
 		fields.unshift({ name: 'Playing', value: streamRecord.games.join('\n') })
 	}
@@ -45,7 +50,7 @@ export function getStreamEndEmbed(
 		.setTitle('Stream ended')
 		.setURL(video.url)
 		.setColor(0x944783)
-		.setThumbnail(video.getThumbnailUrl(320, 180))
+		.setThumbnail(streamRecord.thumbnailURL!)
 		.setDescription(video.title)
 		.setTimestamp(
 			video.creationDate.getTime() + video!.durationInSeconds * 1000

@@ -170,30 +170,24 @@ function handleStream(stream: HelixStream | null) {
 	const streamRecords = getStreamRecords()
 	const existingRecord = streamRecords.find((s) => s.streamID === stream.id)
 	if (existingRecord) {
-		// Check for updated stream info
-		const startTime = stream.startDate.getTime()
-		const startTimeChanged = startTime !== existingRecord.startTime
-		const titleChanged = stream.title !== existingRecord.title
-		const thumbnailURL = stream.getThumbnailUrl(360, 180)
-		const thumbnailChanged = thumbnailURL !== existingRecord.thumbnailURL
+		// Update thumbnail index and check for other updated info
+		if (stream.title !== existingRecord.title)
+			timestampLog('Title changed to:', stream.title)
 		const gameChanged = !existingRecord.games.includes(stream.gameName)
-		if (startTimeChanged || titleChanged || thumbnailChanged || gameChanged) {
-			timestampLog(`Updating stream info`)
-			if (titleChanged) console.log('Title changed to:', stream.title)
-			if (thumbnailChanged) console.log('Thumbnail changed')
-			if (gameChanged) console.log('Game changed to:', stream.gameName)
-			const updatedRecord = updateStreamRecord({
-				streamID: stream.id,
-				streamInfo: true,
-				startTime,
-				title: stream.title,
-				thumbnailURL,
-				games: gameChanged
-					? [...existingRecord.games, stream.gameName]
-					: existingRecord.games,
-			})
-			sendOrUpdateLiveMessage(updatedRecord)
-		}
+		if (gameChanged) timestampLog('Game changed to:', stream.gameName)
+		const nextThumbnailIndex = (existingRecord.thumbnailIndex || 0) + 1
+		const updatedRecord = updateStreamRecord({
+			streamID: stream.id,
+			streamInfo: true,
+			startTime: stream.startDate.getTime(),
+			title: stream.title,
+			thumbnailURL: stream.getThumbnailUrl(360, 180) + `?${nextThumbnailIndex}`,
+			thumbnailIndex: nextThumbnailIndex,
+			games: gameChanged
+				? [...existingRecord.games, stream.gameName]
+				: existingRecord.games,
+		})
+		sendOrUpdateLiveMessage(updatedRecord)
 	} else {
 		// Start of stream was missed
 		timestampLog(
@@ -239,8 +233,8 @@ async function checkVideos(stream: HelixStream | null = null) {
 				games: [],
 			})
 		} else if (
-			streamRecord.streamID !== stream?.id && // Not still going
 			streamRecord.streamStatus === 'live' && // Marked as live
+			streamRecord.streamID !== stream?.id && // Not still going
 			!processingEvents.has(streamRecord.streamID) // Not currently processing
 		) {
 			// End this stream
@@ -251,10 +245,10 @@ async function checkVideos(stream: HelixStream | null = null) {
 	// If there are still any other old "live" stream records, mark them as ended
 	const liveStreamRecords = getStreamRecords().filter(
 		(sr) =>
-			sr.streamStatus === 'live' &&
-			sr.streamID !== stream?.id &&
-			!processingEvents.has(sr.streamID) &&
-			sr.startTime < Date.now() - 5 * 60 * 1000
+			sr.streamStatus === 'live' && // Marked as live
+			sr.streamID !== stream?.id && // Not still going
+			!processingEvents.has(sr.streamID) && // Not currently processing
+			sr.startTime < Date.now() - 5 * 60 * 1000 // Older than 5 minutes
 	)
 	if (liveStreamRecords.length > 0)
 		timestampLog(
@@ -297,11 +291,6 @@ async function endStream(streamRecord: StreamRecord, video: HelixVideo) {
 	if (streamRecord.liveMessageID) {
 		deleteStreamMessage(streamRecord.liveMessageID)
 	}
-	const messageOptions: MessageCreateOptions = {
-		embeds: [getStreamEndEmbed(video, streamRecord)],
-	}
-	const twitchPingRole = getTwitchPingRole()
-	if (twitchPingRole) messageOptions.components = getTwitchPingButtons()
 	const oldButtonRecords = getStreamRecords().filter(
 		(sr) => sr.endMessagePingButtons === 'posted'
 	)
@@ -312,13 +301,20 @@ async function endStream(streamRecord: StreamRecord, video: HelixVideo) {
 			endMessagePingButtons: 'cleaned',
 		})
 	}
-	const message = await createStreamMessage(messageOptions)
-	const recordUpdate: Partial<StreamRecord> & { streamID: string } = {
-		streamID: streamRecord.streamID,
+	const updatedRecord: StreamRecord = {
+		...streamRecord,
 		streamStatus: 'ended',
-		endMessageID: message.id,
 		thumbnailURL: video.getThumbnailUrl(360, 180),
 	}
-	if (twitchPingRole) recordUpdate.endMessagePingButtons = 'posted'
-	updateStreamRecord(recordUpdate)
+	const messageOptions: MessageCreateOptions = {
+		embeds: [getStreamEndEmbed(video, updatedRecord)],
+	}
+	const twitchPingRole = getTwitchPingRole()
+	if (twitchPingRole) {
+		messageOptions.components = getTwitchPingButtons()
+		updatedRecord.endMessagePingButtons = 'posted'
+	}
+	const message = await createStreamMessage(messageOptions)
+	updatedRecord.endMessageID = message.id
+	updateStreamRecord(updatedRecord)
 }

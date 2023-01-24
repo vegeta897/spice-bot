@@ -22,6 +22,7 @@ export type StreamRecord = {
 	title?: string
 	games: string[]
 	thumbnailURL?: string
+	thumbnailIndex?: number
 }
 
 type DBData = {
