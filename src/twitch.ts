@@ -317,6 +317,7 @@ async function endStream(streamRecord: StreamRecord, video: HelixVideo) {
 		streamID: streamRecord.streamID,
 		streamStatus: 'ended',
 		endMessageID: message.id,
+		thumbnailURL: video.getThumbnailUrl(360, 180),
 	}
 	if (twitchPingRole) recordUpdate.endMessagePingButtons = 'posted'
 	updateStreamRecord(recordUpdate)
