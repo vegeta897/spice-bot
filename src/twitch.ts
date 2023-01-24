@@ -33,6 +33,7 @@ import {
 	getMockStream,
 } from './dev.js'
 import { getStreamEndEmbed, getStreamStartEmbed } from './twitchEmbeds.js'
+import randomstring from 'randomstring'
 
 // TODO: Think about splitting up this file
 
@@ -67,10 +68,18 @@ export async function initTwitch() {
 			),
 		})
 	}
+	let eventSubSecret = getData().twitchEventSubSecret
+	if (!eventSubSecret) {
+		eventSubSecret = randomstring.generate()
+		modifyData({ twitchEventSubSecret: eventSubSecret })
+		console.log('Generated new EventSub listener secret')
+		await apiClient.eventSub.deleteAllSubscriptions()
+		console.log('Deleted all EventSub subscriptions')
+	}
 	const listener = new EventSubHttpListener({
 		apiClient,
 		adapter,
-		secret: getData().twitchEventSubSecret,
+		secret: eventSubSecret,
 		strictHostCheck: true,
 	})
 	const onlineSubscription = await listener.subscribeToStreamOnlineEvents(

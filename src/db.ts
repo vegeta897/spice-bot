@@ -3,7 +3,6 @@ import { join, dirname } from 'node:path'
 import { Low } from 'lowdb'
 import { JSONFile } from 'lowdb/node'
 import { type DeepReadonly, DEV_MODE, sortByProp } from './util.js'
-import * as randomstring from 'randomstring'
 
 type TweetRecord = {
 	tweet_id: string
@@ -28,7 +27,7 @@ export type StreamRecord = {
 type DBData = {
 	tweets: TweetRecord[]
 	streams: StreamRecord[]
-	twitchEventSubSecret: string
+	twitchEventSubSecret: string | null
 }
 
 const filename = DEV_MODE ? 'db-dev.json' : 'db.json'
@@ -41,7 +40,7 @@ export async function initDB() {
 	db.data ||= {
 		tweets: [],
 		streams: [],
-		twitchEventSubSecret: randomstring.generate(),
+		twitchEventSubSecret: null,
 	}
 	if (DEV_MODE)
 		db.data.streams = db.data.streams.filter((s) => s.streamID !== 'test')
