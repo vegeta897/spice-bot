@@ -12,7 +12,7 @@ Spice Bot will automatically post stream notifications and tweets to your Discor
 - 🕹️ Twitch posts
   - 📰 Rich embeds with updating stream info and images
   - 🎞️ Twitch VOD archive link posted after each stream
-- 🐦 Tweet posts
+- 🐦 Twitter posts
   - 💬 Options to include retweets and/or replies
   - 🗑️ Automatic message removal when tweets are deleted
 - ♾️ Persistence
