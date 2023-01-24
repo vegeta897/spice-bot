@@ -153,10 +153,7 @@ async function checkStreamAndVideos() {
 	checkVideos(streamRecords, stream)
 }
 
-async function handleStream(
-	streamRecords: StreamRecord[],
-	stream: HelixStream
-) {
+function handleStream(streamRecords: StreamRecord[], stream: HelixStream) {
 	if (processingEvents.has(stream.id)) {
 		// The live event for this stream was received and is still processing
 		return
