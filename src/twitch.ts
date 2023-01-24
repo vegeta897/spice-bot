@@ -156,17 +156,18 @@ export async function initTwitch() {
 }
 
 async function checkStreamAndVideos() {
-	const streamRecords = getStreamRecords()
 	const stream = DEV_MODE ? getMockStream() : await twitchUser.getStream()
-	if (stream) handleStream(streamRecords, stream)
-	checkVideos(streamRecords, stream)
+	handleStream(stream)
+	checkVideos(stream)
 }
 
-function handleStream(streamRecords: StreamRecord[], stream: HelixStream) {
+function handleStream(stream: HelixStream | null) {
+	if (!stream) return
 	if (processingEvents.has(stream.id)) {
 		// The live event for this stream was received and is still processing
 		return
 	}
+	const streamRecords = getStreamRecords()
 	const existingRecord = streamRecords.find((s) => s.streamID === stream.id)
 	if (existingRecord) {
 		// Check for updated stream info
@@ -211,19 +212,18 @@ function handleStream(streamRecords: StreamRecord[], stream: HelixStream) {
 	}
 }
 
-async function checkVideos(
-	streamRecords?: StreamRecord[],
-	stream: HelixStream | null = null
-) {
+let checkVideosRun = 0 // Just for dev mode stuff
+
+async function checkVideos(stream: HelixStream | null = null) {
 	const { data: videos } = DEV_MODE
-		? streamRecords
+		? checkVideosRun++ === 0
 			? getMockInitialVideos()
 			: getMockVideosAfterStream()
 		: await apiClient.videos.getVideosByUser(twitchUser.id, {
 				limit: 3, // A safe buffer
 				type: 'archive',
 		  })
-	streamRecords = getStreamRecords()
+	const streamRecords = getStreamRecords()
 	const oldestToNewest = videos.reverse()
 	for (const video of oldestToNewest) {
 		const streamRecord = streamRecords.find(
