@@ -223,16 +223,8 @@ async function checkVideos(stream: HelixStream | null = null) {
 		const streamRecord = streamRecords.find(
 			(sr) => sr.streamID === video.streamId
 		)
-		if (!streamRecord) {
-			// Record this missed stream, but don't post it
-			timestampLog(`No record of video with stream ID ${video!.streamId}`)
-			recordStream({
-				streamID: video!.streamId!,
-				streamStatus: 'ended',
-				startTime: video.creationDate.getTime(),
-				games: [],
-			})
-		} else if (
+		if (!streamRecord) continue // No record, skip it
+		if (
 			streamRecord.streamStatus === 'live' && // Marked as live
 			streamRecord.streamID !== stream?.id && // Not still going
 			!processingEvents.has(streamRecord.streamID) // Not currently processing
