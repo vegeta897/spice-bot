@@ -105,14 +105,14 @@ export async function initPings(bot: Client, server: Guild) {
 			timestampLog(`${memberName} opted into ${pingConfig.type} pings`)
 			member.roles.add(role.id)
 			interaction.reply({
-				content: `OK, you will be pinged whenever ${pingConfig.name} ${pingConfig.responseVerb}!`,
+				content: `🔔 OK, you will be pinged whenever ${pingConfig.name} ${pingConfig.responseVerb}!`,
 				ephemeral: true,
 			})
 		} else {
 			timestampLog(`${memberName} opted out of ${pingConfig.type} pings`)
 			member.roles.remove(role.id)
 			interaction.reply({
-				content: `OK, you will no longer be pinged for ${pingConfig.collectiveNoun}`,
+				content: `🔕 OK, you will no longer be pinged for ${pingConfig.collectiveNoun}`,
 				ephemeral: true,
 			})
 		}
