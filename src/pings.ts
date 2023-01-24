@@ -128,7 +128,7 @@ function getButtons(pingConfig: PingConfig) {
 			new ButtonBuilder()
 				.setCustomId(pingConfig.btnAddID)
 				.setLabel(`Ping me when ${pingConfig.name} ${pingConfig.buttonVerb}`)
-				.setStyle(ButtonStyle.Success),
+				.setStyle(ButtonStyle.Primary),
 			new ButtonBuilder()
 				.setCustomId(pingConfig.btnRemoveID)
 				.setLabel('Stop pinging me')
