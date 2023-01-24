@@ -17,7 +17,7 @@ import {
 	editTweetMessage,
 } from './discord.js'
 import { getTwitterPingButtons, getTwitterPingRole } from './pings.js'
-import { sleep, timestampLog } from './util.js'
+import { DEV_MODE, sleep, timestampLog } from './util.js'
 
 const USERNAME = process.env.TWITTER_USERNAME
 const RT_QUERY =
@@ -67,7 +67,7 @@ export async function initTwitter() {
 	stream.autoReconnect = true
 	stream.autoReconnectRetries = 1000
 	stream.on(ETwitterStreamEvent.Data, (tweet) => {
-		console.log(JSON.stringify(tweet))
+		if (DEV_MODE) console.log(JSON.stringify(tweet))
 		// Ensure tweet matches rule
 		if (!tweet.matching_rules.some(({ tag }) => tag === TWEET_TAG)) return
 		postTweet(tweet.data.id)
