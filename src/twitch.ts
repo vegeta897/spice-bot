@@ -249,7 +249,7 @@ async function checkVideos(stream: HelixStream | null = null) {
 		}
 	}
 	// If there are still any other old "live" stream records, mark them as ended
-	const liveStreamRecords = streamRecords.filter(
+	const liveStreamRecords = getStreamRecords().filter(
 		(sr) =>
 			sr.streamStatus === 'live' &&
 			sr.streamID !== stream?.id &&
