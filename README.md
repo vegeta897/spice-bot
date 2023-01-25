@@ -2,8 +2,6 @@
 
 A Discord bot for posting Twitch and Twitter activity
 
-⚠️⚠️⚠️ **HEY WAIT** -- This bot is still in development while I finish rewriting everything!
-
 Spice Bot will automatically post stream notifications and tweets to your Discord server!
 
 ## Features
