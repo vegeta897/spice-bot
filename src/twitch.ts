@@ -181,7 +181,7 @@ function handleStream(stream: HelixStream | null) {
 			streamInfo: true,
 			startTime: stream.startDate.getTime(),
 			title: stream.title,
-			thumbnailURL: stream.getThumbnailUrl(360, 180) + `?${nextThumbnailIndex}`,
+			thumbnailURL: stream.getThumbnailUrl(360, 180),
 			thumbnailIndex: nextThumbnailIndex,
 			games: gameChanged
 				? [...existingRecord.games, stream.gameName]
