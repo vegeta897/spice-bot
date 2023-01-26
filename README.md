@@ -50,8 +50,8 @@ Rename or copy `.env.example` to `.env` and fill it out. All variables are requi
 | `TWITCH_BANNER_URL`           | _(optional)_ An image URL to use in stream notification embeds                                        |
 | `TWITTER_USERNAME`            | The Twitter username to watch for tweets                                                              |
 | `TWITTER_TOKEN`               | The bearer token for your Twitter app                                                                 |
-| `TWITTER_INCLUDE_RETWEETS`    | If set to "true", retweets will be posted (quote retweets will always be posted)                      |
-| `TWITTER_INCLUDE_REPLIES`     | If set to "true", tweet replies will be posted                                                        |
+| `TWITTER_INCLUDE_RETWEETS`    | If set to "true", retweets will be posted (quote retweets are always be posted)                       |
+| `TWITTER_INCLUDE_REPLIES`     | If set to "true", tweet replies will be posted (self-replies are always posted)                       |
 | `DISCORD_BOT_TOKEN`           | The token of your Discord bot                                                                         |
 | `DISCORD_SERVER_ID`           | The Discord server ID to post to                                                                      |
 | `DISCORD_TWITCH_CHANNEL_ID`   | The Discord channel ID to post Twitch streams to                                                      |

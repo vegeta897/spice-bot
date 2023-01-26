@@ -4,6 +4,8 @@ import {
 	type TweetStream,
 	type TweetV2SingleStreamResult,
 	TwitterApi,
+	type TweetV2,
+	type UserV2,
 } from 'twitter-api-v2'
 import {
 	deleteTweetRecord,
@@ -20,17 +22,16 @@ import { getTwitterPingButtons, getTwitterPingRole } from './pings.js'
 import { DEV_MODE, sleep, timestampLog } from './util.js'
 
 const USERNAME = process.env.TWITTER_USERNAME
-const RT_QUERY =
-	process.env.TWITTER_INCLUDE_RETWEETS === 'true' ? '' : ' -is:retweet'
-const REPLY_QUERY =
-	process.env.TWITTER_INCLUDE_REPLIES === 'true' ? '' : ' -is:reply'
-const timelineExclude: ('retweets' | 'replies')[] = []
-if (RT_QUERY) timelineExclude.push('retweets')
-if (REPLY_QUERY) timelineExclude.push('replies')
-const TWEET_QUERY = `from:${USERNAME}${RT_QUERY}${REPLY_QUERY}`
+const INCLUDE_RETWEETS = process.env.TWITTER_INCLUDE_RETWEETS === 'true'
+const INCLUDE_REPLIES = process.env.TWITTER_INCLUDE_REPLIES === 'true'
+const TWEET_QUERY = `from:${USERNAME}${INCLUDE_RETWEETS ? '' : ' -is:retweet'}`
 const TWEET_TAG = `spice bot: ${TWEET_QUERY}`
+const timelineExclude: ('retweets' | 'replies')[] = []
+if (!INCLUDE_RETWEETS) timelineExclude.push('retweets')
+if (!INCLUDE_REPLIES) timelineExclude.push('replies')
 
 let client: TwitterApi
+let user: UserV2
 
 export async function initTwitter() {
 	client = new TwitterApi(process.env.TWITTER_TOKEN)
@@ -51,7 +52,9 @@ export async function initTwitter() {
 	let stream: TweetStream<TweetV2SingleStreamResult> | null = null
 	while (!stream) {
 		try {
-			stream = await client.readOnly.v2.searchStream()
+			stream = await client.readOnly.v2.searchStream({
+				'tweet.fields': ['in_reply_to_user_id'],
+			})
 		} catch (streamError: any) {
 			if (streamError.data?.connection_issue === 'TooManyConnections') {
 				console.log(
@@ -66,11 +69,21 @@ export async function initTwitter() {
 	}
 	stream.autoReconnect = true
 	stream.autoReconnectRetries = 1000
+	user = (await client.readOnly.v2.userByUsername(USERNAME)).data
+	if (!user) throw `Twitter user "${USERNAME}" not found!`
 	stream.on(ETwitterStreamEvent.Data, (tweet) => {
 		if (DEV_MODE) console.log(JSON.stringify(tweet))
 		// Ensure tweet matches rule
 		if (!tweet.matching_rules.some(({ tag }) => tag === TWEET_TAG)) return
-		postTweet(tweet.data.id)
+		// All replies are included because we can't exclude only non-self replies
+		// So we check the user ID being replied to
+		const isReply = !!tweet.data.in_reply_to_user_id
+		const isSelfReply = tweet.data.in_reply_to_user_id === user.id
+		if (isReply && !isSelfReply && !INCLUDE_REPLIES) {
+			// Don't include replies to other users
+			return
+		}
+		postTweet(tweet.data)
 	})
 	console.log('Twitter stream connected')
 	// Check for tweets missed while Spice Bot was offline
@@ -87,8 +100,8 @@ async function checkRecentTweets() {
 	if (recordedTweets.length === 0) return
 	// Get tweets since last recorded tweet
 	// Up to 10 tweets are fetched by default, which should be enough
-	const user = await client.readOnly.v2.userByUsername(USERNAME)
-	const timeline = await client.readOnly.v2.userTimeline(user.data.id, {
+	// Excluding replies does not exclude self-replies, unlike the stream API
+	const timeline = await client.readOnly.v2.userTimeline(user.id, {
 		since_id: recordedTweets.at(-1)!.tweet_id,
 		exclude: timelineExclude,
 	})
@@ -98,15 +111,15 @@ async function checkRecentTweets() {
 	for (const tweet of oldestToNewest) {
 		if (!recordedTweets.find((rt) => rt.tweet_id === tweet.id)) {
 			console.log(`Recent tweet ID ${tweet.id} was missed`)
-			await postTweet(tweet.id)
+			await postTweet(tweet)
 		}
 	}
 }
 
-async function postTweet(tweetID: string) {
-	timestampLog(`Posting tweet ID ${tweetID}`)
+async function postTweet(tweet: TweetV2) {
+	timestampLog(`Posting tweet ID ${tweet.id}`)
 	const messageOptions: MessageCreateOptions = {
-		content: `https://twitter.com/${USERNAME}/status/${tweetID}`,
+		content: `https://twitter.com/${USERNAME}/status/${tweet.id}`,
 	}
 	const twitterPingRole = getTwitterPingRole()
 	if (twitterPingRole) {
@@ -129,7 +142,7 @@ async function postTweet(tweetID: string) {
 		}
 		recordTweet({
 			messageID: message.id,
-			tweetID,
+			tweetID: tweet.id,
 			pingButtons: !!twitterPingRole,
 		})
 	} else {
