@@ -217,6 +217,8 @@ async function checkVideos(stream: HelixStream | null = null) {
 				limit: 3, // A safe buffer
 				type: 'archive',
 		  })
+	if (videos.length === 0) return
+	const newestVideo = videos[0]
 	const streamRecords = getStreamRecords()
 	const oldestToNewest = videos.reverse()
 	for (const video of oldestToNewest) {
@@ -224,6 +226,22 @@ async function checkVideos(stream: HelixStream | null = null) {
 			(sr) => sr.streamID === video.streamId
 		)
 		if (!streamRecord) continue // No record, skip it
+		const videoThumbnail = video.getThumbnailUrl(360, 180)
+		if (
+			streamRecord.streamStatus === 'ended' &&
+			streamRecord.endMessageID &&
+			streamRecord.thumbnailURL?.includes('twitch.tv/_404/') &&
+			!videoThumbnail.includes('twitch.tv/_404/')
+		) {
+			// Update stream end message if non-404 thumbnail is found
+			const updatedRecord = updateStreamRecord({
+				streamID: streamRecord.streamID,
+				thumbnailURL: videoThumbnail,
+			})
+			editStreamMessage(streamRecord.endMessageID!, {
+				embeds: [getStreamEndEmbed(video, updatedRecord)],
+			})
+		}
 		if (
 			streamRecord.streamStatus === 'live' && // Marked as live
 			streamRecord.streamID !== stream?.id && // Not still going
@@ -240,7 +258,8 @@ async function checkVideos(stream: HelixStream | null = null) {
 			sr.streamStatus === 'live' && // Marked as live
 			sr.streamID !== stream?.id && // Not still going
 			!processingEvents.has(sr.streamID) && // Not currently processing
-			sr.startTime < Date.now() - 5 * 60 * 1000 // Older than 5 minutes
+			sr.startTime < Date.now() - 15 * 60 * 1000 && // Older than 15 minutes
+			sr.streamID < newestVideo.streamId! // Older than the newest video
 	)
 	if (liveStreamRecords.length > 0)
 		timestampLog(
