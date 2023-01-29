@@ -5,6 +5,7 @@ import { formatDuration } from './util.js'
 
 const TWITCH_USERNAME = process.env.TWITCH_USERNAME
 const TWITCH_URL = `https://www.twitch.tv/${TWITCH_USERNAME}`
+const ARCHIVE_URL = `${TWITCH_URL}/videos?filter=archives&sort=time`
 
 export function getStreamStartEmbed(streamRecord: StreamRecord) {
 	const embed = new EmbedBuilder()
@@ -42,34 +43,39 @@ export function getStreamStartEmbed(streamRecord: StreamRecord) {
 }
 
 export function getStreamEndEmbed(
-	video: HelixVideo,
-	streamRecord: StreamRecord
+	streamRecord: StreamRecord,
+	video?: HelixVideo
 ) {
 	const embed = new EmbedBuilder()
 	embed
 		.setTitle('Stream ended')
-		.setURL(video.url)
+		.setURL(video?.url || ARCHIVE_URL)
 		.setColor(0x944783)
-		.setThumbnail(streamRecord.thumbnailURL!)
-		.setDescription(video.title)
-		.setTimestamp(
+		.setTimestamp(Date.now())
+	const fields: APIEmbedField[] = [
+		{
+			name: 'Playing',
+			value: streamRecord.games.join('\n'),
+		},
+		{
+			name: 'Watch',
+			value: `[Archive](${video?.url || ARCHIVE_URL})`,
+			inline: true,
+		},
+	]
+	if (video?.durationInSeconds)
+		fields.push({
+			name: 'Duration',
+			value: formatDuration(video.durationInSeconds),
+			inline: true,
+		})
+	embed.addFields(fields)
+	const title = video?.title || streamRecord.title
+	if (title) embed.setDescription(title)
+	if (streamRecord.thumbnailURL) embed.setThumbnail(streamRecord.thumbnailURL)
+	if (video?.creationDate)
+		embed.setTimestamp(
 			video.creationDate.getTime() + video!.durationInSeconds * 1000
 		)
-		.addFields([
-			{
-				name: 'Playing',
-				value: streamRecord.games.join('\n'),
-			},
-			{
-				name: 'Watch',
-				value: `[Archive](${video.url})`,
-				inline: true,
-			},
-			{
-				name: 'Duration',
-				value: formatDuration(video.durationInSeconds),
-				inline: true,
-			},
-		])
 	return embed
 }

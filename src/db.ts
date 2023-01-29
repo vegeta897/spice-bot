@@ -14,11 +14,11 @@ type TweetRecord = {
 export type StreamRecord = {
 	streamID: string
 	startTime: number
-	liveMessageID?: string
-	endMessageID?: string
+	messageID?: string
 	streamStatus: 'live' | 'ended'
 	streamInfo?: boolean
-	endMessagePingButtons?: 'posted' | 'cleaned'
+	videoInfo?: boolean
+	pingButtons?: 'posted' | 'cleaned'
 	title?: string
 	games: string[]
 	thumbnailURL?: string
@@ -95,7 +95,8 @@ export function recordTweet({
 }
 
 export function updateStreamRecord(
-	partialRecord: Partial<StreamRecord> & { streamID: string }
+	partialRecord: Partial<StreamRecord> & { streamID: string },
+	deleteProperties: (keyof StreamRecord)[] = []
 ) {
 	const streamRecords = getStreamRecords()
 	const existingRecord = streamRecords.find(
@@ -103,19 +104,26 @@ export function updateStreamRecord(
 	)
 	if (!existingRecord)
 		throw `Trying to update non-existent stream record ID ${partialRecord.streamID}`
-	const otherStreams = streamRecords.filter(
-		(s) => s.streamID !== partialRecord.streamID
-	)
-	const updatedRecord = { ...existingRecord, ...partialRecord }
-	modifyData({ streams: [...otherStreams, updatedRecord] })
+	const existingRecordIndex = streamRecords.indexOf(existingRecord)
+	const updatedRecord: StreamRecord = { ...existingRecord, ...partialRecord }
+	for (const deleteProperty of deleteProperties) {
+		delete updatedRecord[deleteProperty]
+	}
+	streamRecords.splice(existingRecordIndex, 1, updatedRecord)
+	modifyData({ streams: streamRecords })
 	return cloneStreamRecord(updatedRecord) as StreamRecord
 }
 
 export function updateTweetRecord(tweetRecord: TweetRecord) {
-	const otherTweets = getTweetRecords().filter(
-		(t) => t.tweet_id !== tweetRecord.tweet_id
+	const tweetRecords = getTweetRecords()
+	const existingRecord = tweetRecords.find(
+		(tr) => tr.tweet_id === tweetRecord.tweet_id
 	)
-	modifyData({ tweets: [...otherTweets, tweetRecord] })
+	if (!existingRecord)
+		throw `Trying to update non-existent tweet record ID ${tweetRecord.tweet_id}`
+	const existingRecordIndex = tweetRecords.indexOf(existingRecord)
+	tweetRecords.splice(existingRecordIndex, 1, tweetRecord)
+	modifyData({ tweets: tweetRecords })
 }
 
 export function deleteTweetRecord(tweetRecord: TweetRecord) {

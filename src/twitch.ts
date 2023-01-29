@@ -100,7 +100,7 @@ export async function initTwitch() {
 			})
 			let getStreamAttempts = 0
 			let streamInfo: HelixStream | null = null
-			let liveMessageID: string | undefined
+			let messageID: string | undefined
 			// Stream info may be null at first
 			do {
 				if (!processingEvents.has(event.id)) {
@@ -113,7 +113,7 @@ export async function initTwitch() {
 					if (getStreamAttempts === 2) {
 						// After 2 attempts, post a message without stream info
 						console.log('Posting stream message without full info')
-						liveMessageID = await sendOrUpdateLiveMessage(streamRecord)
+						messageID = await sendOrUpdateLiveMessage(streamRecord)
 					}
 					if (getStreamAttempts === 60) {
 						// Give up after 5 minutes of no stream info
@@ -131,7 +131,7 @@ export async function initTwitch() {
 			streamRecord.title = streamInfo.title
 			streamRecord.games.push(streamInfo.gameName)
 			streamRecord.thumbnailURL = streamInfo.getThumbnailUrl(360, 180)
-			if (liveMessageID) streamRecord.liveMessageID = liveMessageID
+			if (messageID) streamRecord.messageID = messageID
 			sendOrUpdateLiveMessage(streamRecord)
 		}
 	)
@@ -214,7 +214,7 @@ async function checkVideos(stream: HelixStream | null = null) {
 			? getMockInitialVideos()
 			: getMockVideosAfterStream()
 		: await apiClient.videos.getVideosByUser(twitchUser.id, {
-				limit: 3, // A safe buffer
+				limit: 4, // A safe buffer
 				type: 'archive',
 		  })
 	if (videos.length === 0) return
@@ -226,22 +226,25 @@ async function checkVideos(stream: HelixStream | null = null) {
 			(sr) => sr.streamID === video.streamId
 		)
 		if (!streamRecord) continue // No record, skip it
+		// Update ended streams that have no video info or a 404 thumbnail
 		const videoThumbnail = video.getThumbnailUrl(360, 180)
 		if (
 			streamRecord.streamStatus === 'ended' &&
-			streamRecord.endMessageID &&
-			streamRecord.thumbnailURL?.includes('twitch.tv/_404/') &&
-			!videoThumbnail.includes('twitch.tv/_404/')
+			streamRecord.messageID &&
+			(!streamRecord.videoInfo ||
+				(streamRecord.thumbnailURL?.includes('twitch.tv/_404/') &&
+					!videoThumbnail.includes('twitch.tv/_404/')))
 		) {
-			// Update stream end message if non-404 thumbnail is found
 			const updatedRecord = updateStreamRecord({
 				streamID: streamRecord.streamID,
 				thumbnailURL: videoThumbnail,
+				videoInfo: true,
 			})
-			editStreamMessage(streamRecord.endMessageID!, {
-				embeds: [getStreamEndEmbed(video, updatedRecord)],
+			editStreamMessage(streamRecord.messageID, {
+				embeds: [getStreamEndEmbed(updatedRecord, video)],
 			})
 		}
+		// Normal stream ending flow
 		if (
 			streamRecord.streamStatus === 'live' && // Marked as live
 			streamRecord.streamID !== stream?.id && // Not still going
@@ -252,27 +255,30 @@ async function checkVideos(stream: HelixStream | null = null) {
 			await endStream(streamRecord, video)
 		}
 	}
-	// If there are still any other old "live" stream records, mark them as ended
-	const liveStreamRecords = getStreamRecords().filter(
+	// Force end any stale "live" stream records with no video
+	const staleStreamRecords = getStreamRecords().filter(
 		(sr) =>
 			sr.streamStatus === 'live' && // Marked as live
 			sr.streamID !== stream?.id && // Not still going
 			!processingEvents.has(sr.streamID) && // Not currently processing
-			sr.startTime < Date.now() - 15 * 60 * 1000 && // Older than 15 minutes
-			sr.streamID < newestVideo.streamId! // Older than the newest video
+			sr.startTime < Date.now() - 5 * 60 * 1000 && // Older than 5 minutes
+			sr.streamID < newestVideo.streamId! && // Older than the newest video
+			sr.messageID // Has a message to edit
 	)
-	if (liveStreamRecords.length > 0)
+	if (staleStreamRecords.length > 0)
 		timestampLog(
-			`Force ending ${liveStreamRecords.length} other stream(s) marked as "live"`
+			`Force ending ${staleStreamRecords.length} stale stream(s) marked as "live"`
 		)
-	for (const liveStreamRecord of liveStreamRecords) {
-		updateStreamRecord({
-			streamID: liveStreamRecord.streamID,
+	for (const staleStreamRecord of staleStreamRecords) {
+		const updatedRecord = updateStreamRecord({
+			streamID: staleStreamRecord.streamID,
 			streamStatus: 'ended',
+			videoInfo: false,
 		})
-		if (liveStreamRecord.liveMessageID) {
-			deleteStreamMessage(liveStreamRecord.liveMessageID)
-		}
+		editStreamMessage(updatedRecord.messageID!, {
+			content: '',
+			embeds: [getStreamEndEmbed(updatedRecord)],
+		})
 	}
 }
 
@@ -280,9 +286,9 @@ async function sendOrUpdateLiveMessage(streamRecord: StreamRecord) {
 	const messageOptions: MessageCreateOptions = {
 		embeds: [getStreamStartEmbed(streamRecord)],
 	}
-	if (streamRecord.liveMessageID) {
-		await editStreamMessage(streamRecord.liveMessageID, messageOptions)
-		return streamRecord.liveMessageID
+	if (streamRecord.messageID) {
+		await editStreamMessage(streamRecord.messageID, messageOptions)
+		return streamRecord.messageID
 	} else {
 		const twitchPingRole = getTwitchPingRole()
 		if (twitchPingRole) {
@@ -292,40 +298,42 @@ async function sendOrUpdateLiveMessage(streamRecord: StreamRecord) {
 		const message = await createStreamMessage(messageOptions)
 		updateStreamRecord({
 			...streamRecord,
-			liveMessageID: message.id,
+			messageID: message.id,
 		})
 		return message.id
 	}
 }
 
 async function endStream(streamRecord: StreamRecord, video: HelixVideo) {
-	if (streamRecord.liveMessageID) {
-		deleteStreamMessage(streamRecord.liveMessageID)
-	}
 	const oldButtonRecords = getStreamRecords().filter(
-		(sr) => sr.endMessagePingButtons === 'posted'
+		(sr) =>
+			sr.pingButtons === 'posted' &&
+			sr.messageID &&
+			sr.streamID !== streamRecord.streamID
 	)
 	for (const oldButtonRecord of oldButtonRecords) {
-		editStreamMessage(oldButtonRecord.endMessageID!, { components: [] })
+		editStreamMessage(oldButtonRecord.messageID!, { components: [] })
 		updateStreamRecord({
 			streamID: oldButtonRecord.streamID,
-			endMessagePingButtons: 'cleaned',
+			pingButtons: 'cleaned',
 		})
 	}
 	const updatedRecord: StreamRecord = {
 		...streamRecord,
 		streamStatus: 'ended',
+		videoInfo: true,
 		thumbnailURL: video.getThumbnailUrl(360, 180),
 	}
 	const messageOptions: MessageCreateOptions = {
-		embeds: [getStreamEndEmbed(video, updatedRecord)],
+		embeds: [getStreamEndEmbed(updatedRecord, video)],
 	}
 	const twitchPingRole = getTwitchPingRole()
 	if (twitchPingRole) {
 		messageOptions.components = getTwitchPingButtons()
-		updatedRecord.endMessagePingButtons = 'posted'
+		updatedRecord.pingButtons = 'posted'
 	}
 	const message = await createStreamMessage(messageOptions)
-	updatedRecord.endMessageID = message.id
+	if (streamRecord.messageID) deleteStreamMessage(streamRecord.messageID)
+	updatedRecord.messageID = message.id
 	updateStreamRecord(updatedRecord)
 }
