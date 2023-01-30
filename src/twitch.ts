@@ -290,10 +290,12 @@ async function sendOrUpdateLiveMessage(streamRecord: StreamRecord) {
 		await editStreamMessage(streamRecord.messageID, messageOptions)
 		return streamRecord.messageID
 	} else {
+		cleanPingButtons(streamRecord.streamID)
 		const twitchPingRole = getTwitchPingRole()
 		if (twitchPingRole) {
 			messageOptions.content = twitchPingRole.toString()
 			messageOptions.components = getTwitchPingButtons()
+			streamRecord.pingButtons = 'posted'
 		}
 		const message = await createStreamMessage(messageOptions)
 		updateStreamRecord({
@@ -305,19 +307,6 @@ async function sendOrUpdateLiveMessage(streamRecord: StreamRecord) {
 }
 
 async function endStream(streamRecord: StreamRecord, video: HelixVideo) {
-	const oldButtonRecords = getStreamRecords().filter(
-		(sr) =>
-			sr.pingButtons === 'posted' &&
-			sr.messageID &&
-			sr.streamID !== streamRecord.streamID
-	)
-	for (const oldButtonRecord of oldButtonRecords) {
-		editStreamMessage(oldButtonRecord.messageID!, { components: [] })
-		updateStreamRecord({
-			streamID: oldButtonRecord.streamID,
-			pingButtons: 'cleaned',
-		})
-	}
 	const updatedRecord: StreamRecord = {
 		...streamRecord,
 		streamStatus: 'ended',
@@ -336,4 +325,20 @@ async function endStream(streamRecord: StreamRecord, video: HelixVideo) {
 	if (streamRecord.messageID) deleteStreamMessage(streamRecord.messageID)
 	updatedRecord.messageID = message.id
 	updateStreamRecord(updatedRecord)
+}
+
+function cleanPingButtons(exceptStreamID?: string) {
+	const buttonRecords = getStreamRecords().filter(
+		(sr) =>
+			sr.pingButtons === 'posted' &&
+			sr.messageID &&
+			sr.streamID !== exceptStreamID
+	)
+	for (const buttonRecord of buttonRecords) {
+		editStreamMessage(buttonRecord.messageID!, { components: [] })
+		updateStreamRecord({
+			streamID: buttonRecord.streamID,
+			pingButtons: 'cleaned',
+		})
+	}
 }
