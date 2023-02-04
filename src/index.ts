@@ -12,8 +12,12 @@ async function init() {
 	timestampLog('Initializing Spice Bot...')
 	// await initDB()
 	// await connectBot()
+	const twitterModule =
+		process.env.TWITTER_SCRAPE_MODE === 'true'
+			? initTwitterScraper
+			: initTwitter
 	// await Promise.all([initTwitch(), initTwitter()])
-	await initTwitterScraper()
+	await twitterModule()
 	timestampLog('Spice Bot is ready!')
 }
 
