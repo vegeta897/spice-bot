@@ -1,6 +1,9 @@
 import puppeteer from 'puppeteer'
 
+// TODO: Make this a separate module on NPM?
+
 const USERNAME = process.env.TWITTER_USERNAME
+const INCLUDE_RETWEETS = process.env.TWITTER_INCLUDE_RETWEETS === 'true'
 
 export async function initTwitterScraper() {
 	const browser = await puppeteer.launch()
@@ -14,52 +17,49 @@ export async function initTwitterScraper() {
 
 	try {
 		await page.waitForSelector('article')
+		console.log(await getTweets(page))
 	} catch (e) {
 		console.log(`No <article> element found! Does ${USERNAME} have any tweets?`)
 	}
-	console.log(await getTweets(page))
 }
 
 const getTweets = async (page: puppeteer.Page) =>
 	await page.$$eval(
 		'article',
-		(tweets, username) => {
-			return (
-				tweets
-					// Not filtering pinned tweets because if a new one is pinned we may miss it
-					// We're going to filter out old tweets anyway with minimal effort
-					// .filter((articleElement) => {
-					// 	const socialContext = articleElement.querySelector(
-					// 		'[data-testid="socialContext"]'
-					// 	)
-					// 	return socialContext?.textContent !== 'Pinned Tweet'
-					// })
-					.map((articleElement) => {
-						const timeEl = articleElement.querySelector('time')!
-						const [, username, , tweetID] = timeEl!
-							.parentElement!.getAttribute('href')!
-							.split('/')
-						const threadLinks = [
-							...articleElement.querySelectorAll(
-								`a[href$="${username}/status/${tweetID}"`
-							),
-						]
-						const isThread = threadLinks.some(
-							(a) => a.textContent === 'Show this thread'
-						)
-						return {
-							timestamp: timeEl.dateTime,
-							content: articleElement.querySelector('[data-testid="tweetText"]')
-								?.textContent,
-							username,
-							id: tweetID,
-							isThread,
-						}
-					})
-					.filter((tweetData) => tweetData.username === username)
-			)
+		(tweets, includeRetweets) => {
+			return tweets
+				.map((articleElement) => {
+					const timeEl = articleElement.querySelector('time')!
+					const [, username, , tweetID] = timeEl!
+						.parentElement!.getAttribute('href')!
+						.split('/')
+					if (!tweetID) return false
+					const threadLinks = [
+						...articleElement.querySelectorAll(
+							`a[href$="${username}/status/${tweetID}"`
+						),
+					]
+					const isThread = threadLinks.some(
+						(a) => a.textContent === 'Show this thread'
+					)
+					const socialContext = articleElement.querySelector(
+						'[data-testid="socialContext"]'
+					)
+					return {
+						timestamp: timeEl.dateTime,
+						content: articleElement.querySelector('[data-testid="tweetText"]')
+							?.textContent,
+						username,
+						id: tweetID,
+						isThread,
+						isRetweet: socialContext?.textContent?.endsWith('Retweeted'),
+					}
+				})
+				.filter(
+					(tweetData) => tweetData && (includeRetweets || !tweetData.isRetweet)
+				)
 		},
-		USERNAME
+		INCLUDE_RETWEETS
 	)
 
 // Ignore requests for unnecessary resources like media and fonts
