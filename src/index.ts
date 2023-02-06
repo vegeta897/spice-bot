@@ -10,14 +10,13 @@ if (DEV_MODE) console.log('DEV MODE ENABLED')
 
 async function init() {
 	timestampLog('Initializing Spice Bot...')
-	// await initDB()
-	// await connectBot()
+	await initDB()
+	await connectBot()
 	const twitterModule =
 		process.env.TWITTER_SCRAPE_MODE === 'true'
 			? initTwitterScraper
 			: initTwitter
-	// await Promise.all([initTwitch(), initTwitter()])
-	await twitterModule()
+	await Promise.all([initTwitch(), twitterModule()])
 	timestampLog('Spice Bot is ready!')
 }
 

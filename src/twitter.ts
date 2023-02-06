@@ -83,7 +83,7 @@ export async function initTwitter() {
 			// Don't include replies to other users
 			return
 		}
-		postTweet(tweet.data)
+		postTweet(tweet.data.id)
 	})
 	console.log('Twitter stream connected')
 	// Check for tweets missed while Spice Bot was offline
@@ -111,15 +111,15 @@ async function checkRecentTweets() {
 	for (const tweet of oldestToNewest) {
 		if (!recordedTweets.find((rt) => rt.tweet_id === tweet.id)) {
 			console.log(`Recent tweet ID ${tweet.id} was missed`)
-			await postTweet(tweet)
+			await postTweet(tweet.id)
 		}
 	}
 }
 
-async function postTweet(tweet: TweetV2) {
-	timestampLog(`Posting tweet ID ${tweet.id}`)
+export async function postTweet(tweetID: string) {
+	timestampLog(`Posting tweet ID ${tweetID}`)
 	const messageOptions: MessageCreateOptions = {
-		content: `https://twitter.com/${USERNAME}/status/${tweet.id}`,
+		content: `https://twitter.com/${USERNAME}/status/${tweetID}`,
 	}
 	const twitterPingRole = getTwitterPingRole()
 	if (twitterPingRole) {
@@ -127,27 +127,27 @@ async function postTweet(tweet: TweetV2) {
 		messageOptions.components = getTwitterPingButtons()
 	}
 	const message = await createTweetMessage(messageOptions)
-	if (message?.id) {
-		const tweetRecordsWithButtons = getTweetRecords().filter(
-			(tr) => tr.pingButtons === 'posted'
-		)
-		// Remove buttons from previous tweets
-		for (const tweetRecord of tweetRecordsWithButtons) {
-			editTweetMessage(tweetRecord.message_id, {
-				content: `https://twitter.com/${USERNAME}/status/${tweetRecord.tweet_id}`,
-				components: [],
-			})
-			tweetRecord.pingButtons = 'cleaned'
-			updateTweetRecord(tweetRecord)
-		}
-		recordTweet({
-			messageID: message.id,
-			tweetID: tweet.id,
-			pingButtons: !!twitterPingRole,
-		})
-	} else {
+	if (!message?.id) {
 		console.log('Failed to create Discord message for tweet!')
+		return
 	}
+	const tweetRecordsWithButtons = getTweetRecords().filter(
+		(tr) => tr.pingButtons === 'posted'
+	)
+	// Remove buttons from previous tweets
+	for (const tweetRecord of tweetRecordsWithButtons) {
+		editTweetMessage(tweetRecord.message_id, {
+			content: `https://twitter.com/${USERNAME}/status/${tweetRecord.tweet_id}`,
+			components: [],
+		})
+		tweetRecord.pingButtons = 'cleaned'
+		updateTweetRecord(tweetRecord)
+	}
+	recordTweet({
+		messageID: message.id,
+		tweetID,
+		pingButtons: !!twitterPingRole,
+	})
 }
 
 async function checkDeletedTweets() {
@@ -169,14 +169,17 @@ async function checkDeletedTweets() {
 		deleteTweetRecord(tweetRecord)
 		await deleteTweetMessage(tweetRecord.message_id)
 	}
-	// Add buttons to latest tweet message if latest was deleted
-	if (getTwitterPingRole()) {
-		const newestTweetRecord = getTweetRecords().at(-1)
-		if (!newestTweetRecord || newestTweetRecord.pingButtons === 'posted') return
-		editTweetMessage(newestTweetRecord.message_id, {
-			components: getTwitterPingButtons(),
-		})
-		newestTweetRecord.pingButtons = 'posted'
-		updateTweetRecord(newestTweetRecord)
-	}
+	checkTweetPingButtons()
+}
+
+// Add ping buttons to last tweet message if latest was deleted
+export async function checkTweetPingButtons() {
+	if (!getTwitterPingRole()) return
+	const newestTweetRecord = getTweetRecords().at(-1)
+	if (!newestTweetRecord || newestTweetRecord.pingButtons === 'posted') return
+	editTweetMessage(newestTweetRecord.message_id, {
+		components: getTwitterPingButtons(),
+	})
+	newestTweetRecord.pingButtons = 'posted'
+	updateTweetRecord(newestTweetRecord)
 }
