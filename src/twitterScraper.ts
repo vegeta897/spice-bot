@@ -1,4 +1,3 @@
-import { CategoryChannel } from 'discord.js'
 import puppeteer from 'puppeteer'
 import { scrollPageToBottom } from 'puppeteer-autoscroll-down'
 import { deleteTweetRecord, getTweetRecords } from './db.js'
