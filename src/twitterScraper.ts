@@ -1,3 +1,4 @@
+import { CategoryChannel } from 'discord.js'
 import puppeteer from 'puppeteer'
 import { scrollPageToBottom } from 'puppeteer-autoscroll-down'
 import { deleteTweetRecord, getTweetRecords } from './db.js'
@@ -38,7 +39,9 @@ async function checkForTweets() {
 	try {
 		await page.waitForSelector('article')
 	} catch (e) {
-		console.log(`No <article> element found! Does ${USERNAME} have any tweets?`)
+		console.log(
+			`No <article> element found! Does ${USERNAME} have any tweets, or are they protected?`
+		)
 		return
 	}
 	const recordedTweets = getTweetRecords()
@@ -55,7 +58,8 @@ async function checkForTweets() {
 	for (const { tweetID, timestamp } of scrapedTweets) {
 		if (!newestRecordedTweet) {
 			// If there are no recorded tweets, only post brand new tweets
-			if (new Date(timestamp).getTime() < Date.now() - SCRAPE_INTERVAL) continue
+			if (new Date(timestamp).getTime() < Date.now() - SCRAPE_INTERVAL * 4)
+				continue
 		} else {
 			// Don't post any tweet older than the newest recorded tweet
 			if (tweetID <= newestRecordedTweet.tweet_id) continue
@@ -84,7 +88,9 @@ const scrapeTweets = async (
 ): Promise<ScrapedTweet[]> => {
 	const tweets: ScrapedTweet[] = []
 	let oldestTweetID = ''
+	let lastOldestTweetID = ''
 	do {
+		lastOldestTweetID = oldestTweetID
 		const scrapedTweets = await scrapePage(page)
 		for (const scrapedTweet of scrapedTweets) {
 			if (tweets.find((t) => t.tweetID === scrapedTweet.tweetID)) continue
@@ -96,11 +102,18 @@ const scrapeTweets = async (
 			}
 			tweets.push(scrapedTweet)
 		}
+		// Break if no more tweets can be found
+		if (lastOldestTweetID === oldestTweetID) break
 		if (afterTweetID && oldestTweetID > afterTweetID) {
 			// Scroll to load more tweets
-			// @ts-ignore
-			await scrollPageToBottom(page, { size: 500, delay: 50 })
-			await page.waitForResponse((response) => response.status() === 200)
+			try {
+				// @ts-ignore
+				await scrollPageToBottom(page, { size: 500, delay: 50 })
+				await page.waitForResponse((response) => response.status() === 200)
+			} catch (e) {
+				timestampLog('Error scrolling for more tweets', e)
+				break
+			}
 		}
 	} while (afterTweetID && (!oldestTweetID || oldestTweetID > afterTweetID))
 	return tweets
