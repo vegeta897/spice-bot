@@ -61,6 +61,16 @@ export async function initTwitter() {
 					'Last Twitter stream still open, trying again in 5 seconds...'
 				)
 				await sleep(5000)
+			} else if (streamError.data?.title === 'Too Many Requests') {
+				const waitUntil = streamError.rateLimit?.reset
+					? streamError.rateLimit.reset * 1000
+					: Date.now() + 5 * 60 * 1000
+				const waitMs = waitUntil - Date.now()
+				timestampLog(
+					`Rate limit exceeded, retrying in ${waitMs}ms`,
+					streamError.rateLimit
+				)
+				await sleep(waitMs)
 			} else {
 				console.log('Unknown error initializing Twitter stream!')
 				throw streamError
