@@ -29,7 +29,7 @@ This is not a public bot that you can invite, but you can set up your own Spice 
 - [A Discord bot](https://discordjs.guide/preparations/setting-up-a-bot-application.html)
 - [A Twitch App](https://dev.twitch.tv/console/apps/create)
 - [A host name or public IP with SSL](https://twurple.js.org/docs/getting-data/eventsub/listener-setup.html)
-- [A Twitter Developer account](https://developer.twitter.com/en/apply-for-access)
+- [A Twitter Developer account](https://developer.twitter.com/en/apply-for-access) (unless using scrape mode)
 
 ### Install
 
@@ -39,24 +39,25 @@ Clone this repository and run `npm install`
 
 Rename or copy `.env.example` to `.env` and fill it out. All variables are required unless marked optional.
 
-| Variable                      | Description                                                                                           |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `TWITCH_USERNAME`             | The Twitch username to watch for streams                                                              |
-| `TWITCH_CLIENT_ID`            | The client ID of your Twitch App                                                                      |
-| `TWITCH_CLIENT_SECRET`        | The client secret of your Twitch App                                                                  |
-| `TWITCH_EVENTSUB_HOSTNAME`    | The domain or public IP that your server can listen to for Twitch events                              |
-| `TWITCH_EVENTSUB_PATH_PREFIX` | The path to append to the host name, e.g. `twitch`                                                    |
-| `TWITCH_EVENTSUB_PORT`        | The port for your server to listen to for Twitch events. This is internal only, for the reverse proxy |
-| `TWITCH_BANNER_URL`           | _(optional)_ An image URL to use in stream notification embeds                                        |
-| `TWITTER_USERNAME`            | The Twitter username to watch for tweets                                                              |
-| `TWITTER_TOKEN`               | The bearer token for your Twitter app                                                                 |
-| `TWITTER_INCLUDE_RETWEETS`    | If set to "true", retweets will be posted (quote retweets are always be posted)                       |
-| `TWITTER_INCLUDE_REPLIES`     | If set to "true", tweet replies will be posted (self-replies are always posted)                       |
-| `DISCORD_BOT_TOKEN`           | The token of your Discord bot                                                                         |
-| `DISCORD_SERVER_ID`           | The Discord server ID to post to                                                                      |
-| `DISCORD_TWITCH_CHANNEL_ID`   | The Discord channel ID to post Twitch streams to                                                      |
-| `DISCORD_TWITTER_CHANNEL_ID`  | The Discord channel ID to post tweets to (this can be the same as the Twitch channel)                 |
-| `NICKNAME`                    | _(optional)_ A nickname for the streamer, used in stream notifications                                |
+| Variable                      | Description                                                                                            |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `TWITCH_USERNAME`             | The Twitch username to watch for streams                                                               |
+| `TWITCH_CLIENT_ID`            | The client ID of your Twitch App                                                                       |
+| `TWITCH_CLIENT_SECRET`        | The client secret of your Twitch App                                                                   |
+| `TWITCH_EVENTSUB_HOSTNAME`    | The domain or public IP that your server can listen to for Twitch events                               |
+| `TWITCH_EVENTSUB_PATH_PREFIX` | The path to append to the host name, e.g. `twitch`                                                     |
+| `TWITCH_EVENTSUB_PORT`        | The port for your server to listen to for Twitch events. This is internal only, for the reverse proxy  |
+| `TWITCH_BANNER_URL`           | _(optional)_ An image URL to use in stream notification embeds                                         |
+| `TWITTER_USERNAME`            | The Twitter username to watch for tweets. Leave this blank to deactivate the whole Twitter module      |
+| `TWITTER_SCRAPE_MODE`         | If "true", the Twitter API will be substituted for page scraping                                       |
+| `TWITTER_TOKEN`               | The bearer token for your Twitter app (not required if `TWITTER_SCRAPE_MODE="true"`)                   |
+| `TWITTER_INCLUDE_RETWEETS`    | If "true", retweets will be posted (quote retweets are always be posted)                               |
+| `TWITTER_INCLUDE_REPLIES`     | If "true", tweet replies will be posted (self-replies are always posted) (doesn't work in scrape mode) |
+| `DISCORD_BOT_TOKEN`           | The token of your Discord bot                                                                          |
+| `DISCORD_SERVER_ID`           | The Discord server ID to post to                                                                       |
+| `DISCORD_TWITCH_CHANNEL_ID`   | The Discord channel ID to post Twitch streams to                                                       |
+| `DISCORD_TWITTER_CHANNEL_ID`  | The Discord channel ID to post tweets to (this can be the same as the Twitch channel)                  |
+| `NICKNAME`                    | _(optional)_ A nickname for the streamer, used in stream notifications                                 |
 
 ### Setup
 
@@ -85,8 +86,14 @@ The bot does not require any privileged intents.
 
 Build Spice Bot with `npm run build` and start it with `npm start`. I recommend using a service such as [PM2](https://pm2.keymetrics.io/) to handle auto-restarts and log files.
 
+## Twitter API
+
+On February 2nd 2023, [Twitter announced](https://twitter.com/TwitterDev/status/1621026986784337922) that there will no longer be free access to their API, merely one week hence. This is an absurd move that I don't need to go into here. The point is, I immediately began creating a workaround which amounts to scraping Twitter with an emulated browser, with the help of the awesome library [Puppeteer](https://pptr.dev/). I am writing this before the paywall has actually gone up, so I don't know for sure if this work will be necessary, but I'm preparing for the worst.
+
 ## About
 
 Add me on Discord if you have any questions or comments: `vegeta897#7777`
 
 Spice Bot was originally created for the official [Abby Russell](https://www.abbyfrombrooklyn.com/) Discord server. Shout-out to the sweeties!
+
+Future development will be dictated by the needs of the server I'm using it on, and anything I'm interesteed in pursuing. This may include scope expansions that seem pretty irrelevant or specialized. I don't feel like spending time and effort making it modular, so it's all happening in this repo. Not like anyone is really going to use this bot, this readme is just for me!

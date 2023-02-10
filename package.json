@@ -26,6 +26,8 @@
 		"dotenv": "^16.0.3",
 		"lowdb": "^5.0.5",
 		"luxon": "^3.2.1",
+		"puppeteer": "^19.6.3",
+		"puppeteer-autoscroll-down": "^1.1.1",
 		"randomstring": "^1.2.3",
 		"twitter-api-v2": "^1.14.0"
 	},

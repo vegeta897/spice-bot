@@ -25,10 +25,12 @@ export function connectBot() {
 				process.env.DISCORD_TWITCH_CHANNEL_ID
 			)) as TextChannel
 			console.log(`Found twitch channel #${twitchChannel.name}`)
-			twitterChannel = (await getChannel(
-				process.env.DISCORD_TWITTER_CHANNEL_ID
-			)) as TextChannel
-			console.log(`Found twitter channel #${twitterChannel.name}`)
+			if (process.env.DISCORD_TWITTER_CHANNEL_ID !== '') {
+				twitterChannel = (await getChannel(
+					process.env.DISCORD_TWITTER_CHANNEL_ID
+				)) as TextChannel
+				console.log(`Found twitter channel #${twitterChannel.name}`)
+			}
 			await initPings(bot, server)
 			resolve()
 		})
