@@ -48,7 +48,7 @@ Rename or copy `.env.example` to `.env` and fill it out. All variables are requi
 | `TWITCH_EVENTSUB_PATH_PREFIX` | The path to append to the host name, e.g. `twitch`                                                     |
 | `TWITCH_EVENTSUB_PORT`        | The port for your server to listen to for Twitch events. This is internal only, for the reverse proxy  |
 | `TWITCH_BANNER_URL`           | _(optional)_ An image URL to use in stream notification embeds                                         |
-| `TWITTER_USERNAME`            | The Twitter username to watch for tweets                                                               |
+| `TWITTER_USERNAME`            | The Twitter username to watch for tweets. Leave this blank to deactivate the whole Twitter module      |
 | `TWITTER_SCRAPE_MODE`         | If "true", the Twitter API will be substituted for page scraping                                       |
 | `TWITTER_TOKEN`               | The bearer token for your Twitter app (not required if `TWITTER_SCRAPE_MODE="true"`)                   |
 | `TWITTER_INCLUDE_RETWEETS`    | If "true", retweets will be posted (quote retweets are always be posted)                               |

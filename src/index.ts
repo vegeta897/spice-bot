@@ -13,7 +13,9 @@ async function init() {
 	await initDB()
 	await connectBot()
 	const twitterModule =
-		process.env.TWITTER_SCRAPE_MODE === 'true'
+		process.env.TWITTER_USERNAME === ''
+			? () => {}
+			: process.env.TWITTER_SCRAPE_MODE === 'true'
 			? initTwitterScraper
 			: initTwitter
 	await Promise.all([initTwitch(), twitterModule()])
