@@ -20,6 +20,7 @@
 	"dependencies": {
 		"@twurple/api": "^5.3.3",
 		"@twurple/auth": "^5.3.3",
+		"@twurple/chat": "^5.3.3",
 		"@twurple/eventsub-http": "^5.3.3",
 		"@twurple/eventsub-ngrok": "^5.3.3",
 		"discord.js": "^14.7.1",
