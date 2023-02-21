@@ -30,7 +30,8 @@ type DBData = {
 	tweets: TweetRecord[]
 	streams: StreamRecord[]
 	twitchEventSubSecret: string | null
-	twitchBotUserAuth: TokenData | null
+	twitchBotToken: TokenData | null
+	twitchStreamerToken: TokenData | null
 }
 
 const filename = DEV_MODE ? 'db-dev.json' : 'db.json'
@@ -44,7 +45,8 @@ export async function initDB() {
 		tweets: [],
 		streams: [],
 		twitchEventSubSecret: null,
-		twitchBotUserAuth: null,
+		twitchBotToken: null,
+		twitchStreamerToken: null,
 	}
 	if (DEV_MODE)
 		db.data.streams = db.data.streams.filter((s) => s.streamID !== 'test')

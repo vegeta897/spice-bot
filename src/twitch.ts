@@ -49,7 +49,6 @@ export async function initTwitch() {
 		process.env.TWITCH_CLIENT_ID,
 		process.env.TWITCH_CLIENT_SECRET
 	)
-
 	apiClient = new ApiClient({ authProvider })
 	twitchUser = (await apiClient.users.getUserByName(TWITCH_USERNAME))!
 	if (!twitchUser) throw `Could not find twitch user "${TWITCH_USERNAME}"`
@@ -76,6 +75,8 @@ export async function initTwitch() {
 		await apiClient.eventSub.deleteAllSubscriptions()
 		console.log('Deleted all EventSub subscriptions')
 	}
+	// TODO: Change this toEventSubMiddleware to share express app
+	// https://twurple.js.org/docs/getting-data/eventsub/express.html
 	const listener = new EventSubHttpListener({
 		apiClient,
 		adapter,
@@ -144,6 +145,15 @@ export async function initTwitch() {
 			checkVideos()
 		}
 	)
+	const redemptionAddSubscription =
+		await listener.subscribeToChannelRedemptionAddEvents(
+			twitchUser.id,
+			async (event) => {
+				console.log(event.rewardTitle, event.status, event.rewardPrompt)
+			}
+		)
+	// TODO: Add authorizationRevoke listener
+	// https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/#userauthorizationrevoke
 	await listener.start()
 	if (!DEV_MODE) checkStreamAndVideos()
 	// Check for stream/video updates every 5 minutes
@@ -151,6 +161,7 @@ export async function initTwitch() {
 	if (DEV_MODE) {
 		console.log(await onlineSubscription.getCliTestCommand())
 		console.log(await offlineSubscription.getCliTestCommand())
+		console.log(await redemptionAddSubscription.getCliTestCommand())
 	}
 	console.log('Twitch EventSub connected')
 }
@@ -275,6 +286,7 @@ async function checkVideos(stream: HelixStream | null = null) {
 			streamStatus: 'ended',
 			videoInfo: false,
 		})
+		// TODO: Maybe delete the message instead
 		editStreamMessage(updatedRecord.messageID!, {
 			content: '',
 			embeds: [getStreamEndEmbed(updatedRecord)],
