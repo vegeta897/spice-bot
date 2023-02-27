@@ -1,7 +1,8 @@
 declare global {
 	namespace NodeJS {
 		interface ProcessEnv {
-			TWITCH_USERNAME: string
+			TWITCH_STREAMER_USERNAME: string
+			TWITCH_BOT_USERNAME: string
 			TWITCH_CLIENT_ID: string
 			TWITCH_CLIENT_SECRET: string
 			TWITCH_EVENTSUB_HOSTNAME: string
@@ -9,6 +10,7 @@ declare global {
 			TWITCH_EVENTSUB_PORT: string
 			TWITCH_BANNER_URL?: string
 			TWITCH_REDIRECT_URI: string
+			TWITCH_OAUTH_PORT: string
 			TWITTER_USERNAME: string
 			TWITTER_TOKEN: string
 			TWITTER_INCLUDE_RETWEETS: string

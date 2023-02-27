@@ -1,6 +1,6 @@
-import { ChatClient } from '@twurple/chat'
+import { type RefreshingAuthProvider } from '@twurple/auth'
+import { ChatClient, toUserName } from '@twurple/chat'
 import { ParsedMessageEmotePart } from '@twurple/common'
-import { getTwitchBotAuthProvider } from './twitchAuth.js'
 
 // Idea: stream recap when !recap command used, or raid initialized
 //       maybe include emote usage, pogger/sogger ratio
@@ -11,25 +11,16 @@ import { getTwitchBotAuthProvider } from './twitchAuth.js'
 //       maybe send amended messages if people vote after command is used
 // Use emotes if given a gift subscription (and thank the gifter!)
 
-export async function initTwitchChat() {
-	const authProvider = await getTwitchBotAuthProvider()
+export async function initTwitchChat(authProvider: RefreshingAuthProvider) {
 	const chatClient = new ChatClient({
 		authProvider,
-		channels: [process.env.TWITCH_USERNAME],
+		channels: [process.env.TWITCH_STREAMER_USERNAME],
 	})
 	await chatClient.connect()
 
 	chatClient.onMessage((channel, user, text, msg) => {
 		// console.log(channel, user, text)
-		// console.log(
-		// 	'mod:',
-		// 	msg.userInfo.isMod,
-		// 	'broadcaster:',
-		// 	msg.userInfo.isBroadcaster,
-		// 	'redemption:',
-		// 	msg.isRedemption
-		// )
-		// console.log(msg.parseEmotes())
+		if (toUserName(channel) !== process.env.TWITCH_STREAMER_USERNAME) return
 		const mod = msg.userInfo.isMod ? '[MOD] ' : ''
 		const redemption = msg.isRedemption ? ' (REDEEM)' : ''
 		const emotes = msg

@@ -31,7 +31,7 @@ const pingConfigs: Record<PingConfig['type'], PingConfig> = {
 		getRole: () => twitchPingRole!,
 		btnAddID: 'btnTwitchPingAdd',
 		btnRemoveID: 'btnTwitchPingRemove',
-		name: process.env.NICKNAME || process.env.TWITCH_USERNAME,
+		name: process.env.NICKNAME || process.env.TWITCH_STREAMER_USERNAME,
 		buttonVerb: 'goes live',
 		responseVerb: 'streams',
 		collectiveNoun: 'streams',

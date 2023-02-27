@@ -18,7 +18,7 @@ export const getMockStreamOnlineEvent = (twitchID: string) =>
 		id: 'test_stream',
 		getStream: () => testStream,
 	} as unknown as Parameters<
-		Parameters<EventSubHttpListener['subscribeToStreamOnlineEvents']>[1]
+		Parameters<EventSubHttpListener['onStreamOnline']>[1]
 	>[0])
 
 export const getMockStream = () =>

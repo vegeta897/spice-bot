@@ -20,6 +20,17 @@ export const formatDuration = (seconds: number) =>
 export const sortByProp = <T>(arr: T[], prop: keyof T, reverse = false) =>
 	arr.sort((a, b) => (a[prop] > b[prop] ? 1 : -1) * (reverse ? -1 : 1))
 
+export const compareArrays = (first: unknown[], second: unknown[]) => {
+	const onlyFirstHas = first.filter((el) => !second.includes(el))
+	const onlySecondHas = second.filter((el) => !first.includes(el))
+	return {
+		onlyFirstHas,
+		onlySecondHas,
+		bothHave: first.filter((el) => second.includes(el)),
+		bothHaveAll: onlyFirstHas.length + onlySecondHas.length === 0,
+	}
+}
+
 // https://stackoverflow.com/a/59700012/2612679
 export type DeepReadonly<T> = T extends Function // eslint-disable-line @typescript-eslint/ban-types
 	? T

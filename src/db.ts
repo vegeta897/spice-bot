@@ -3,7 +3,7 @@ import { join, dirname } from 'node:path'
 import { Low } from 'lowdb'
 import { JSONFile } from 'lowdb/node'
 import { type DeepReadonly, DEV_MODE, sortByProp } from './util.js'
-import { TokenData } from './twitchAuth.js'
+import { type AccessToken } from '@twurple/auth'
 
 type TweetRecord = {
 	tweet_id: string
@@ -29,9 +29,10 @@ export type StreamRecord = {
 type DBData = {
 	tweets: TweetRecord[]
 	streams: StreamRecord[]
+	expressSessionSecret: string | null
 	twitchEventSubSecret: string | null
-	twitchBotToken: TokenData | null
-	twitchStreamerToken: TokenData | null
+	twitchBotToken: AccessToken | null
+	twitchStreamerToken: AccessToken | null
 }
 
 const filename = DEV_MODE ? 'db-dev.json' : 'db.json'
@@ -44,6 +45,7 @@ export async function initDB() {
 	db.data ||= {
 		tweets: [],
 		streams: [],
+		expressSessionSecret: null,
 		twitchEventSubSecret: null,
 		twitchBotToken: null,
 		twitchStreamerToken: null,
