@@ -27,6 +27,7 @@ jspm_packages/
 
 # dotenv environment variables file
 .env
+.env-live
 
 # Build output
 build
@@ -37,3 +38,6 @@ src/indexOld.ts
 # Databases
 db.json
 db-dev.json
+
+# Personal
+planning.md 
