@@ -60,8 +60,13 @@ export async function initTwitchOAuthServer() {
 			cookie: { secure: !DEV_MODE },
 		})
 	)
+	app.set('views', join(dirname(fileURLToPath(import.meta.url)), 'views'))
+	app.set('view engine', 'ejs')
 	app.get('/', async (req, res) => {
-		timestampLog('incoming request', req.query)
+		return res.render('index')
+	})
+	app.get('/callback', async (req, res) => {
+		timestampLog('incoming oauth callback', req.query)
 		const { code, scope } = req.query
 		console.log('code received:', code)
 		console.log('scope:', scope)
@@ -95,6 +100,7 @@ export async function initTwitchOAuthServer() {
 				req.session.accountType = intendedAccountType
 				res.redirect('wrong-account')
 			} else {
+				console.log(username, 'successfully authorized')
 				res.redirect('success')
 			}
 		} catch (err) {
@@ -105,36 +111,25 @@ export async function initTwitchOAuthServer() {
 	app.get('/auth', (req, res) => res.redirect(oauthLink(STREAMER_SCOPES)))
 	app.get('/auth-bot', (req, res) => res.redirect(oauthLink(BOT_SCOPES)))
 	app.get('/success', (req, res) => {
-		// TODO: Use ejs
-		// https://stackoverflow.com/questions/60387096/send-a-variable-to-html-with-express-sendfile-short-question
 		if (!req.session.username) {
 			res.redirect('/')
 		} else {
-			console.log(req.session.username, 'successfully authorized')
-			res.sendFile(
-				join(dirname(fileURLToPath(import.meta.url)), 'views/success.html')
-			)
+			res.render('success')
 		}
 	})
 	app.get('/wrong-account', (req, res) => {
 		if (!req.session.username) {
 			res.redirect('/')
 		} else {
-			res.sendFile(
-				join(
-					dirname(fileURLToPath(import.meta.url)),
-					'views/wrong-account.html'
-				)
-			)
+			res.render('wrong-account')
 		}
 	})
 	app.get('/error', (req, res) => {
-		res.sendFile(
-			join(dirname(fileURLToPath(import.meta.url)), 'views/error.html')
-		)
+		res.render('error')
 	})
 	app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-		res.status(400).send(err)
+		// res.status(400).send(err)
+		res.render('error')
 	})
 	app.listen(process.env.TWITCH_OAUTH_PORT, () => {
 		console.log('Waiting for authorization redirects...')
@@ -158,13 +153,11 @@ async function doOauthFlow(code: string): Promise<{
 	const tokenInfo = await getTokenInfo(accessToken.accessToken)
 	if (tokenInfo.userName === process.env.TWITCH_STREAMER_USERNAME) {
 		console.log('Successfully exchanged code for streamer token')
-		// twitchStreamerToken = accessToken
-		// modifyData({ twitchStreamerToken })
+		modifyData({ twitchStreamerToken: accessToken })
 		return { username: tokenInfo.userName }
 	} else if (tokenInfo.userName === process.env.TWITCH_BOT_USERNAME) {
 		console.log('Successfully exchanged code for bot token')
-		// twitchBotToken = accessToken
-		// modifyData({ twitchBotToken })
+		modifyData({ twitchBotToken: accessToken })
 		return { username: tokenInfo.userName }
 	} else if (tokenInfo.userName === null) {
 		throw 'Invalid token received'

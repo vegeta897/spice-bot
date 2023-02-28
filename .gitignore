@@ -28,6 +28,7 @@ jspm_packages/
 # dotenv environment variables file
 .env
 .env-live
+.env-live-old
 
 # Build output
 build
