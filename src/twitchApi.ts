@@ -3,8 +3,11 @@ import { type AccessToken, RefreshingAuthProvider } from '@twurple/auth'
 import { getData, modifyData } from './db.js'
 import { timestampLog } from './util.js'
 
+let authProvider: RefreshingAuthProvider
+let apiClient: ApiClient
+
 export async function createAuthAndApiClient() {
-	const authProvider = new RefreshingAuthProvider({
+	authProvider = new RefreshingAuthProvider({
 		clientId: process.env.TWITCH_CLIENT_ID,
 		clientSecret: process.env.TWITCH_CLIENT_SECRET,
 		onRefresh: async (userId, newTokenData) => {
@@ -18,15 +21,15 @@ export async function createAuthAndApiClient() {
 				await modifyData({ twitchStreamerToken: newTokenData })
 		},
 	})
-	const apiClient = new ApiClient({ authProvider })
-	const botUser = await getBotUser(apiClient)
-	const streamerUser = await getStreamerUser(apiClient)
-	addBotUserToAuth(botUser, authProvider)
-	addStreamerToAuth(streamerUser, authProvider)
+	apiClient = new ApiClient({ authProvider })
+	const botUser = await getBotUser()
+	const streamerUser = await getStreamerUser()
+	addBotUserToAuth(botUser)
+	addStreamerToAuth(streamerUser)
 	return { authProvider, apiClient, streamerUser }
 }
 
-export async function getBotUser(apiClient: ApiClient) {
+async function getBotUser() {
 	const botUser = await apiClient.users.getUserByName(
 		process.env.TWITCH_BOT_USERNAME
 	)
@@ -35,42 +38,41 @@ export async function getBotUser(apiClient: ApiClient) {
 	return botUser
 }
 
-export async function getStreamerUser(apiClient: ApiClient) {
-	const botUser = await apiClient.users.getUserByName(
+async function getStreamerUser() {
+	const streamerUser = await apiClient.users.getUserByName(
 		process.env.TWITCH_STREAMER_USERNAME
 	)
-	if (!botUser)
+	if (!streamerUser)
 		throw `Could not find streamer by username "${process.env.TWITCH_STREAMER_USERNAME}"`
-	return botUser
+	return streamerUser
 }
 
-function addStreamerToAuth(
-	user: HelixUser,
-	authProvider: RefreshingAuthProvider
-) {
-	let twitchStreamerToken = getData().twitchStreamerToken as AccessToken
-	if (!twitchStreamerToken) {
+function addStreamerToAuth(user: HelixUser) {
+	const streamerToken = getData().twitchStreamerToken as AccessToken
+	if (!streamerToken) {
 		// TODO: Make sure link sent to actual streamer is using Spice Bot 2.0, not Spice Bot Test
 		console.log(
-			'Missing Twitch streamer token! Send this link to the streamer to authorize your app:',
+			'REQUIRED: Send this link to the streamer to authorize your app:',
 			process.env.TWITCH_REDIRECT_URI + '/auth'
 		)
 		return
 	}
-	authProvider.addUser(user, twitchStreamerToken)
+	authProvider.addUser(user, streamerToken)
 }
 
-function addBotUserToAuth(
-	user: HelixUser,
-	authProvider: RefreshingAuthProvider
-) {
-	let twitchBotToken = getData().twitchBotToken as AccessToken
-	if (!twitchBotToken) {
+function addBotUserToAuth(user: HelixUser) {
+	const botToken = getData().twitchBotToken as AccessToken
+	if (!botToken) {
 		console.log(
-			'Missing Twitch bot token! Use your bot account to auth with this link:',
+			'REQUIRED: Use your bot account to auth with this link:',
 			process.env.TWITCH_REDIRECT_URI + '/auth-bot'
 		)
 		return
 	}
-	authProvider.addUser(user, twitchBotToken, ['chat'])
+	authProvider.addUser(user, botToken, ['chat'])
+}
+
+export async function getUserScopes(user: HelixUser): Promise<string[]> {
+	const streamerToken = await authProvider.getAccessTokenForUser(user)
+	return streamerToken?.scope || []
 }

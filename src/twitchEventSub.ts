@@ -33,6 +33,7 @@ import {
 } from './dev.js'
 import { getStreamEndEmbed, getStreamStartEmbed } from './twitchEmbeds.js'
 import randomstring from 'randomstring'
+import { getUserScopes } from './twitchApi.js'
 
 // TODO: Think about splitting up this file
 
@@ -47,6 +48,7 @@ export async function initTwitchEventSub(options: {
 }) {
 	apiClient = options.apiClient
 	streamerUser = options.streamerUser
+
 	const adapter = DEV_MODE
 		? new NgrokAdapter()
 		: new ReverseProxyAdapter({
@@ -79,11 +81,60 @@ export async function initTwitchEventSub(options: {
 		strictHostCheck: true,
 		legacySecrets: false,
 	})
-	// Have twitchAuth verify token and scopes, to init event subs
-	// Don't init priveleged subs if required scope(s) not present
-	// Use grant event to (re)create privileged listeners
+
+	// Use grant event to (re)create privileged listeners?
 	// Maybe store a boolean to indicate whether privileged events are enabled,
 	// so the chatbot knows whether it can listen for grace trains etc.
+
+	const streamerScopes = await getUserScopes(streamerUser)
+	console.log('streamer scopes:', streamerScopes)
+	initGlobalEventSubs(listener)
+	if (streamerScopes.includes('channel:read:redemptions')) {
+		const channelRedemptionAddSub = listener.onChannelRedemptionAdd(
+			streamerUser,
+			async (event) => {
+				// TODO: Watch for GRACE
+				console.log(event.rewardTitle, event.status, event.rewardPrompt)
+			}
+		)
+	}
+	if (streamerScopes.includes('moderator:read:followers')) {
+		let channelFollowSub = listener.onChannelFollow(
+			streamerUser,
+			streamerUser,
+			(event) => {
+				console.log(event.userName, 'is now following!')
+			}
+		)
+	}
+	if (streamerScopes.includes('moderator:read')) {
+		let channelModAddSub = listener.onChannelModeratorAdd(
+			streamerUser,
+			(event) => {
+				console.log(event.userName, 'is a mod now!')
+			}
+		)
+	}
+
+	listener.start()
+	// TODO: Don't need to use onVerify
+	// Use getSubscriptionsForType to check if privileged events are enabled
+	// They won't exist if app wasn't authed when they were created
+	// They will have a revoked status if auth was revoked during runtime
+	// setInterval(async () => {
+	// 	const subs = await apiClient.eventSub.getSubscriptions()
+	// 	console.log(
+	// 		subs.data.map((s) => [s.type, s.id, s.creationDate, s.status].join(' | '))
+	// 	)
+	// }, 8 * 1000)
+	if (!DEV_MODE) checkStreamAndVideos()
+	// Check for stream/video updates every 5 minutes
+	setInterval(() => checkStreamAndVideos(), (DEV_MODE ? 0.5 : 5) * 60 * 1000)
+
+	console.log('Twitch EventSub connected')
+}
+
+async function initGlobalEventSubs(listener: EventSubHttpListener) {
 	const streamOnlineSub = listener.onStreamOnline(
 		streamerUser,
 		async (event) => {
@@ -146,13 +197,6 @@ export async function initTwitchEventSub(options: {
 			checkVideos()
 		}
 	)
-	const channelRedemptionAddSub = listener.onChannelRedemptionAdd(
-		streamerUser,
-		async (event) => {
-			// TODO: Watch for GRACE
-			console.log(event.rewardTitle, event.status, event.rewardPrompt)
-		}
-	)
 	const userAuthRevokeSub = listener.onUserAuthorizationRevoke(
 		process.env.TWITCH_CLIENT_ID,
 		async (event) => {
@@ -174,51 +218,23 @@ export async function initTwitchEventSub(options: {
 			if (event.userName === process.env.TWITCH_BOT_USERNAME) {
 			}
 			if (event.userName === process.env.TWITCH_STREAMER_USERNAME) {
-				console.log('re-creating channel mod add sub')
-				// TODO: Re-initialized privileged subs
+				// console.log('re-creating channel mod add sub')
+				// TODO: Re-initialize privileged subs
 				// Create a method that initializes them, separate from the non-priv subs
-				channelModAddSub = listener.onChannelModeratorAdd(
-					streamerUser,
-					(event) => {
-						console.log(event.userName, 'is a mod now!')
-					}
-				)
+				// channelModAddSub = listener.onChannelModeratorAdd(
+				// 	streamerUser,
+				// 	(event) => {
+				// 		console.log(event.userName, 'is a mod now!')
+				// 	}
+				// )
 			}
 		}
 	)
-	let channelModAddSub = listener.onChannelModeratorAdd(
-		streamerUser,
-		(event) => {
-			console.log(event.userName, 'is a mod now!')
-		}
-	)
-	let channelFollowSub = listener.onChannelFollow(
-		streamerUser,
-		streamerUser,
-		(event) => {
-			console.log(event.userName, 'is now following!')
-		}
-	)
-	listener.start()
-	// TODO: Don't need to use onVerify
-	// Use getSubscriptionsForType to check if privileged events are enabled
-	// They won't exist if app wasn't authed when they were created
-	// They will have a revoked status if auth was revoked during runtime
-	// setInterval(async () => {
-	// 	const subs = await apiClient.eventSub.getSubscriptions()
-	// 	console.log(
-	// 		subs.data.map((s) => [s.type, s.id, s.creationDate, s.status].join(' | '))
-	// 	)
-	// }, 8 * 1000)
-	if (!DEV_MODE) checkStreamAndVideos()
-	// Check for stream/video updates every 5 minutes
-	setInterval(() => checkStreamAndVideos(), (DEV_MODE ? 0.5 : 5) * 60 * 1000)
 	if (DEV_MODE) {
 		console.log(await streamOnlineSub.getCliTestCommand())
 		console.log(await streamOfflineSub.getCliTestCommand())
 		// console.log(await channelRedemptionAddSub.getCliTestCommand())
 	}
-	console.log('Twitch EventSub connected')
 }
 
 async function checkStreamAndVideos() {
