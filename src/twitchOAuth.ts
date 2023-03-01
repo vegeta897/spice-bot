@@ -7,6 +7,7 @@ import randomstring from 'randomstring'
 import { compareArrays, DEV_MODE, timestampLog } from './util.js'
 import { getData, modifyData } from './db.js'
 import { exchangeCode, getTokenInfo, revokeToken } from '@twurple/auth'
+import DBSessionStore from './db-session-store.js'
 
 const BOT_SCOPES = [
 	'channel:moderate',
@@ -54,10 +55,11 @@ export async function initTwitchOAuthServer() {
 	}
 	app.use(
 		session({
+			store: new DBSessionStore(),
 			secret: sessionSecret,
 			resave: false,
 			saveUninitialized: false,
-			cookie: { secure: !DEV_MODE },
+			cookie: { secure: !DEV_MODE, maxAge: 30 * 24 * 60 * 60 * 1000 },
 		})
 	)
 	app.set('views', join(dirname(fileURLToPath(import.meta.url)), 'views'))
@@ -179,7 +181,7 @@ const oauthLink = (scopes: string[]) =>
 	}&response_type=code&scope=${scopes.join('+')}`
 
 declare module 'express-session' {
-	interface Session {
+	interface SessionData {
 		username?: string
 		accountType?: 'streamer' | 'bot'
 	}
