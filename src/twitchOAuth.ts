@@ -30,6 +30,8 @@ const STREAMER_SCOPES = [
 	'moderator:read:followers',
 ]
 
+const SESSION_TTL = 2 * 7 * 24 * 60 * 60 * 1000 // 2 weeks
+
 // Auth flow:
 // Streamer visits auth URL containing Spice Bot client ID and requested scopes
 // Twitch redirects to REDIRECT_URI with one-time auth code that expires shortly
@@ -55,11 +57,11 @@ export async function initTwitchOAuthServer() {
 	}
 	app.use(
 		session({
-			store: new DBSessionStore(),
+			store: new DBSessionStore({ ttl: SESSION_TTL }),
 			secret: sessionSecret,
 			resave: false,
 			saveUninitialized: false,
-			cookie: { secure: !DEV_MODE, maxAge: 30 * 24 * 60 * 60 * 1000 },
+			cookie: { secure: !DEV_MODE, maxAge: SESSION_TTL },
 		})
 	)
 	app.set('views', join(dirname(fileURLToPath(import.meta.url)), 'views'))
