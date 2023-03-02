@@ -33,7 +33,7 @@ import {
 } from './dev.js'
 import { getStreamEndEmbed, getStreamStartEmbed } from './twitchEmbeds.js'
 import randomstring from 'randomstring'
-import { getUserScopes } from './twitchApi.js'
+import { AuthEvents, getUserScopes } from './twitchApi.js'
 
 // TODO: Think about splitting up this file
 
@@ -52,6 +52,7 @@ export async function initTwitchEventSub(options: {
 	const adapter = DEV_MODE
 		? new NgrokAdapter()
 		: new ReverseProxyAdapter({
+				// TODO: Use spicebot.pixelatomy.com/eventsub
 				hostName: process.env.TWITCH_EVENTSUB_HOSTNAME,
 				pathPrefix: process.env.TWITCH_EVENTSUB_PATH_PREFIX,
 				port: +process.env.TWITCH_EVENTSUB_PORT,
@@ -111,7 +112,7 @@ export async function initTwitchEventSub(options: {
 		let channelModAddSub = listener.onChannelModeratorAdd(
 			streamerUser,
 			(event) => {
-				console.log(event.userName, 'is a mod now!')
+				console.log(event.userName, 'is now a mod!')
 			}
 		)
 	}
@@ -202,11 +203,10 @@ async function initGlobalEventSubs(listener: EventSubHttpListener) {
 		async (event) => {
 			timestampLog(`${event.userName} has revoked authorization`)
 			if (event.userName === process.env.TWITCH_BOT_USERNAME) {
-				// Need to await data write before calling process.exit()
-				await modifyData({ twitchBotToken: null })
+				AuthEvents.emit('botAuthRevoked')
 			}
 			if (event.userName === process.env.TWITCH_STREAMER_USERNAME) {
-				await modifyData({ twitchStreamerToken: null })
+				AuthEvents.emit('streamerAuthRevoked')
 				apiClient.eventSub.deleteBrokenSubscriptions()
 			}
 		}
@@ -221,12 +221,6 @@ async function initGlobalEventSubs(listener: EventSubHttpListener) {
 				// console.log('re-creating channel mod add sub')
 				// TODO: Re-initialize privileged subs
 				// Create a method that initializes them, separate from the non-priv subs
-				// channelModAddSub = listener.onChannelModeratorAdd(
-				// 	streamerUser,
-				// 	(event) => {
-				// 		console.log(event.userName, 'is a mod now!')
-				// 	}
-				// )
 			}
 		}
 	)

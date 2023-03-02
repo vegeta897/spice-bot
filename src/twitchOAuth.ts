@@ -7,7 +7,8 @@ import randomstring from 'randomstring'
 import { compareArrays, DEV_MODE, timestampLog } from './util.js'
 import { getData, modifyData } from './db.js'
 import { exchangeCode, getTokenInfo, revokeToken } from '@twurple/auth'
-import DBSessionStore from './db-session-store.js'
+import DBSessionStore from './dbSessionStore.js'
+import { AuthEvents, botIsMod } from './twitchApi.js'
 
 const BOT_SCOPES = [
 	'channel:moderate',
@@ -23,7 +24,6 @@ const STREAMER_SCOPES = [
 	'channel:read:predictions',
 	'channel:read:redemptions',
 	'channel:read:subscriptions',
-	'channel:read:vips',
 	'moderation:read',
 	'moderator:read:chat_settings',
 	'moderator:read:chatters',
@@ -47,6 +47,8 @@ const SESSION_TTL = 2 * 7 * 24 * 60 * 60 * 1000 // 2 weeks
 // The streamer authorizing the bot application allows eventsubs, no token required
 // The streamer's token is required for api calls like moderation and polls
 
+// TODO: Allow authing as admin, to view a bot status page
+
 export async function initTwitchOAuthServer() {
 	const app = express()
 	if (!DEV_MODE) app.set('trust proxy', 1) // Trust nginx reverse proxy
@@ -67,13 +69,14 @@ export async function initTwitchOAuthServer() {
 	app.set('views', join(dirname(fileURLToPath(import.meta.url)), 'views'))
 	app.set('view engine', 'ejs')
 	app.get('/', async (req, res) => {
-		return res.render('index')
+		return res.render('index', {
+			username: req.session.username,
+			botIsMod: await botIsMod(),
+		})
 	})
 	app.get('/callback', async (req, res) => {
 		timestampLog('incoming oauth callback', req.query)
 		const { code, scope } = req.query
-		console.log('code received:', code)
-		console.log('scope:', scope)
 		if (!code || typeof code !== 'string' || typeof scope !== 'string')
 			throw 'Invalid parameters'
 		const requestScopes = scope.split(' ')
@@ -97,19 +100,14 @@ export async function initTwitchOAuthServer() {
 				scopeComparison.onlyFirstHas.join(' ')
 			)
 		}
-		try {
-			const { username, wrongUser } = await doOauthFlow(code)
-			req.session.username = username
-			if (wrongUser) {
-				req.session.accountType = intendedAccountType
-				res.redirect('wrong-account')
-			} else {
-				console.log(username, 'successfully authorized')
-				res.redirect('success')
-			}
-		} catch (err) {
-			console.log(err)
-			res.redirect('error')
+		const { username, wrongUser } = await doOauthFlow(code)
+		req.session.username = username
+		if (wrongUser) {
+			req.session.accountType = intendedAccountType
+			res.redirect('wrong-account')
+		} else {
+			console.log(username, 'successfully authorized')
+			res.redirect('success')
 		}
 	})
 	app.get('/auth', (req, res) => res.redirect(oauthLink(STREAMER_SCOPES)))
@@ -118,7 +116,7 @@ export async function initTwitchOAuthServer() {
 		if (!req.session.username) {
 			res.redirect('/')
 		} else {
-			res.render('success')
+			res.render('success', { botUsername: process.env.TWITCH_BOT_USERNAME })
 		}
 	})
 	app.get('/wrong-account', (req, res) => {
@@ -128,12 +126,28 @@ export async function initTwitchOAuthServer() {
 			res.render('wrong-account')
 		}
 	})
+	app.get('/unlink', (req, res) => {
+		if (!req.session.username) {
+			res.redirect('/')
+		} else {
+			if (req.session.username === process.env.TWITCH_STREAMER_USERNAME) {
+				AuthEvents.emit('streamerAuthRevoked')
+			}
+			if (req.session.username === process.env.TWITCH_BOT_USERNAME) {
+				AuthEvents.emit('botAuthRevoked')
+			}
+			req.session.destroy(() => {})
+			res.render('unlinked')
+		}
+	})
 	app.get('/error', (req, res) => {
 		res.render('error')
 	})
 	app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 		// res.status(400).send(err)
-		res.render('error')
+		console.log('Express error:', err)
+		// TODO: Show error in <pre> block on page
+		res.render('error', { error: err })
 	})
 	app.listen(process.env.TWITCH_OAUTH_PORT, () => {
 		console.log('Waiting for authorization redirects...')
@@ -157,11 +171,17 @@ async function doOauthFlow(code: string): Promise<{
 	const tokenInfo = await getTokenInfo(accessToken.accessToken)
 	if (tokenInfo.userName === process.env.TWITCH_STREAMER_USERNAME) {
 		console.log('Successfully exchanged code for streamer token')
-		modifyData({ twitchStreamerToken: accessToken })
+		AuthEvents.emit('streamerAuthed', {
+			token: accessToken,
+			scopes: tokenInfo.scopes,
+		})
 		return { username: tokenInfo.userName }
 	} else if (tokenInfo.userName === process.env.TWITCH_BOT_USERNAME) {
 		console.log('Successfully exchanged code for bot token')
-		modifyData({ twitchBotToken: accessToken })
+		AuthEvents.emit('botAuthed', {
+			token: accessToken,
+			scopes: tokenInfo.scopes,
+		})
 		return { username: tokenInfo.userName }
 	} else if (tokenInfo.userName === null) {
 		throw 'Invalid token received'

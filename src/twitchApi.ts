@@ -1,32 +1,71 @@
 import { ApiClient, type HelixUser } from '@twurple/api'
-import { type AccessToken, RefreshingAuthProvider } from '@twurple/auth'
+import {
+	type AccessToken,
+	RefreshingAuthProvider,
+	revokeToken,
+	getTokenInfo,
+} from '@twurple/auth'
+import Emittery from 'emittery'
 import { getData, modifyData } from './db.js'
 import { timestampLog } from './util.js'
 
 let authProvider: RefreshingAuthProvider
 let apiClient: ApiClient
+let streamerUser: HelixUser
+let streamerAuthRevoked = false
+
+export const AuthEvents = new Emittery<{
+	botAuthed: { token: AccessToken; scopes: string[] }
+	streamerAuthed: { token: AccessToken; scopes: string[] }
+	botAuthRevoked: undefined
+	streamerAuthRevoked: undefined
+}>()
 
 export async function createAuthAndApiClient() {
 	authProvider = new RefreshingAuthProvider({
 		clientId: process.env.TWITCH_CLIENT_ID,
 		clientSecret: process.env.TWITCH_CLIENT_SECRET,
-		onRefresh: async (userId, newTokenData) => {
+		onRefresh: (userId, newTokenData) => {
 			timestampLog(
 				'refreshed token for',
 				userId === botUser.id ? 'bot' : 'streamer'
 			)
-			if (userId === botUser.id)
-				await modifyData({ twitchBotToken: newTokenData })
-			if (userId === streamerUser.id)
-				await modifyData({ twitchStreamerToken: newTokenData })
+			if (userId === botUser.id) modifyData({ twitchBotToken: newTokenData })
+			if (userId === streamerUser.id && !streamerAuthRevoked)
+				modifyData({ twitchStreamerToken: newTokenData })
 		},
 	})
 	apiClient = new ApiClient({ authProvider })
 	const botUser = await getBotUser()
-	const streamerUser = await getStreamerUser()
+	streamerUser = await getStreamerUser()
 	addBotUserToAuth(botUser)
 	addStreamerToAuth(streamerUser)
-	return { authProvider, apiClient, streamerUser }
+	AuthEvents.on('botAuthed', ({ token }) => {
+		modifyData({ twitchBotToken: token })
+		authProvider.addUser(botUser, token, ['chat'])
+	})
+	AuthEvents.on('streamerAuthed', ({ token }) => {
+		modifyData({ twitchStreamerToken: token })
+		authProvider.addUser(streamerUser, token)
+		streamerAuthRevoked = false
+	})
+	AuthEvents.on('botAuthRevoked', () => {
+		const token = getData().twitchBotToken as AccessToken
+		if (token) revokeToken(process.env.TWITCH_CLIENT_ID, token.accessToken)
+		modifyData({ twitchBotToken: null })
+	})
+	AuthEvents.on('streamerAuthRevoked', () => {
+		const token = getData().twitchStreamerToken as AccessToken
+		if (token) revokeToken(process.env.TWITCH_CLIENT_ID, token.accessToken)
+		modifyData({ twitchStreamerToken: null })
+		streamerAuthRevoked = true // To true to prevent token refreshes
+	})
+	setInterval(() => {
+		const { twitchBotToken, twitchStreamerToken } = getData()
+		if (twitchBotToken) getTokenInfo(twitchBotToken.accessToken)
+		if (twitchStreamerToken) getTokenInfo(twitchStreamerToken.accessToken)
+	}, 60 * 60 * 1000) // Validate tokens hourly
+	return { authProvider, apiClient, botUser, streamerUser }
 }
 
 async function getBotUser() {
@@ -47,6 +86,18 @@ async function getStreamerUser() {
 	return streamerUser
 }
 
+function addBotUserToAuth(user: HelixUser) {
+	const botToken = getData().twitchBotToken as AccessToken
+	if (!botToken) {
+		console.log(
+			'REQUIRED: Use your bot account to auth with this link:',
+			process.env.TWITCH_REDIRECT_URI + '/auth-bot'
+		)
+		return
+	}
+	authProvider.addUser(user, botToken, ['chat'])
+}
+
 function addStreamerToAuth(user: HelixUser) {
 	const streamerToken = getData().twitchStreamerToken as AccessToken
 	if (!streamerToken) {
@@ -60,19 +111,19 @@ function addStreamerToAuth(user: HelixUser) {
 	authProvider.addUser(user, streamerToken)
 }
 
-function addBotUserToAuth(user: HelixUser) {
-	const botToken = getData().twitchBotToken as AccessToken
-	if (!botToken) {
-		console.log(
-			'REQUIRED: Use your bot account to auth with this link:',
-			process.env.TWITCH_REDIRECT_URI + '/auth-bot'
-		)
-		return
-	}
-	authProvider.addUser(user, botToken, ['chat'])
+export async function getUserScopes(user: HelixUser): Promise<string[]> {
+	if (user.id === streamerUser.id && streamerAuthRevoked) return []
+	const token = await authProvider.getAccessTokenForUser(user)
+	return token?.scope || []
 }
 
-export async function getUserScopes(user: HelixUser): Promise<string[]> {
-	const streamerToken = await authProvider.getAccessTokenForUser(user)
-	return streamerToken?.scope || []
+export async function botIsMod() {
+	if (streamerAuthRevoked) return false
+	const streamerToken = await authProvider.getAccessTokenForUser(streamerUser)
+	if (!streamerToken || !streamerToken.scope.includes('moderation:read'))
+		return false
+	const mods = await apiClient.moderation.getModerators(streamerUser)
+	return mods.data.some(
+		(mod) => mod.userName === process.env.TWITCH_BOT_USERNAME
+	)
 }

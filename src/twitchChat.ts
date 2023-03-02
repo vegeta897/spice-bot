@@ -1,6 +1,9 @@
+import { type HelixUser } from '@twurple/api'
 import { type RefreshingAuthProvider } from '@twurple/auth'
 import { ChatClient, toUserName } from '@twurple/chat'
 import { ParsedMessageEmotePart } from '@twurple/common'
+import { AuthEvents } from './twitchApi.js'
+import { timestampLog } from './util.js'
 
 // Idea: stream recap when !recap command used, or raid initialized
 //       maybe include emote usage, pogger/sogger ratio
@@ -11,16 +14,46 @@ import { ParsedMessageEmotePart } from '@twurple/common'
 //       maybe send amended messages if people vote after command is used
 // Use emotes if given a gift subscription (and thank the gifter!)
 
-export async function initTwitchChat(authProvider: RefreshingAuthProvider) {
-	const chatClient = new ChatClient({
+let chatClient: ChatClient
+
+export async function initTwitchChat(
+	authProvider: RefreshingAuthProvider,
+	botUser: HelixUser
+) {
+	initChatClient(authProvider, botUser)
+	AuthEvents.on('botAuthed', async () => initChatClient(authProvider, botUser))
+	AuthEvents.on('botAuthRevoked', () => chatClient.quit())
+}
+
+function initChatClient(
+	authProvider: RefreshingAuthProvider,
+	botUser: HelixUser
+) {
+	if (chatClient) chatClient.quit()
+	const botScopes = authProvider.getCurrentScopesForUser(botUser)
+	if (!hasRequiredScopes(botScopes)) {
+		console.log('WARNING: Chat bot is missing read/edit scopes!')
+		return
+	}
+	chatClient = new ChatClient({
 		authProvider,
 		channels: [process.env.TWITCH_STREAMER_USERNAME],
 	})
-	await chatClient.connect()
+	chatClient.connect()
+
+	chatClient.onAuthenticationFailure((text, retryCount) => {
+		timestampLog(`Chat auth failed: ${text}. Retry #${retryCount}`)
+	})
+
+	chatClient.onAuthenticationSuccess(() => {
+		// Wait for this before performing any actions outside of onMessage
+		console.log('Twitch chat connected')
+	})
 
 	chatClient.onMessage((channel, user, text, msg) => {
 		// console.log(channel, user, text)
 		if (toUserName(channel) !== process.env.TWITCH_STREAMER_USERNAME) return
+		const broadcaster = msg.userInfo.isBroadcaster ? '[STREAMER] ' : ''
 		const mod = msg.userInfo.isMod ? '[MOD] ' : ''
 		const redemption = msg.isRedemption ? ' (REDEEM)' : ''
 		const emotes = msg
@@ -30,11 +63,21 @@ export async function initTwitchChat(authProvider: RefreshingAuthProvider) {
 			emotes.length > 0
 				? ` <EMOTES: ${emotes.map((e) => e.name).join(', ')}>`
 				: ''
-		console.log(`${mod}${user}: ${text}${redemption}${emoteList}`)
+		timestampLog(
+			`${broadcaster}${mod}${user}: ${text}${redemption}${emoteList}`
+		)
 		// if (text === '!ping') chatClient.say(channel, 'pong!')
 	})
 
 	chatClient.onWhisper((user, text, msg) => {
 		// Need to use apiClient.whispers.sendWhisper() to reply
 	})
+}
+
+function hasRequiredScopes(scopes: string[]) {
+	return scopes.includes('chat:read') && scopes.includes('chat:edit')
+}
+
+export function botInChat() {
+	return chatClient && chatClient.irc.isConnected
 }

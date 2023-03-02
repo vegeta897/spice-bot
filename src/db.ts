@@ -4,7 +4,7 @@ import { Low } from 'lowdb'
 import { JSONFile } from 'lowdb/node'
 import { type DeepReadonly, DEV_MODE, sortByProp } from './util.js'
 import { type AccessToken } from '@twurple/auth'
-import { type SessionRecord } from './db-session-store.js'
+import { type SessionRecord } from './dbSessionStore.js'
 
 type TweetRecord = {
 	tweet_id: string
