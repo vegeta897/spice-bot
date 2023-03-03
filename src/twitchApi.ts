@@ -17,8 +17,8 @@ let streamerAuthRevoked = false
 export const AuthEvents = new Emittery<{
 	botAuthed: { token: AccessToken; scopes: string[] }
 	streamerAuthed: { token: AccessToken; scopes: string[] }
-	botAuthRevoked: undefined
-	streamerAuthRevoked: undefined
+	botAuthRevoked: { method: 'sign-out' | 'disconnect' }
+	streamerAuthRevoked: { method: 'sign-out' | 'disconnect' }
 }>()
 
 export async function createAuthAndApiClient() {
@@ -49,18 +49,22 @@ export async function createAuthAndApiClient() {
 		authProvider.addUser(streamerUser, token)
 		streamerAuthRevoked = false
 	})
-	AuthEvents.on('botAuthRevoked', () => {
-		const token = getData().twitchBotToken as AccessToken
-		try {
-			if (token) revokeToken(process.env.TWITCH_CLIENT_ID, token.accessToken)
-		} catch (e) {}
+	AuthEvents.on('botAuthRevoked', ({ method }) => {
+		if (method === 'sign-out') {
+			const token = getData().twitchBotToken as AccessToken
+			try {
+				if (token) revokeToken(process.env.TWITCH_CLIENT_ID, token.accessToken)
+			} catch (e) {}
+		}
 		modifyData({ twitchBotToken: null })
 	})
-	AuthEvents.on('streamerAuthRevoked', () => {
-		const token = getData().twitchStreamerToken as AccessToken
-		try {
-			if (token) revokeToken(process.env.TWITCH_CLIENT_ID, token.accessToken)
-		} catch (e) {}
+	AuthEvents.on('streamerAuthRevoked', ({ method }) => {
+		if (method === 'sign-out') {
+			const token = getData().twitchStreamerToken as AccessToken
+			try {
+				if (token) revokeToken(process.env.TWITCH_CLIENT_ID, token.accessToken)
+			} catch (e) {}
+		}
 		modifyData({ twitchStreamerToken: null })
 		streamerAuthRevoked = true // To true to prevent token refreshes
 	})

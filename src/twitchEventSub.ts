@@ -39,6 +39,10 @@ import { AuthEvents, getUserScopes } from './twitchApi.js'
 
 let apiClient: ApiClient
 let streamerUser: HelixUser
+const scopedEventSubs: Map<
+	string,
+	ReturnType<EventSubHttpListener['onChannelFollow']>
+> = new Map()
 
 const processingStreamOnlineEvents: Set<string> = new Set()
 
@@ -87,47 +91,14 @@ export async function initTwitchEventSub(options: {
 	// Maybe store a boolean to indicate whether privileged events are enabled,
 	// so the chatbot knows whether it can listen for grace trains etc.
 
-	const streamerScopes = await getUserScopes(streamerUser)
-	console.log('streamer scopes:', streamerScopes)
 	initGlobalEventSubs(listener)
-	if (streamerScopes.includes('channel:read:redemptions')) {
-		const channelRedemptionAddSub = listener.onChannelRedemptionAdd(
-			streamerUser,
-			async (event) => {
-				// TODO: Watch for GRACE
-				console.log(event.rewardTitle, event.status, event.rewardPrompt)
-			}
-		)
-	}
-	if (streamerScopes.includes('moderator:read:followers')) {
-		let channelFollowSub = listener.onChannelFollow(
-			streamerUser,
-			streamerUser,
-			(event) => {
-				console.log(event.userName, 'is now following!')
-			}
-		)
-	}
-	if (streamerScopes.includes('moderator:read')) {
-		let channelModAddSub = listener.onChannelModeratorAdd(
-			streamerUser,
-			(event) => {
-				console.log(event.userName, 'is now a mod!')
-			}
-		)
-	}
-
+	await initScopedEventSubs(listener)
+	AuthEvents.on('streamerAuthed', () => initScopedEventSubs(listener))
+	AuthEvents.on('streamerAuthRevoked', ({ method }) => {
+		if (method === 'sign-out') scopedEventSubs.forEach((sub) => sub.stop())
+		apiClient.eventSub.deleteBrokenSubscriptions()
+	})
 	listener.start()
-	// TODO: Don't need to use onVerify
-	// Use getSubscriptionsForType to check if privileged events are enabled
-	// They won't exist if app wasn't authed when they were created
-	// They will have a revoked status if auth was revoked during runtime
-	// setInterval(async () => {
-	// 	const subs = await apiClient.eventSub.getSubscriptions()
-	// 	console.log(
-	// 		subs.data.map((s) => [s.type, s.id, s.creationDate, s.status].join(' | '))
-	// 	)
-	// }, 8 * 1000)
 	if (!DEV_MODE) checkStreamAndVideos()
 	// Check for stream/video updates every 5 minutes
 	setInterval(() => checkStreamAndVideos(), (DEV_MODE ? 0.5 : 5) * 60 * 1000)
@@ -203,24 +174,21 @@ async function initGlobalEventSubs(listener: EventSubHttpListener) {
 		async (event) => {
 			timestampLog(`${event.userName} has revoked authorization`)
 			if (event.userName === process.env.TWITCH_BOT_USERNAME) {
-				AuthEvents.emit('botAuthRevoked')
+				AuthEvents.emit('botAuthRevoked', { method: 'disconnect' })
 			}
 			if (event.userName === process.env.TWITCH_STREAMER_USERNAME) {
-				AuthEvents.emit('streamerAuthRevoked')
-				apiClient.eventSub.deleteBrokenSubscriptions()
+				AuthEvents.emit('streamerAuthRevoked', { method: 'disconnect' })
 			}
 		}
 	)
 	const userAuthGrantSub = listener.onUserAuthorizationGrant(
 		process.env.TWITCH_CLIENT_ID,
 		async (event) => {
+			// TODO: Do we need this for anything?
 			timestampLog(`${event.userName} has granted authorization`)
 			if (event.userName === process.env.TWITCH_BOT_USERNAME) {
 			}
 			if (event.userName === process.env.TWITCH_STREAMER_USERNAME) {
-				// console.log('re-creating channel mod add sub')
-				// TODO: Re-initialize privileged subs
-				// Create a method that initializes them, separate from the non-priv subs
 			}
 		}
 	)
@@ -228,6 +196,35 @@ async function initGlobalEventSubs(listener: EventSubHttpListener) {
 		console.log(await streamOnlineSub.getCliTestCommand())
 		console.log(await streamOfflineSub.getCliTestCommand())
 		// console.log(await channelRedemptionAddSub.getCliTestCommand())
+	}
+}
+
+async function initScopedEventSubs(listener: EventSubHttpListener) {
+	const streamerScopes = await getUserScopes(streamerUser)
+	if (streamerScopes.includes('channel:read:redemptions')) {
+		scopedEventSubs.set(
+			'channelRedemptionAddSub',
+			listener.onChannelRedemptionAdd(streamerUser, async (event) => {
+				// TODO: Watch for GRACE
+				console.log(event.rewardTitle, event.status, event.rewardPrompt)
+			})
+		)
+	}
+	if (streamerScopes.includes('moderator:read:followers')) {
+		scopedEventSubs.set(
+			'channelFollowSub',
+			listener.onChannelFollow(streamerUser, streamerUser, (event) => {
+				console.log(event.userName, 'is now following!')
+			})
+		)
+	}
+	if (streamerScopes.includes('moderation:read')) {
+		scopedEventSubs.set(
+			'channelModAddSub',
+			listener.onChannelModeratorAdd(streamerUser, (event) => {
+				console.log(event.userName, 'is now a mod!')
+			})
+		)
 	}
 }
 

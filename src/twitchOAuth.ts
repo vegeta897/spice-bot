@@ -132,10 +132,10 @@ export async function initTwitchOAuthServer() {
 			res.redirect('/')
 		} else {
 			if (req.session.username === process.env.TWITCH_STREAMER_USERNAME) {
-				AuthEvents.emit('streamerAuthRevoked')
+				AuthEvents.emit('streamerAuthRevoked', { method: 'sign-out' })
 			}
 			if (req.session.username === process.env.TWITCH_BOT_USERNAME) {
-				AuthEvents.emit('botAuthRevoked')
+				AuthEvents.emit('botAuthRevoked', { method: 'sign-out' })
 			}
 			req.session.destroy(() => {})
 			res.render('unlinked')
@@ -146,9 +146,10 @@ export async function initTwitchOAuthServer() {
 		res.render('error', { error: err })
 	})
 	app.listen(process.env.TWITCH_OAUTH_PORT, () => {
-		console.log('Waiting for authorization redirects...')
+		console.log('Express server ready')
 	})
 	AuthEvents.on('streamerAuthRevoked', () => {
+		// Delete all of the streamer's sessions
 		const sessionRecords = sessionStore.getRecords()
 		for (const sessionRecord of sessionRecords) {
 			if (
