@@ -3,6 +3,7 @@ declare global {
 		interface ProcessEnv {
 			TWITCH_STREAMER_USERNAME: string
 			TWITCH_BOT_USERNAME: string
+			TWITCH_ADMIN_USERNAME: string
 			TWITCH_CLIENT_ID: string
 			TWITCH_CLIENT_SECRET: string
 			TWITCH_EVENTSUB_HOSTNAME: string

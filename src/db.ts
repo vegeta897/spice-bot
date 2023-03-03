@@ -35,6 +35,7 @@ type DBData = {
 	twitchEventSubSecret: string | null
 	twitchBotToken: AccessToken | null
 	twitchStreamerToken: AccessToken | null
+	twitchAdminToken: AccessToken | null
 }
 
 const filename = DEV_MODE ? 'db-dev.json' : 'db.json'
@@ -52,6 +53,7 @@ export async function initDB() {
 		twitchEventSubSecret: null,
 		twitchBotToken: null,
 		twitchStreamerToken: null,
+		twitchAdminToken: null,
 	}
 	if (DEV_MODE)
 		db.data.streams = db.data.streams.filter((s) => s.streamID !== 'test')

@@ -70,7 +70,10 @@ export async function initTwitchOAuthServer() {
 	app.set('views', join(dirname(fileURLToPath(import.meta.url)), 'views'))
 	app.set('view engine', 'ejs')
 	app.get('/', async (req, res) => {
-		return res.render('index', {
+		if (req.session.username === process.env.TWITCH_ADMIN_USERNAME) {
+			return res.redirect('admin')
+		}
+		res.render('index', {
 			username: req.session.username,
 			botIsMod: await botIsMod(),
 		})
@@ -80,14 +83,21 @@ export async function initTwitchOAuthServer() {
 		const { code, scope } = req.query
 		if (!code || typeof code !== 'string' || typeof scope !== 'string')
 			throw 'Invalid parameters'
-		const requestScopes = scope.split(' ')
+		const requestScopes = (scope && scope.split(' ')) || []
 		// Guess intended account type based on scope
 		// TODO: Make separate bot and streamer auth routes! (add both as redirect URIs)
-		const intendedAccountType = requestScopes.includes('chat:read')
-			? 'bot'
-			: 'streamer'
+		const intendedAccountType =
+			requestScopes.length === 0
+				? 'admin'
+				: requestScopes.includes('chat:read')
+				? 'bot'
+				: 'streamer'
 		const requiredScopes =
-			intendedAccountType === 'bot' ? BOT_SCOPES : STREAMER_SCOPES
+			intendedAccountType === 'admin'
+				? []
+				: intendedAccountType === 'bot'
+				? BOT_SCOPES
+				: STREAMER_SCOPES
 		const scopeComparison = compareArrays(requestScopes, requiredScopes)
 		if (scopeComparison.onlySecondHas.length > 0) {
 			console.log(
@@ -113,33 +123,36 @@ export async function initTwitchOAuthServer() {
 	})
 	app.get('/auth', (req, res) => res.redirect(oauthLink(STREAMER_SCOPES)))
 	app.get('/auth-bot', (req, res) => res.redirect(oauthLink(BOT_SCOPES)))
+	app.get('/auth-admin', (req, res) => res.redirect(oauthLink([])))
 	app.get('/success', (req, res) => {
-		if (!req.session.username) {
-			res.redirect('/')
-		} else {
-			res.render('success', { botUsername: process.env.TWITCH_BOT_USERNAME })
-		}
+		if (!req.session.username) return res.redirect('/')
+		res.render('success', { botUsername: process.env.TWITCH_BOT_USERNAME })
 	})
 	app.get('/wrong-account', (req, res) => {
-		if (!req.session.username) {
-			res.redirect('/')
-		} else {
-			res.render('wrong-account')
-		}
+		if (!req.session.username) return res.redirect('/')
+		res.render('wrong-account', {
+			streamerUsername: process.env.TWITCH_STREAMER_USERNAME,
+		})
 	})
 	app.get('/unlink', (req, res) => {
-		if (!req.session.username) {
-			res.redirect('/')
-		} else {
-			if (req.session.username === process.env.TWITCH_STREAMER_USERNAME) {
-				AuthEvents.emit('streamerAuthRevoked', { method: 'sign-out' })
-			}
-			if (req.session.username === process.env.TWITCH_BOT_USERNAME) {
-				AuthEvents.emit('botAuthRevoked', { method: 'sign-out' })
-			}
-			req.session.destroy(() => {})
-			res.render('unlinked')
+		if (!req.session.username) return res.redirect('/')
+		if (req.session.username === process.env.TWITCH_STREAMER_USERNAME) {
+			AuthEvents.emit('streamerAuthRevoked', { method: 'sign-out' })
 		}
+		if (req.session.username === process.env.TWITCH_BOT_USERNAME) {
+			AuthEvents.emit('botAuthRevoked', { method: 'sign-out' })
+		}
+		if (req.session.username === process.env.TWITCH_ADMIN_USERNAME) {
+			AuthEvents.emit('adminAuthRevoked', { method: 'sign-out' })
+		}
+		req.session.destroy(() => {})
+		res.render('unlinked')
+	})
+	app.get('/admin', (req, res) => {
+		if (req.session.username !== process.env.TWITCH_ADMIN_USERNAME) {
+			return res.redirect('/')
+		}
+		res.render('admin')
 	})
 	app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 		timestampLog('Express caught error:', err)
@@ -176,15 +189,17 @@ async function doOauthFlow(code: string): Promise<{
 		console.log('Successfully exchanged code for streamer token')
 		AuthEvents.emit('streamerAuthed', {
 			token: accessToken,
-			scopes: tokenInfo.scopes,
 		})
 		return { username: tokenInfo.userName }
 	} else if (tokenInfo.userName === process.env.TWITCH_BOT_USERNAME) {
 		console.log('Successfully exchanged code for bot token')
 		AuthEvents.emit('botAuthed', {
 			token: accessToken,
-			scopes: tokenInfo.scopes,
 		})
+		return { username: tokenInfo.userName }
+	} else if (tokenInfo.userName === process.env.TWITCH_ADMIN_USERNAME) {
+		console.log('Successfully exchanged code for admin token')
+		AuthEvents.emit('adminAuthed', { token: accessToken })
 		return { username: tokenInfo.userName }
 	} else if (tokenInfo.userName === null) {
 		throw 'Invalid token received'
@@ -208,6 +223,6 @@ const oauthLink = (scopes: string[]) =>
 declare module 'express-session' {
 	interface SessionData {
 		username?: string
-		accountType?: 'streamer' | 'bot'
+		accountType?: 'streamer' | 'bot' | 'admin'
 	}
 }

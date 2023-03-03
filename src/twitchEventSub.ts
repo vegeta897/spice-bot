@@ -179,6 +179,9 @@ async function initGlobalEventSubs(listener: EventSubHttpListener) {
 			if (event.userName === process.env.TWITCH_STREAMER_USERNAME) {
 				AuthEvents.emit('streamerAuthRevoked', { method: 'disconnect' })
 			}
+			if (event.userName === process.env.TWITCH_ADMIN_USERNAME) {
+				AuthEvents.emit('adminAuthRevoked', { method: 'disconnect' })
+			}
 		}
 	)
 	const userAuthGrantSub = listener.onUserAuthorizationGrant(
