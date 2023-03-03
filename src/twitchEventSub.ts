@@ -33,7 +33,7 @@ import {
 } from './dev.js'
 import { getStreamEndEmbed, getStreamStartEmbed } from './twitchEmbeds.js'
 import randomstring from 'randomstring'
-import { AuthEvents, getUserScopes } from './twitchApi.js'
+import { AuthEvents, getUserScopes, UserAccountTypes } from './twitchApi.js'
 
 // TODO: Think about splitting up this file
 
@@ -46,12 +46,12 @@ const scopedEventSubs: Map<
 
 const processingStreamOnlineEvents: Set<string> = new Set()
 
-export async function initTwitchEventSub(options: {
+export async function initTwitchEventSub(params: {
 	apiClient: ApiClient
 	streamerUser: HelixUser
 }) {
-	apiClient = options.apiClient
-	streamerUser = options.streamerUser
+	apiClient = params.apiClient
+	streamerUser = params.streamerUser
 
 	const adapter = DEV_MODE
 		? new NgrokAdapter()
@@ -93,8 +93,11 @@ export async function initTwitchEventSub(options: {
 
 	initGlobalEventSubs(listener)
 	await initScopedEventSubs(listener)
-	AuthEvents.on('streamerAuthed', () => initScopedEventSubs(listener))
-	AuthEvents.on('streamerAuthRevoked', ({ method }) => {
+	AuthEvents.on('auth', ({ accountType }) => {
+		if (accountType === 'streamer') initScopedEventSubs(listener)
+	})
+	AuthEvents.on('authRevoke', ({ accountType, method }) => {
+		if (accountType !== 'streamer') return
 		if (method === 'sign-out') scopedEventSubs.forEach((sub) => sub.stop())
 		apiClient.eventSub.deleteBrokenSubscriptions()
 	})
@@ -172,16 +175,11 @@ async function initGlobalEventSubs(listener: EventSubHttpListener) {
 	const userAuthRevokeSub = listener.onUserAuthorizationRevoke(
 		process.env.TWITCH_CLIENT_ID,
 		async (event) => {
+			if (!event.userName) return
 			timestampLog(`${event.userName} has revoked authorization`)
-			if (event.userName === process.env.TWITCH_BOT_USERNAME) {
-				AuthEvents.emit('botAuthRevoked', { method: 'disconnect' })
-			}
-			if (event.userName === process.env.TWITCH_STREAMER_USERNAME) {
-				AuthEvents.emit('streamerAuthRevoked', { method: 'disconnect' })
-			}
-			if (event.userName === process.env.TWITCH_ADMIN_USERNAME) {
-				AuthEvents.emit('adminAuthRevoked', { method: 'disconnect' })
-			}
+			const accountType = UserAccountTypes[event.userName]
+			if (accountType)
+				AuthEvents.emit('authRevoke', { method: 'disconnect', accountType })
 		}
 	)
 	const userAuthGrantSub = listener.onUserAuthorizationGrant(

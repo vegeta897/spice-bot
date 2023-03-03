@@ -5,6 +5,7 @@ import { JSONFile } from 'lowdb/node'
 import { type DeepReadonly, DEV_MODE, sortByProp } from './util.js'
 import { type AccessToken } from '@twurple/auth'
 import { type SessionRecord } from './dbSessionStore.js'
+import { type AccountType } from './twitchApi.js'
 
 type TweetRecord = {
 	tweet_id: string
@@ -33,9 +34,7 @@ type DBData = {
 	expressSessions: SessionRecord[]
 	expressSessionSecret: string | null
 	twitchEventSubSecret: string | null
-	twitchBotToken: AccessToken | null
-	twitchStreamerToken: AccessToken | null
-	twitchAdminToken: AccessToken | null
+	twitchTokens: Record<AccountType, AccessToken | null>
 }
 
 const filename = DEV_MODE ? 'db-dev.json' : 'db.json'
@@ -51,9 +50,7 @@ export async function initDB() {
 		expressSessions: [],
 		expressSessionSecret: null,
 		twitchEventSubSecret: null,
-		twitchBotToken: null,
-		twitchStreamerToken: null,
-		twitchAdminToken: null,
+		twitchTokens: { bot: null, streamer: null, admin: null },
 	}
 	if (DEV_MODE)
 		db.data.streams = db.data.streams.filter((s) => s.streamID !== 'test')
@@ -158,3 +155,23 @@ const cloneStreamRecord = (
 	...streamRecord,
 	games: [...streamRecord.games],
 })
+
+export const getTwitchToken = (accountType: AccountType) =>
+	cloneTwitchToken(getData().twitchTokens[accountType])
+
+const cloneTwitchToken = (
+	token: AccessToken | DeepReadonly<AccessToken> | null
+) =>
+	(token && {
+		...token,
+		scope: [...token.scope],
+	}) ||
+	null
+
+export const setTwitchToken = (
+	accountType: AccountType,
+	token: AccessToken | null
+) =>
+	modifyData({
+		twitchTokens: { ...db.data!.twitchTokens, [accountType]: token },
+	})

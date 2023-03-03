@@ -4,11 +4,10 @@ import { initTwitchEventSub } from './twitchEventSub.js'
 import { initTwitchOAuthServer } from './twitchOAuth.js'
 
 export async function initTwitch() {
-	const { authProvider, apiClient, botUser, streamerUser } =
-		await createAuthAndApiClient()
+	const { authProvider, apiClient, helixUsers } = await createAuthAndApiClient()
 	await Promise.all([
-		initTwitchChat(authProvider, botUser),
-		initTwitchEventSub({ apiClient, streamerUser }),
+		initTwitchChat(authProvider, helixUsers.bot),
+		initTwitchEventSub({ apiClient, streamerUser: helixUsers.streamer }),
 		initTwitchOAuthServer(),
 	])
 }

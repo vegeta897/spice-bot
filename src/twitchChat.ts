@@ -21,8 +21,12 @@ export async function initTwitchChat(
 	botUser: HelixUser
 ) {
 	initChatClient(authProvider, botUser)
-	AuthEvents.on('botAuthed', async () => initChatClient(authProvider, botUser))
-	AuthEvents.on('botAuthRevoked', () => chatClient.quit())
+	AuthEvents.on('auth', async ({ accountType }) => {
+		if (accountType === 'bot') initChatClient(authProvider, botUser)
+	})
+	AuthEvents.on('authRevoke', ({ accountType }) => {
+		if (accountType === 'bot') chatClient.quit()
+	})
 }
 
 function initChatClient(

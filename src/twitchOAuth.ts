@@ -8,7 +8,12 @@ import { compareArrays, DEV_MODE, timestampLog } from './util.js'
 import { getData, modifyData } from './db.js'
 import { exchangeCode, getTokenInfo, revokeToken } from '@twurple/auth'
 import DBSessionStore from './dbSessionStore.js'
-import { AuthEvents, botIsMod } from './twitchApi.js'
+import {
+	type AccountType,
+	AuthEvents,
+	botIsMod,
+	UserAccountTypes,
+} from './twitchApi.js'
 
 const BOT_SCOPES = [
 	'channel:moderate',
@@ -46,8 +51,6 @@ const SESSION_TTL = 2 * 7 * 24 * 60 * 60 * 1000 // 2 weeks
 // The bot user and streamer require their own auth flows
 // The streamer authorizing the bot application allows eventsubs, no token required
 // The streamer's token is required for api calls like moderation and polls
-
-// TODO: Allow authing as admin, to view a bot status page
 
 export async function initTwitchOAuthServer() {
 	const app = express()
@@ -123,7 +126,7 @@ export async function initTwitchOAuthServer() {
 	})
 	app.get('/auth', (req, res) => res.redirect(oauthLink(STREAMER_SCOPES)))
 	app.get('/auth-bot', (req, res) => res.redirect(oauthLink(BOT_SCOPES)))
-	app.get('/auth-admin', (req, res) => res.redirect(oauthLink([])))
+	app.get('/auth-admin', (req, res) => res.redirect(oauthLink()))
 	app.get('/success', (req, res) => {
 		if (!req.session.username) return res.redirect('/')
 		res.render('success', { botUsername: process.env.TWITCH_BOT_USERNAME })
@@ -136,15 +139,9 @@ export async function initTwitchOAuthServer() {
 	})
 	app.get('/unlink', (req, res) => {
 		if (!req.session.username) return res.redirect('/')
-		if (req.session.username === process.env.TWITCH_STREAMER_USERNAME) {
-			AuthEvents.emit('streamerAuthRevoked', { method: 'sign-out' })
-		}
-		if (req.session.username === process.env.TWITCH_BOT_USERNAME) {
-			AuthEvents.emit('botAuthRevoked', { method: 'sign-out' })
-		}
-		if (req.session.username === process.env.TWITCH_ADMIN_USERNAME) {
-			AuthEvents.emit('adminAuthRevoked', { method: 'sign-out' })
-		}
+		const accountType = UserAccountTypes[req.session.username]
+		if (accountType)
+			AuthEvents.emit('authRevoke', { accountType, method: 'sign-out' })
 		req.session.destroy(() => {})
 		res.render('unlinked')
 	})
@@ -152,6 +149,7 @@ export async function initTwitchOAuthServer() {
 		if (req.session.username !== process.env.TWITCH_ADMIN_USERNAME) {
 			return res.redirect('/')
 		}
+		// TODO: Add some useful info here
 		res.render('admin')
 	})
 	app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
@@ -161,7 +159,8 @@ export async function initTwitchOAuthServer() {
 	app.listen(process.env.TWITCH_OAUTH_PORT, () => {
 		console.log('Express server ready')
 	})
-	AuthEvents.on('streamerAuthRevoked', () => {
+	AuthEvents.on('authRevoke', ({ accountType }) => {
+		if (accountType !== 'streamer') return
 		// Delete all of the streamer's sessions
 		const sessionRecords = sessionStore.getRecords()
 		for (const sessionRecord of sessionRecords) {
@@ -185,24 +184,12 @@ async function doOauthFlow(code: string): Promise<{
 		process.env.TWITCH_REDIRECT_URI
 	)
 	const tokenInfo = await getTokenInfo(accessToken.accessToken)
-	if (tokenInfo.userName === process.env.TWITCH_STREAMER_USERNAME) {
-		console.log('Successfully exchanged code for streamer token')
-		AuthEvents.emit('streamerAuthed', {
-			token: accessToken,
-		})
+	if (tokenInfo.userName === null) throw 'Invalid token received'
+	const accountType = UserAccountTypes[tokenInfo.userName]
+	if (accountType) {
+		console.log(`Successfully exchanged code for ${accountType} token`)
+		AuthEvents.emit('auth', { accountType, token: accessToken })
 		return { username: tokenInfo.userName }
-	} else if (tokenInfo.userName === process.env.TWITCH_BOT_USERNAME) {
-		console.log('Successfully exchanged code for bot token')
-		AuthEvents.emit('botAuthed', {
-			token: accessToken,
-		})
-		return { username: tokenInfo.userName }
-	} else if (tokenInfo.userName === process.env.TWITCH_ADMIN_USERNAME) {
-		console.log('Successfully exchanged code for admin token')
-		AuthEvents.emit('adminAuthed', { token: accessToken })
-		return { username: tokenInfo.userName }
-	} else if (tokenInfo.userName === null) {
-		throw 'Invalid token received'
 	} else {
 		console.log(`Unknown user "${tokenInfo.userName}" tried to auth`)
 		// Revoke token, and ignore if it fails
@@ -213,16 +200,13 @@ async function doOauthFlow(code: string): Promise<{
 	}
 }
 
-const oauthLink = (scopes: string[]) =>
-	`https://id.twitch.tv/oauth2/authorize?client_id=${
-		process.env.TWITCH_CLIENT_ID
-	}&redirect_uri=${
-		process.env.TWITCH_REDIRECT_URI
-	}&response_type=code&scope=${scopes.join('+')}`
+const oauthLink = (scopes?: string[]) =>
+	`https://id.twitch.tv/oauth2/authorize?client_id=${process.env.TWITCH_CLIENT_ID}&redirect_uri=${process.env.TWITCH_REDIRECT_URI}&response_type=code` +
+	(scopes ? `&scope=${scopes.join('+')}` : '')
 
 declare module 'express-session' {
 	interface SessionData {
 		username?: string
-		accountType?: 'streamer' | 'bot' | 'admin'
+		accountType?: AccountType
 	}
 }
