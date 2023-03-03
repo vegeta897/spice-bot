@@ -51,12 +51,16 @@ export async function createAuthAndApiClient() {
 	})
 	AuthEvents.on('botAuthRevoked', () => {
 		const token = getData().twitchBotToken as AccessToken
-		if (token) revokeToken(process.env.TWITCH_CLIENT_ID, token.accessToken)
+		try {
+			if (token) revokeToken(process.env.TWITCH_CLIENT_ID, token.accessToken)
+		} catch (e) {}
 		modifyData({ twitchBotToken: null })
 	})
 	AuthEvents.on('streamerAuthRevoked', () => {
 		const token = getData().twitchStreamerToken as AccessToken
-		if (token) revokeToken(process.env.TWITCH_CLIENT_ID, token.accessToken)
+		try {
+			if (token) revokeToken(process.env.TWITCH_CLIENT_ID, token.accessToken)
+		} catch (e) {}
 		modifyData({ twitchStreamerToken: null })
 		streamerAuthRevoked = true // To true to prevent token refreshes
 	})

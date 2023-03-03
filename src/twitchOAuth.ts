@@ -57,9 +57,10 @@ export async function initTwitchOAuthServer() {
 		sessionSecret = randomstring.generate()
 		modifyData({ expressSessionSecret: sessionSecret })
 	}
+	const sessionStore = new DBSessionStore({ ttl: SESSION_TTL })
 	app.use(
 		session({
-			store: new DBSessionStore({ ttl: SESSION_TTL }),
+			store: sessionStore,
 			secret: sessionSecret,
 			resave: false,
 			saveUninitialized: false,
@@ -140,22 +141,23 @@ export async function initTwitchOAuthServer() {
 			res.render('unlinked')
 		}
 	})
-	app.get('/error', (req, res) => {
-		res.render('error')
-	})
 	app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-		// res.status(400).send(err)
-		console.log('Express error:', err)
-		// TODO: Show error in <pre> block on page
+		timestampLog('Express caught error:', err)
 		res.render('error', { error: err })
 	})
 	app.listen(process.env.TWITCH_OAUTH_PORT, () => {
 		console.log('Waiting for authorization redirects...')
 	})
-	// TODO: Allow eventsub to start even without streamer token
-	// Allow chatbot to connect without streamer token, limited as needed
-	// Create method(s) to send new tokens to auth/client when they arrive from oauth
-	// Pause/resume services as tokens are revoked/added
+	AuthEvents.on('streamerAuthRevoked', () => {
+		const sessionRecords = sessionStore.getRecords()
+		for (const sessionRecord of sessionRecords) {
+			if (
+				sessionRecord.session.username === process.env.TWITCH_STREAMER_USERNAME
+			) {
+				sessionStore.destroy(sessionRecord.sid)
+			}
+		}
+	})
 }
 
 async function doOauthFlow(code: string): Promise<{

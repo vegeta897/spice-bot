@@ -47,6 +47,10 @@ export default class DBSessionStore extends Store {
 		}
 	}
 
+	getRecords() {
+		return [...getData().expressSessions]
+	}
+
 	set(sid: string, session: SessionData, cb = noop) {
 		try {
 			const record = this.getRecord(sid)
