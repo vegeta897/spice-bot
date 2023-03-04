@@ -5,6 +5,10 @@ export const sleep = (ms: number) =>
 
 export const DEV_MODE = process.env.NODE_ENV === 'development'
 
+export const HOST_URL = DEV_MODE
+	? `http://localhost:${process.env.EXPRESS_PORT}`
+	: `https://${process.env.EXPRESS_HOSTNAME}`
+
 export const timestamp = () => DateTime.now().toFormat('yyyy-MM-dd, tt')
 
 export const timestampLog = (message?: any, ...optionalParams: any[]) => {

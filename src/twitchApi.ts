@@ -7,7 +7,7 @@ import {
 } from '@twurple/auth'
 import Emittery from 'emittery'
 import { getTwitchToken, setTwitchToken } from './db.js'
-import { timestampLog } from './util.js'
+import { HOST_URL, timestampLog } from './util.js'
 
 let authProvider: RefreshingAuthProvider
 let apiClient: ApiClient
@@ -102,10 +102,7 @@ function addUserToAuth(accountType: AccountType) {
 			],
 			admin: ['Use your own account to auth with this link:', '/auth-admin'],
 		}[accountType]
-		console.log(
-			authStrings[0],
-			process.env.TWITCH_REDIRECT_URI + authStrings[1]
-		)
+		console.log(authStrings[0], HOST_URL + authStrings[1])
 		return
 	}
 	if (accountType === 'bot') {
