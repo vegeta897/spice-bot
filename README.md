@@ -39,40 +39,40 @@ Clone this repository and run `npm install`
 
 Rename or copy `.env.example` to `.env` and fill it out. All variables are required unless marked optional.
 
-| Variable                      | Description                                                                                           |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `TWITCH_STREAMER_USERNAME`    | The Twitch username to watch for streams                                                              |
-| `TWITCH_BOT_USERNAME`         | The Twitch username for your chat bot                                                                 |
-| `TWITCH_ADMIN_USERNAME`       | Your own Twitch username as the bot admin bot                                                         |
-| `TWITCH_CLIENT_ID`            | The client ID of your Twitch App                                                                      |
-| `TWITCH_CLIENT_SECRET`        | The client secret of your Twitch App                                                                  |
-| `TWITCH_EVENTSUB_HOSTNAME`    | The domain or public IP that your server can listen to for Twitch events                              |
-| `TWITCH_EVENTSUB_PATH_PREFIX` | The path to append to the host name, e.g. `twitch`                                                    |
-| `TWITCH_EVENTSUB_PORT`        | The port for your server to listen to for Twitch events. This is internal only, for the reverse proxy |
-| `TWITCH_BANNER_URL`           | _(optional)_ An image URL to use in stream notification embeds                                        |
-| `TWITTER_USERNAME`            | The Twitter username to watch for tweets                                                              |
-| `TWITTER_TOKEN`               | The bearer token for your Twitter app                                                                 |
-| `TWITTER_INCLUDE_RETWEETS`    | If set to "true", retweets will be posted (quote retweets are always be posted)                       |
-| `TWITTER_INCLUDE_REPLIES`     | If set to "true", tweet replies will be posted (self-replies are always posted)                       |
-| `DISCORD_BOT_TOKEN`           | The token of your Discord bot                                                                         |
-| `DISCORD_SERVER_ID`           | The Discord server ID to post to                                                                      |
-| `DISCORD_TWITCH_CHANNEL_ID`   | The Discord channel ID to post Twitch streams to                                                      |
-| `DISCORD_TWITTER_CHANNEL_ID`  | The Discord channel ID to post tweets to (this can be the same as the Twitch channel)                 |
-| `NICKNAME`                    | _(optional)_ A nickname for the streamer, used in stream notifications                                |
-| `EXPRESS_SERVER_URL`          | The URL that points to the Express server                                                             |
-| `EXPRESS_SERVER_PORT`         | The port used by the Express server                                                                   |
+| Variable                     | Description                                                                           |
+| ---------------------------- | ------------------------------------------------------------------------------------- |
+| `TWITCH_STREAMER_USERNAME`   | The Twitch username to watch for streams                                              |
+| `TWITCH_BOT_USERNAME`        | The Twitch username for your chat bot                                                 |
+| `TWITCH_ADMIN_USERNAME`      | Your own Twitch username as the bot admin bot                                         |
+| `TWITCH_CLIENT_ID`           | The client ID of your Twitch App                                                      |
+| `TWITCH_CLIENT_SECRET`       | The client secret of your Twitch App                                                  |
+| `TWITCH_BANNER_URL`          | _(optional)_ An image URL to use in stream notification embeds                        |
+| `TWITTER_USERNAME`           | The Twitter username to watch for tweets                                              |
+| `TWITTER_TOKEN`              | The bearer token for your Twitter app                                                 |
+| `TWITTER_INCLUDE_RETWEETS`   | If set to "true", retweets will be posted (quote retweets are always be posted)       |
+| `TWITTER_INCLUDE_REPLIES`    | If set to "true", tweet replies will be posted (self-replies are always posted)       |
+| `DISCORD_BOT_TOKEN`          | The token of your Discord bot                                                         |
+| `DISCORD_SERVER_ID`          | The Discord server ID to post to                                                      |
+| `DISCORD_TWITCH_CHANNEL_ID`  | The Discord channel ID to post Twitch streams to                                      |
+| `DISCORD_TWITTER_CHANNEL_ID` | The Discord channel ID to post tweets to (this can be the same as the Twitch channel) |
+| `NICKNAME`                   | _(optional)_ A nickname for the streamer, used in stream notifications                |
+| `EXPRESS_HOSTNAME`           | The URL that points to the Express server                                             |
+| `EXPRESS_PORT`               | The port used by the Express server                                                   |
 
 ### Setup
 
 Spice Bot needs a reverse proxy set up to work. In **nginx**, your config should include something like this:
 
 ```nginx
-location /twitch/ {
-  proxy_pass http://localhost:3000/;
-  proxy_http_version 1.1;
-  proxy_set_header Upgrade $http_upgrade;
-  proxy_set_header Connection "upgrade";
-  proxy_read_timeout 86400;
+server {
+  server_name spicebot.example.com; # This should be your EXPRESS_HOSTNAME
+  location / {
+    proxy_pass http://localhost:3000/; # The port should be your EXPRESS_PORT
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_read_timeout 86400;
+  }
 }
 ```
 

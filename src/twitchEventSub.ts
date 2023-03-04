@@ -5,8 +5,8 @@ import {
 	type HelixUser,
 } from '@twurple/api'
 import {
-	ReverseProxyAdapter,
 	EventSubHttpListener,
+	EventSubMiddleware,
 } from '@twurple/eventsub-http'
 import { DEV_MODE, sleep, timestampLog } from './util.js'
 import { NgrokAdapter } from '@twurple/eventsub-ngrok'
@@ -34,41 +34,29 @@ import {
 import { getStreamEndEmbed, getStreamStartEmbed } from './twitchEmbeds.js'
 import randomstring from 'randomstring'
 import { AuthEvents, getUserScopes, UserAccountTypes } from './twitchApi.js'
+import { Express } from 'express'
 
 // TODO: Think about splitting up this file
+
+type EventSubListener = EventSubHttpListener | EventSubMiddleware
 
 let apiClient: ApiClient
 let streamerUser: HelixUser
 const scopedEventSubs: Map<
 	string,
-	ReturnType<EventSubHttpListener['onChannelFollow']>
+	ReturnType<EventSubListener['onChannelFollow']>
 > = new Map()
 
 const processingStreamOnlineEvents: Set<string> = new Set()
 
 export async function initTwitchEventSub(params: {
 	apiClient: ApiClient
+	expressApp: Express
 	streamerUser: HelixUser
 }) {
 	apiClient = params.apiClient
 	streamerUser = params.streamerUser
 
-	const adapter = DEV_MODE
-		? new NgrokAdapter()
-		: new ReverseProxyAdapter({
-				// TODO: Use spicebot.pixelatomy.com/eventsub
-				hostName: process.env.TWITCH_EVENTSUB_HOSTNAME,
-				pathPrefix: process.env.TWITCH_EVENTSUB_PATH_PREFIX,
-				port: +process.env.TWITCH_EVENTSUB_PORT,
-		  })
-	if (DEV_MODE) {
-		await apiClient.eventSub.deleteAllSubscriptions()
-		modifyData({
-			streams: getStreamRecords().filter(
-				(sr) => !sr.streamID.startsWith('test_')
-			),
-		})
-	}
 	let eventSubSecret = getData().twitchEventSubSecret
 	if (!eventSubSecret) {
 		eventSubSecret = randomstring.generate()
@@ -77,20 +65,33 @@ export async function initTwitchEventSub(params: {
 		await apiClient.eventSub.deleteAllSubscriptions()
 		console.log('Deleted all EventSub subscriptions')
 	}
-	// TODO: Change this toEventSubMiddleware to share express app?
-	// https://twurple.js.org/docs/getting-data/eventsub/express.html
-	const listener = new EventSubHttpListener({
-		apiClient,
-		adapter,
-		secret: eventSubSecret,
-		strictHostCheck: true,
-		legacySecrets: false,
-	})
-
-	// Use grant event to (re)create privileged listeners?
-	// Maybe store a boolean to indicate whether privileged events are enabled,
-	// so the chatbot knows whether it can listen for grace trains etc.
-
+	let listener: EventSubListener
+	if (DEV_MODE) {
+		await apiClient.eventSub.deleteAllSubscriptions()
+		modifyData({
+			streams: getStreamRecords().filter(
+				(sr) => !sr.streamID.startsWith('test_')
+			),
+		})
+		listener = new EventSubHttpListener({
+			apiClient,
+			adapter: new NgrokAdapter(),
+			secret: eventSubSecret,
+			strictHostCheck: true,
+			legacySecrets: false,
+		})
+	} else {
+		listener = new EventSubMiddleware({
+			apiClient,
+			hostName: process.env.EXPRESS_HOSTNAME,
+			pathPrefix: 'eventsub',
+			secret: eventSubSecret,
+			strictHostCheck: true,
+			legacySecrets: false,
+		})
+		listener.apply(params.expressApp)
+		await listener.markAsReady()
+	}
 	initGlobalEventSubs(listener)
 	await initScopedEventSubs(listener)
 	AuthEvents.on('auth', ({ accountType }) => {
@@ -101,15 +102,14 @@ export async function initTwitchEventSub(params: {
 		if (method === 'sign-out') scopedEventSubs.forEach((sub) => sub.stop())
 		apiClient.eventSub.deleteBrokenSubscriptions()
 	})
-	listener.start()
+	if (DEV_MODE) (listener as EventSubHttpListener).start()
 	if (!DEV_MODE) checkStreamAndVideos()
 	// Check for stream/video updates every 5 minutes
 	setInterval(() => checkStreamAndVideos(), (DEV_MODE ? 0.5 : 5) * 60 * 1000)
-
 	console.log('Twitch EventSub connected')
 }
 
-async function initGlobalEventSubs(listener: EventSubHttpListener) {
+async function initGlobalEventSubs(listener: EventSubListener) {
 	const streamOnlineSub = listener.onStreamOnline(
 		streamerUser,
 		async (event) => {
@@ -200,7 +200,7 @@ async function initGlobalEventSubs(listener: EventSubHttpListener) {
 	}
 }
 
-async function initScopedEventSubs(listener: EventSubHttpListener) {
+async function initScopedEventSubs(listener: EventSubListener) {
 	const streamerScopes = await getUserScopes(streamerUser)
 	if (streamerScopes.includes('channel:read:redemptions')) {
 		scopedEventSubs.set(
@@ -230,7 +230,7 @@ async function initScopedEventSubs(listener: EventSubHttpListener) {
 }
 
 async function checkStreamAndVideos() {
-	return // TODO: Remove
+	if (DEV_MODE) return // TODO: Remove
 	const stream = DEV_MODE ? getMockStream() : await streamerUser.getStream()
 	handleStream(stream)
 	checkVideos(stream)

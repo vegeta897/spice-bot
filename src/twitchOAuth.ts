@@ -1,5 +1,5 @@
 import 'express-async-errors'
-import express, { NextFunction, Request, Response } from 'express'
+import express, { NextFunction, Request, Response, Express } from 'express'
 import session from 'express-session'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
@@ -154,9 +154,6 @@ export async function initTwitchOAuthServer() {
 		timestampLog('Express caught error:', err)
 		res.render('error', { error: err })
 	})
-	app.listen(process.env.EXPRESS_SERVER_PORT, () => {
-		console.log('Express server ready')
-	})
 	AuthEvents.on('authRevoke', ({ accountType }) => {
 		if (accountType !== 'streamer') return
 		// Delete all of the streamer's sessions
@@ -168,6 +165,12 @@ export async function initTwitchOAuthServer() {
 				sessionStore.destroy(sessionRecord.sid)
 			}
 		}
+	})
+	return new Promise<Express>((resolve) => {
+		app.listen(process.env.EXPRESS_PORT, () => {
+			console.log('Express server ready')
+			resolve(app)
+		})
 	})
 }
 
