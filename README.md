@@ -35,6 +35,8 @@ This is not a public bot that you can invite, but you can set up your own Spice 
 
 Clone this repository and run `npm install`
 
+If you do not need the Twitter scraper, run `npm install --omit=optional`
+
 ### Config
 
 Rename or copy `.env.example` to `.env` and fill it out. All variables are required unless marked optional.
