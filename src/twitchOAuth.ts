@@ -4,7 +4,7 @@ import session from 'express-session'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import randomstring from 'randomstring'
-import { compareArrays, DEV_MODE, timestampLog } from './util.js'
+import { compareArrays, DEV_MODE, HOST_URL, timestampLog } from './util.js'
 import { getData, getTwitchToken, modifyData } from './db.js'
 import { exchangeCode, getTokenInfo, revokeToken } from '@twurple/auth'
 import DBSessionStore from './dbSessionStore.js'
@@ -186,7 +186,7 @@ async function doOauthFlow(code: string): Promise<{
 		process.env.TWITCH_CLIENT_ID,
 		process.env.TWITCH_CLIENT_SECRET,
 		code as string,
-		`${process.env.EXPRESS_SERVER_URL}/callback`
+		`${HOST_URL}/callback`
 	)
 	const tokenInfo = await getTokenInfo(accessToken.accessToken)
 	if (tokenInfo.userName === null) throw 'Invalid token received'
@@ -209,7 +209,7 @@ async function doOauthFlow(code: string): Promise<{
 }
 
 function getOAuthLink(accountType: AccountType) {
-	let url = `https://id.twitch.tv/oauth2/authorize?response_type=code&client_id=${process.env.TWITCH_CLIENT_ID}&redirect_uri=${process.env.EXPRESS_SERVER_URL}/callback`
+	let url = `https://id.twitch.tv/oauth2/authorize?response_type=code&client_id=${process.env.TWITCH_CLIENT_ID}&redirect_uri=${HOST_URL}/callback`
 	const scopes = SCOPES[accountType]
 	if (scopes) url += `&scope=${scopes.join('+')}`
 	return url
