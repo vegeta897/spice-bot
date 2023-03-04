@@ -72,8 +72,7 @@ export async function initTwitchOAuthServer() {
 			proxy: true,
 			cookie: {
 				secure: !DEV_MODE,
-				httpOnly: DEV_MODE,
-				sameSite: true,
+				httpOnly: true,
 				maxAge: SESSION_TTL,
 			},
 		})
