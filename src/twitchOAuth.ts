@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import randomstring from 'randomstring'
 import { compareArrays, DEV_MODE, timestampLog } from './util.js'
-import { getData, modifyData } from './db.js'
+import { getData, getTwitchToken, modifyData } from './db.js'
 import { exchangeCode, getTokenInfo, revokeToken } from '@twurple/auth'
 import DBSessionStore from './dbSessionStore.js'
 import {
@@ -149,8 +149,20 @@ export async function initTwitchOAuthServer() {
 		if (req.session.username !== process.env.TWITCH_ADMIN_USERNAME) {
 			return res.redirect('/')
 		}
-		// TODO: Add some useful info here
-		res.render('admin')
+		res.render('admin', {
+			streamer: {
+				username: process.env.TWITCH_STREAMER_USERNAME,
+				authed: !!getTwitchToken('streamer'),
+			},
+			bot: {
+				username: process.env.TWITCH_BOT_USERNAME,
+				authed: !!getTwitchToken('bot'),
+			},
+			admin: {
+				username: process.env.TWITCH_ADMIN_USERNAME,
+				authed: !!getTwitchToken('admin'),
+			},
+		})
 	})
 	app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 		timestampLog('Express caught error:', err)

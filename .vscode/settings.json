@@ -7,5 +7,11 @@
 	"editor.defaultFormatter": "esbenp.prettier-vscode",
 	"editor.rulers": [80],
 	"editor.tabSize": 2,
-	"editor.renderWhitespace": "trailing"
+	"editor.renderWhitespace": "trailing",
+	"emmet.includeLanguages": {
+		"ejs": "html"
+	},
+	"[html]": {
+		"editor.defaultFormatter": "j69.ejs-beautify"
+	}
 }
