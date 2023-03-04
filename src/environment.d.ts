@@ -10,8 +10,6 @@ declare global {
 			TWITCH_EVENTSUB_PATH_PREFIX: string
 			TWITCH_EVENTSUB_PORT: string
 			TWITCH_BANNER_URL?: string
-			TWITCH_REDIRECT_URI: string
-			TWITCH_OAUTH_PORT: string
 			TWITTER_USERNAME: string
 			TWITTER_TOKEN: string
 			TWITTER_INCLUDE_RETWEETS: string
@@ -21,6 +19,8 @@ declare global {
 			DISCORD_TWITCH_CHANNEL_ID: string
 			DISCORD_TWITTER_CHANNEL_ID: string
 			NICKNAME?: string
+			EXPRESS_SERVER_URL: string
+			EXPRESS_SERVER_PORT: string
 			NODE_ENV?: 'development' | 'production'
 		}
 	}

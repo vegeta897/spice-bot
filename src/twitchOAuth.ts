@@ -15,25 +15,27 @@ import {
 	UserAccountTypes,
 } from './twitchApi.js'
 
-const BOT_SCOPES = [
-	'channel:moderate',
-	'chat:read',
-	'chat:edit',
-	'whispers:read',
-	'whispers:edit',
-]
-
-const STREAMER_SCOPES = [
-	'channel:read:hype_train',
-	'channel:read:polls',
-	'channel:read:predictions',
-	'channel:read:redemptions',
-	'channel:read:subscriptions',
-	'moderation:read',
-	'moderator:read:chat_settings',
-	'moderator:read:chatters',
-	'moderator:read:followers',
-]
+const SCOPES: Record<AccountType, string[]> = {
+	bot: [
+		'channel:moderate',
+		'chat:read',
+		'chat:edit',
+		'whispers:read',
+		'whispers:edit',
+	],
+	streamer: [
+		'channel:read:hype_train',
+		'channel:read:polls',
+		'channel:read:predictions',
+		'channel:read:redemptions',
+		'channel:read:subscriptions',
+		'moderation:read',
+		'moderator:read:chat_settings',
+		'moderator:read:chatters',
+		'moderator:read:followers',
+	],
+	admin: [],
+}
 
 const SESSION_TTL = 2 * 7 * 24 * 60 * 60 * 1000 // 2 weeks
 
@@ -86,47 +88,31 @@ export async function initTwitchOAuthServer() {
 		const { code, scope } = req.query
 		if (!code || typeof code !== 'string' || typeof scope !== 'string')
 			throw 'Invalid parameters'
-		const requestScopes = (scope && scope.split(' ')) || []
-		// Guess intended account type based on scope
-		// TODO: Make separate bot and streamer auth routes! (add both as redirect URIs)
-		const intendedAccountType =
-			requestScopes.length === 0
-				? 'admin'
-				: requestScopes.includes('chat:read')
-				? 'bot'
-				: 'streamer'
-		const requiredScopes =
-			intendedAccountType === 'admin'
-				? []
-				: intendedAccountType === 'bot'
-				? BOT_SCOPES
-				: STREAMER_SCOPES
-		const scopeComparison = compareArrays(requestScopes, requiredScopes)
+		const { username, scopes, wrongUser } = await doOauthFlow(code)
+		if (wrongUser) return res.redirect('wrong-account')
+		const accountType = UserAccountTypes[username]
+		const requiredScopes = SCOPES[accountType]
+		const scopeComparison = compareArrays(scopes || [], requiredScopes)
 		if (scopeComparison.onlySecondHas.length > 0) {
 			console.log(
-				`Request for ${intendedAccountType} auth is missing scope(s):`,
+				`Request for ${accountType} auth is missing scope(s):`,
 				scopeComparison.onlySecondHas.join(' ')
 			)
 		}
 		if (scopeComparison.onlyFirstHas.length > 0) {
 			console.log(
-				`Request for ${intendedAccountType} auth contains extra scope(s):`,
+				`Request for ${accountType} auth contains extra scope(s):`,
 				scopeComparison.onlyFirstHas.join(' ')
 			)
 		}
-		const { username, wrongUser } = await doOauthFlow(code)
 		req.session.username = username
-		if (wrongUser) {
-			req.session.accountType = intendedAccountType
-			res.redirect('wrong-account')
-		} else {
-			console.log(username, 'successfully authorized')
-			res.redirect('success')
-		}
+		console.log(username, 'successfully authorized')
+		if (accountType === 'admin') return res.redirect('admin')
+		res.redirect('success')
 	})
-	app.get('/auth', (req, res) => res.redirect(oauthLink(STREAMER_SCOPES)))
-	app.get('/auth-bot', (req, res) => res.redirect(oauthLink(BOT_SCOPES)))
-	app.get('/auth-admin', (req, res) => res.redirect(oauthLink()))
+	app.get('/auth', (req, res) => res.redirect(getOAuthLink('streamer')))
+	app.get('/auth-bot', (req, res) => res.redirect(getOAuthLink('bot')))
+	app.get('/auth-admin', (req, res) => res.redirect(getOAuthLink('admin')))
 	app.get('/success', (req, res) => {
 		if (!req.session.username) return res.redirect('/')
 		res.render('success', { botUsername: process.env.TWITCH_BOT_USERNAME })
@@ -168,7 +154,7 @@ export async function initTwitchOAuthServer() {
 		timestampLog('Express caught error:', err)
 		res.render('error', { error: err })
 	})
-	app.listen(process.env.TWITCH_OAUTH_PORT, () => {
+	app.listen(process.env.EXPRESS_SERVER_PORT, () => {
 		console.log('Express server ready')
 	})
 	AuthEvents.on('authRevoke', ({ accountType }) => {
@@ -187,13 +173,14 @@ export async function initTwitchOAuthServer() {
 
 async function doOauthFlow(code: string): Promise<{
 	username: string
+	scopes?: string[]
 	wrongUser?: boolean
 }> {
 	const accessToken = await exchangeCode(
 		process.env.TWITCH_CLIENT_ID,
 		process.env.TWITCH_CLIENT_SECRET,
 		code as string,
-		process.env.TWITCH_REDIRECT_URI
+		`${process.env.EXPRESS_SERVER_URL}/callback`
 	)
 	const tokenInfo = await getTokenInfo(accessToken.accessToken)
 	if (tokenInfo.userName === null) throw 'Invalid token received'
@@ -201,24 +188,29 @@ async function doOauthFlow(code: string): Promise<{
 	if (accountType) {
 		console.log(`Successfully exchanged code for ${accountType} token`)
 		AuthEvents.emit('auth', { accountType, token: accessToken })
-		return { username: tokenInfo.userName }
+		return { username: tokenInfo.userName, scopes: tokenInfo.scopes }
 	} else {
 		console.log(`Unknown user "${tokenInfo.userName}" tried to auth`)
 		// Revoke token, and ignore if it fails
 		try {
-			revokeToken(process.env.TWITCH_CLIENT_ID, accessToken.accessToken)
+			await revokeToken(process.env.TWITCH_CLIENT_ID, accessToken.accessToken)
 		} catch (_) {}
-		return { username: tokenInfo.userName, wrongUser: true }
+		return {
+			username: tokenInfo.userName,
+			wrongUser: true,
+		}
 	}
 }
 
-const oauthLink = (scopes?: string[]) =>
-	`https://id.twitch.tv/oauth2/authorize?client_id=${process.env.TWITCH_CLIENT_ID}&redirect_uri=${process.env.TWITCH_REDIRECT_URI}&response_type=code` +
-	(scopes ? `&scope=${scopes.join('+')}` : '')
+function getOAuthLink(accountType: AccountType) {
+	let url = `https://id.twitch.tv/oauth2/authorize?response_type=code&client_id=${process.env.TWITCH_CLIENT_ID}&redirect_uri=${process.env.EXPRESS_SERVER_URL}/callback`
+	const scopes = SCOPES[accountType]
+	if (scopes) url += `&scope=${scopes.join('+')}`
+	return url
+}
 
 declare module 'express-session' {
 	interface SessionData {
 		username?: string
-		accountType?: AccountType
 	}
 }

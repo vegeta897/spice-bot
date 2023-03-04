@@ -43,14 +43,13 @@ Rename or copy `.env.example` to `.env` and fill it out. All variables are requi
 | ----------------------------- | ----------------------------------------------------------------------------------------------------- |
 | `TWITCH_STREAMER_USERNAME`    | The Twitch username to watch for streams                                                              |
 | `TWITCH_BOT_USERNAME`         | The Twitch username for your chat bot                                                                 |
+| `TWITCH_ADMIN_USERNAME`       | Your own Twitch username as the bot admin bot                                                         |
 | `TWITCH_CLIENT_ID`            | The client ID of your Twitch App                                                                      |
 | `TWITCH_CLIENT_SECRET`        | The client secret of your Twitch App                                                                  |
 | `TWITCH_EVENTSUB_HOSTNAME`    | The domain or public IP that your server can listen to for Twitch events                              |
 | `TWITCH_EVENTSUB_PATH_PREFIX` | The path to append to the host name, e.g. `twitch`                                                    |
 | `TWITCH_EVENTSUB_PORT`        | The port for your server to listen to for Twitch events. This is internal only, for the reverse proxy |
 | `TWITCH_BANNER_URL`           | _(optional)_ An image URL to use in stream notification embeds                                        |
-| `TWITCH_REDIRECT_URI`         | The URL that Twitch will send an authorization code to. Must be listed in your app's redirect URLs    |
-| `TWITCH_OAUTH_PORT`           | The port associated with your Twitch OAuth redirect URL. This must be set up in your reverse proxy    |
 | `TWITTER_USERNAME`            | The Twitter username to watch for tweets                                                              |
 | `TWITTER_TOKEN`               | The bearer token for your Twitter app                                                                 |
 | `TWITTER_INCLUDE_RETWEETS`    | If set to "true", retweets will be posted (quote retweets are always be posted)                       |
@@ -60,6 +59,8 @@ Rename or copy `.env.example` to `.env` and fill it out. All variables are requi
 | `DISCORD_TWITCH_CHANNEL_ID`   | The Discord channel ID to post Twitch streams to                                                      |
 | `DISCORD_TWITTER_CHANNEL_ID`  | The Discord channel ID to post tweets to (this can be the same as the Twitch channel)                 |
 | `NICKNAME`                    | _(optional)_ A nickname for the streamer, used in stream notifications                                |
+| `EXPRESS_SERVER_URL`          | The URL that points to the Express server                                                             |
+| `EXPRESS_SERVER_PORT`         | The port used by the Express server                                                                   |
 
 ### Setup
 
@@ -74,6 +75,8 @@ location /twitch/ {
   proxy_read_timeout 86400;
 }
 ```
+
+You must add the OAuth Callback URL to your Twitch App. The URL is composed of the `EXPRESS_SERVER_URL` variable followed by `/callback`.
 
 The Discord bot requires only these permissions to function:
 
