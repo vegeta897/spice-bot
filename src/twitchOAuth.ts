@@ -72,7 +72,10 @@ export async function initTwitchOAuthServer() {
 			cookie: { secure: !DEV_MODE, maxAge: SESSION_TTL },
 		})
 	)
-	app.set('views', join(dirname(fileURLToPath(import.meta.url)), 'views'))
+	app.set(
+		'views',
+		join(dirname(fileURLToPath(import.meta.url)), '../src/views')
+	)
 	app.set('view engine', 'ejs')
 	app.get('/', async (req, res) => {
 		if (req.session.username === process.env.TWITCH_ADMIN_USERNAME) {
