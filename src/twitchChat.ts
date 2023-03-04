@@ -2,7 +2,7 @@ import { type HelixUser } from '@twurple/api'
 import { type RefreshingAuthProvider } from '@twurple/auth'
 import { ChatClient, toUserName } from '@twurple/chat'
 import { ParsedMessageEmotePart } from '@twurple/common'
-import { AuthEvents } from './twitchApi.js'
+import { AuthEvents, getUserScopes } from './twitchApi.js'
 import { timestampLog } from './util.js'
 
 // Idea: stream recap when !recap command used, or raid initialized
@@ -29,12 +29,12 @@ export async function initTwitchChat(
 	})
 }
 
-function initChatClient(
+async function initChatClient(
 	authProvider: RefreshingAuthProvider,
 	botUser: HelixUser
 ) {
 	if (chatClient) chatClient.quit()
-	const botScopes = authProvider.getCurrentScopesForUser(botUser)
+	const botScopes = await getUserScopes(botUser)
 	if (!hasRequiredScopes(botScopes)) {
 		console.log('WARNING: Chat bot is missing read/edit scopes!')
 		return
