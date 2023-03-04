@@ -1,7 +1,7 @@
 import { type HelixVideo } from '@twurple/api'
 import { EmbedBuilder, type APIEmbedField } from 'discord.js'
-import { type StreamRecord } from './db.js'
-import { formatDuration } from './util.js'
+import { type StreamRecord } from '../db.js'
+import { formatDuration } from '../util.js'
 
 const STREAMER_USERNAME = process.env.TWITCH_STREAMER_USERNAME
 const TWITCH_URL = `https://www.twitch.tv/${STREAMER_USERNAME}`

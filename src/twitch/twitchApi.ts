@@ -6,8 +6,8 @@ import {
 	getTokenInfo,
 } from '@twurple/auth'
 import Emittery from 'emittery'
-import { getTwitchToken, setTwitchToken } from './db.js'
-import { HOST_URL, timestampLog } from './util.js'
+import { getTwitchToken, setTwitchToken } from '../db.js'
+import { HOST_URL, timestampLog } from '../util.js'
 
 let authProvider: RefreshingAuthProvider
 let apiClient: ApiClient
@@ -64,9 +64,7 @@ export async function createAuthAndApiClient() {
 			if (token) {
 				try {
 					await revokeToken(process.env.TWITCH_CLIENT_ID, token.accessToken)
-				} catch (err) {
-					console.log(err)
-				}
+				} catch (_) {}
 			}
 		}
 		setTwitchToken(accountType, null)

@@ -8,7 +8,7 @@ import {
 	EventSubHttpListener,
 	EventSubMiddleware,
 } from '@twurple/eventsub-http'
-import { DEV_MODE, sleep, timestampLog } from './util.js'
+import { DEV_MODE, sleep, timestampLog } from '../util.js'
 import { NgrokAdapter } from '@twurple/eventsub-ngrok'
 import {
 	getData,
@@ -17,20 +17,20 @@ import {
 	recordStream,
 	StreamRecord,
 	updateStreamRecord,
-} from './db.js'
+} from '../db.js'
 import { type MessageCreateOptions } from 'discord.js'
 import {
 	createStreamMessage,
 	deleteStreamMessage,
 	editStreamMessage,
-} from './discord.js'
-import { getTwitchPingButtons, getTwitchPingRole } from './pings.js'
+} from '../discord.js'
+import { getTwitchPingButtons, getTwitchPingRole } from '../pings.js'
 import {
 	getMockStreamOnlineEvent,
 	getMockInitialVideos,
 	getMockVideosAfterStream,
 	getMockStream,
-} from './dev.js'
+} from '../dev.js'
 import { getStreamEndEmbed, getStreamStartEmbed } from './twitchEmbeds.js'
 import randomstring from 'randomstring'
 import { AuthEvents, getUserScopes, UserAccountTypes } from './twitchApi.js'
@@ -182,21 +182,9 @@ async function initGlobalEventSubs(listener: EventSubListener) {
 				AuthEvents.emit('authRevoke', { method: 'disconnect', accountType })
 		}
 	)
-	const userAuthGrantSub = listener.onUserAuthorizationGrant(
-		process.env.TWITCH_CLIENT_ID,
-		async (event) => {
-			// TODO: Do we need this for anything?
-			timestampLog(`${event.userName} has granted authorization`)
-			if (event.userName === process.env.TWITCH_BOT_USERNAME) {
-			}
-			if (event.userName === process.env.TWITCH_STREAMER_USERNAME) {
-			}
-		}
-	)
 	if (DEV_MODE) {
 		console.log(await streamOnlineSub.getCliTestCommand())
 		console.log(await streamOfflineSub.getCliTestCommand())
-		// console.log(await channelRedemptionAddSub.getCliTestCommand())
 	}
 }
 
@@ -207,8 +195,13 @@ async function initScopedEventSubs(listener: EventSubListener) {
 			'channelRedemptionAddSub',
 			listener.onChannelRedemptionAdd(streamerUser, async (event) => {
 				// TODO: Watch for GRACE
+				if (DEV_MODE) {
+				}
 				console.log(event.rewardTitle, event.status, event.rewardPrompt)
 			})
+		)
+		console.log(
+			await scopedEventSubs.get('channelRedemptionAddSub')!.getCliTestCommand()
 		)
 	}
 	if (streamerScopes.includes('moderator:read:followers')) {

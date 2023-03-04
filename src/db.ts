@@ -5,7 +5,7 @@ import { JSONFile } from 'lowdb/node'
 import { type DeepReadonly, DEV_MODE, sortByProp } from './util.js'
 import { type AccessToken } from '@twurple/auth'
 import { type SessionRecord } from './dbSessionStore.js'
-import { type AccountType } from './twitchApi.js'
+import { type AccountType } from './twitch/twitchApi.js'
 
 type TweetRecord = {
 	tweet_id: string

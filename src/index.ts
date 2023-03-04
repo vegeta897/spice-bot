@@ -3,7 +3,7 @@ import { initDB } from './db.js'
 import { connectBot } from './discord.js'
 import { initTwitter } from './twitter.js'
 import { DEV_MODE, timestampLog } from './util.js'
-import { initTwitch } from './twitch.js'
+import { initTwitch } from './twitch/twitch.js'
 
 if (DEV_MODE) console.log('DEV MODE ENABLED')
 

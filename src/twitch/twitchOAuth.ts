@@ -1,19 +1,14 @@
-import 'express-async-errors'
-import express, { NextFunction, Request, Response, Express } from 'express'
-import session from 'express-session'
-import { fileURLToPath } from 'url'
-import { dirname, join } from 'path'
-import randomstring from 'randomstring'
-import { compareArrays, DEV_MODE, HOST_URL, timestampLog } from './util.js'
-import { getData, getTwitchToken, modifyData } from './db.js'
+import { Express } from 'express'
+import { compareArrays, HOST_URL, timestampLog } from '../util.js'
+import { getTwitchToken } from '../db.js'
 import { exchangeCode, getTokenInfo, revokeToken } from '@twurple/auth'
-import DBSessionStore from './dbSessionStore.js'
 import {
 	type AccountType,
 	AuthEvents,
 	botIsMod,
 	UserAccountTypes,
 } from './twitchApi.js'
+import { sessionStore } from '../express.js'
 
 const SCOPES: Record<AccountType, string[]> = {
 	bot: [
@@ -37,8 +32,6 @@ const SCOPES: Record<AccountType, string[]> = {
 	admin: [],
 }
 
-const SESSION_TTL = 2 * 7 * 24 * 60 * 60 * 1000 // 2 weeks
-
 // Auth flow:
 // Streamer visits auth URL containing Spice Bot client ID and requested scopes
 // Twitch redirects to REDIRECT_URI with one-time auth code that expires shortly
@@ -54,34 +47,7 @@ const SESSION_TTL = 2 * 7 * 24 * 60 * 60 * 1000 // 2 weeks
 // The streamer authorizing the bot application allows eventsubs, no token required
 // The streamer's token is required for api calls like moderation and polls
 
-export async function initTwitchOAuthServer() {
-	const app = express()
-	if (!DEV_MODE) app.set('trust proxy', 1) // Trust nginx reverse proxy
-	let sessionSecret = getData().expressSessionSecret
-	if (!sessionSecret) {
-		sessionSecret = randomstring.generate()
-		modifyData({ expressSessionSecret: sessionSecret })
-	}
-	const sessionStore = new DBSessionStore({ ttl: SESSION_TTL })
-	app.use(
-		session({
-			store: sessionStore,
-			secret: sessionSecret,
-			resave: false,
-			saveUninitialized: false,
-			proxy: true,
-			cookie: {
-				secure: !DEV_MODE,
-				httpOnly: true,
-				maxAge: SESSION_TTL,
-			},
-		})
-	)
-	app.set(
-		'views',
-		join(dirname(fileURLToPath(import.meta.url)), '../src/views')
-	)
-	app.set('view engine', 'ejs')
+export function initTwitchOAuthServer(app: Express) {
 	app.get('/', async (req, res) => {
 		if (req.session.username === process.env.TWITCH_ADMIN_USERNAME) {
 			return res.redirect('admin')
@@ -158,10 +124,6 @@ export async function initTwitchOAuthServer() {
 			},
 		})
 	})
-	app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-		timestampLog('Express caught error:', err)
-		res.render('error', { error: err })
-	})
 	AuthEvents.on('authRevoke', ({ accountType }) => {
 		if (accountType !== 'streamer') return
 		// Delete all of the streamer's sessions
@@ -173,12 +135,6 @@ export async function initTwitchOAuthServer() {
 				sessionStore.destroy(sessionRecord.sid)
 			}
 		}
-	})
-	return new Promise<Express>((resolve) => {
-		app.listen(process.env.EXPRESS_PORT, () => {
-			console.log('Express server ready')
-			resolve(app)
-		})
 	})
 }
 
@@ -218,10 +174,4 @@ function getOAuthLink(accountType: AccountType) {
 	const scopes = SCOPES[accountType]
 	if (scopes) url += `&scope=${scopes.join('+')}`
 	return url
-}
-
-declare module 'express-session' {
-	interface SessionData {
-		username?: string
-	}
 }

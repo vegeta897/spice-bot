@@ -3,7 +3,7 @@ import { type RefreshingAuthProvider } from '@twurple/auth'
 import { ChatClient, toUserName } from '@twurple/chat'
 import { ParsedMessageEmotePart } from '@twurple/common'
 import { AuthEvents, getUserScopes } from './twitchApi.js'
-import { timestampLog } from './util.js'
+import { timestampLog } from '../util.js'
 
 // Idea: stream recap when !recap command used, or raid initialized
 //       maybe include emote usage, pogger/sogger ratio
