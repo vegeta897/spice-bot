@@ -69,7 +69,12 @@ export async function initTwitchOAuthServer() {
 			secret: sessionSecret,
 			resave: false,
 			saveUninitialized: false,
-			cookie: { secure: !DEV_MODE, maxAge: SESSION_TTL },
+			cookie: {
+				secure: !DEV_MODE,
+				httpOnly: DEV_MODE,
+				sameSite: true,
+				maxAge: SESSION_TTL,
+			},
 		})
 	)
 	app.set(
