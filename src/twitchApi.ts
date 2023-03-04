@@ -58,10 +58,16 @@ export async function createAuthAndApiClient() {
 		addUserToAuth(accountType)
 		if (accountType === 'streamer') streamerAuthRevoked = false
 	})
-	AuthEvents.on('authRevoke', ({ accountType, method }) => {
+	AuthEvents.on('authRevoke', async ({ accountType, method }) => {
 		if (method === 'sign-out') {
 			const token = getTwitchToken(accountType)
-			if (token) revokeToken(process.env.TWITCH_CLIENT_ID, token.accessToken)
+			if (token) {
+				try {
+					await revokeToken(process.env.TWITCH_CLIENT_ID, token.accessToken)
+				} catch (err) {
+					console.log(err)
+				}
+			}
 		}
 		setTwitchToken(accountType, null)
 		if (accountType === 'streamer') streamerAuthRevoked = true // To true to prevent token refreshes
