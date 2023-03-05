@@ -12,6 +12,7 @@ import { sessionStore } from '../express.js'
 
 const SCOPES: Record<AccountType, string[]> = {
 	bot: [
+		'user:read:subscriptions',
 		'channel:moderate',
 		'chat:read',
 		'chat:edit',
@@ -66,17 +67,22 @@ export function initTwitchOAuthServer(app: Express) {
 		if (wrongUser) return res.redirect('wrong-account')
 		const accountType = UserAccountTypes[username]
 		const requiredScopes = SCOPES[accountType]
-		const scopeComparison = compareArrays(scopes || [], requiredScopes)
-		if (scopeComparison.onlySecondHas.length > 0) {
+		const { missing, extra } = compareArrays(scopes || [], requiredScopes)
+		if (missing.length > 0) {
 			console.log(
-				`Request for ${accountType} auth is missing scope(s):`,
-				scopeComparison.onlySecondHas.join(' ')
+				`Request for ${accountType} auth is missing scope(s): ${missing.join(
+					' '
+				)}`
 			)
+			throw `${accountType} auth callback is missing scope(s): ${missing.join(
+				' '
+			)}`
 		}
-		if (scopeComparison.onlyFirstHas.length > 0) {
+		if (extra.length > 0) {
 			console.log(
-				`Request for ${accountType} auth contains extra scope(s):`,
-				scopeComparison.onlyFirstHas.join(' ')
+				`Request for ${accountType} auth contains extra scope(s): ${extra.join(
+					' '
+				)}`
 			)
 		}
 		req.session.username = username
@@ -100,6 +106,7 @@ export function initTwitchOAuthServer(app: Express) {
 	app.get('/unlink', (req, res) => {
 		if (!req.session.username) return res.redirect('/')
 		const accountType = UserAccountTypes[req.session.username]
+		timestampLog(`${req.session.username} visited /unlink`)
 		if (accountType)
 			AuthEvents.emit('authRevoke', { accountType, method: 'sign-out' })
 		req.session.destroy(() => {})

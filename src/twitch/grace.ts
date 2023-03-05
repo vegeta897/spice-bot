@@ -1,5 +1,11 @@
 import { getData, modifyData } from '../db.js'
-import { botInChat, ChatEvents, sendChatMessage } from './twitchChat.js'
+import { getBotSub } from './twitchApi.js'
+import {
+	botInChat,
+	ChatEvents,
+	PRAYBEE,
+	sendChatMessage,
+} from './twitchChat.js'
 
 type Grace = { date: Date }
 
@@ -23,7 +29,7 @@ export function initGrace() {
 	})
 }
 
-function endGraceTrain(endUser: string) {
+async function endGraceTrain(endUser: string) {
 	const trainLength = train.length
 	train.length = 0
 	if (trainLength < 3) return
@@ -33,6 +39,7 @@ function endGraceTrain(endUser: string) {
 		// New longest train!
 		const exclamations = '!'.repeat(Math.ceil(trainLength / 5))
 		message += `, a NEW RECORD${exclamations}`
+		if (await getBotSub()) message += ` ${PRAYBEE}`
 		modifyData({ twichGraceTrainRecord: trainLength })
 	} else if (trainLength === longestTrain) {
 		// Equal to longest train

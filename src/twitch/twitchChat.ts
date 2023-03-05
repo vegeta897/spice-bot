@@ -29,6 +29,11 @@ export const ChatEvents = new Emittery<{
 	}
 }>()
 
+// Emotes
+export const POGGERS = 'ybbaaaPoggers'
+export const SOGGERS = 'ybbaaaSoggers'
+export const PRAYBEE = 'ybbaaaPrayBee'
+
 let chatClient: ChatClient
 
 export async function initTwitchChat(
@@ -89,6 +94,17 @@ async function initChatClient(
 			`${broadcaster}${mod}${user}: ${text}${redemption}${emoteList}`
 		)
 		// if (text === '!ping') chatClient.say(channel, 'pong!')
+	})
+
+	chatClient.onSubGift((channel, user, subInfo, msg) => {
+		if (toUserName(channel) !== process.env.TWITCH_STREAMER_USERNAME) return
+		if (user !== process.env.TWITCH_BOT_USERNAME) return
+		const gifter = subInfo.gifterDisplayName || 'anonymous'
+		timestampLog(`Bot received a gift sub from ${gifter}`)
+		chatClient.say(
+			channel,
+			`Thank you ${gifter} for the gift sub! ${POGGERS} ${POGGERS}`
+		)
 	})
 
 	chatClient.onWhisper((user, text, msg) => {

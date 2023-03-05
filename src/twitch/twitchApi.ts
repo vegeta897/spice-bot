@@ -129,6 +129,13 @@ export async function botIsMod() {
 	)
 }
 
+export async function getBotSub() {
+	return await apiClient.subscriptions.checkUserSubscription(
+		helixUsers.bot,
+		helixUsers.streamer
+	)
+}
+
 function getAccountTypeForId(id: string) {
 	const [accountType] =
 		Object.entries(helixUsers).find(([accountType, user]) => user.id === id) ||
