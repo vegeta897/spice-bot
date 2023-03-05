@@ -1,13 +1,13 @@
 import { DateTime, Duration } from 'luxon'
 
-export const sleep = (ms: number) =>
-	new Promise((resolve) => setTimeout(resolve, ms))
-
 export const DEV_MODE = process.env.NODE_ENV === 'development'
 
 export const HOST_URL = DEV_MODE
 	? `http://localhost:${process.env.EXPRESS_PORT}`
 	: `https://${process.env.EXPRESS_HOSTNAME}`
+
+export const sleep = (ms: number) =>
+	new Promise((resolve) => setTimeout(resolve, ms))
 
 export const timestamp = () => DateTime.now().toFormat('yyyy-MM-dd, tt')
 

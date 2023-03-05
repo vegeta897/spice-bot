@@ -53,7 +53,11 @@ export async function createAuthAndApiClient() {
 	Object.entries(helixUsers).forEach(([accountType, user]) =>
 		addUserToAuth(accountType as AccountType)
 	)
-	ensureBotIsFollowingStreamer()
+	if (!(await botIsFollowingStreamer())) {
+		console.log(
+			'RECOMMENDED: Your bot is not following the streamer. Following can unlock free emotes!'
+		)
+	}
 	AuthEvents.on('auth', ({ accountType, token }) => {
 		setTwitchToken(accountType, token)
 		addUserToAuth(accountType)
@@ -93,13 +97,13 @@ function addUserToAuth(accountType: AccountType) {
 		const authStrings = {
 			bot: [
 				'REQUIRED: Use your bot account to auth with this link:',
-				'/auth-bot',
+				'/auth?bot',
 			],
 			streamer: [
 				'REQUIRED: Send this link to the streamer to authorize your app:',
 				'/auth',
 			],
-			admin: ['Use your own account to auth with this link:', '/auth-admin'],
+			admin: ['Use your own account to auth with this link:', '/auth?admin'],
 		}[accountType]
 		console.log(authStrings[0], HOST_URL + authStrings[1])
 		return
@@ -144,9 +148,6 @@ function getAccountTypeForId(id: string) {
 	return accountType as AccountType | undefined
 }
 
-async function ensureBotIsFollowingStreamer() {
-	if (await helixUsers.bot.follows(helixUsers.streamer)) return
-	console.log(
-		'RECOMMENDED: Your bot is not following the streamer. Following can unlock free emotes!'
-	)
+export async function botIsFollowingStreamer() {
+	return await helixUsers.bot.follows(helixUsers.streamer)
 }

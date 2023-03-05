@@ -8,7 +8,8 @@ import {
 	botIsMod,
 	UserAccountTypes,
 } from './twitchApi.js'
-import { sessionStore } from '../express.js'
+import { createExpressErrorHandler, sessionStore } from '../express.js'
+import randomstring from 'randomstring'
 
 const SCOPES: Record<AccountType, string[]> = {
 	bot: [
@@ -56,14 +57,23 @@ export function initTwitchOAuthServer(app: Express) {
 		}
 		res.render('index', {
 			username: req.session.username,
-			botIsMod: await botIsMod(),
+			botIsMod: req.session.username && (await botIsMod()),
 		})
 	})
 	app.get('/callback', async (req, res) => {
 		timestampLog('incoming oauth callback', req.query)
-		const { code, scope } = req.query
-		if (!code || typeof code !== 'string' || typeof scope !== 'string')
-			throw 'Invalid parameters'
+		const { code, scope, state } = req.query
+		if (
+			typeof code !== 'string' ||
+			typeof scope !== 'string' ||
+			typeof state !== 'string'
+		) {
+			throw 'Authorization callback is missing one or more parameters'
+		}
+		if (state !== req.session.oauthState) {
+			throw 'Authoriation callback failed; mismatched state parameter'
+		}
+		delete req.session.oauthState // Clean up state once validated
 		const { username, scopes, wrongUser } = await doOauthFlow(code)
 		if (wrongUser) return res.redirect('wrong-account')
 		const accountType = UserAccountTypes[username]
@@ -91,9 +101,14 @@ export function initTwitchOAuthServer(app: Express) {
 		if (accountType === 'admin') return res.redirect('admin')
 		res.redirect('success')
 	})
-	app.get('/auth', (req, res) => res.redirect(getOAuthLink('streamer')))
-	app.get('/auth-bot', (req, res) => res.redirect(getOAuthLink('bot')))
-	app.get('/auth-admin', (req, res) => res.redirect(getOAuthLink('admin')))
+	app.get('/auth', (req, res) => {
+		const { bot, admin } = req.query
+		const accountType: AccountType =
+			bot !== undefined ? 'bot' : admin !== undefined ? 'admin' : 'streamer'
+		const oauthState = randomstring.generate()
+		req.session.oauthState = oauthState
+		return res.redirect(getOAuthLink(accountType, oauthState))
+	})
 	app.get('/success', (req, res) => {
 		if (!req.session.username) return res.redirect('/')
 		res.render('success', { botUsername: process.env.TWITCH_BOT_USERNAME })
@@ -132,6 +147,7 @@ export function initTwitchOAuthServer(app: Express) {
 			},
 		})
 	})
+	createExpressErrorHandler(app)
 	AuthEvents.on('authRevoke', ({ accountType }) => {
 		if (accountType !== 'streamer') return
 		// Delete all of the streamer's sessions
@@ -177,8 +193,8 @@ async function doOauthFlow(code: string): Promise<{
 	}
 }
 
-function getOAuthLink(accountType: AccountType) {
-	let url = `https://id.twitch.tv/oauth2/authorize?response_type=code&client_id=${process.env.TWITCH_CLIENT_ID}&redirect_uri=${HOST_URL}/callback`
+function getOAuthLink(accountType: AccountType, state: string) {
+	let url = `https://id.twitch.tv/oauth2/authorize?response_type=code&client_id=${process.env.TWITCH_CLIENT_ID}&redirect_uri=${HOST_URL}/callback&state=${state}`
 	const scopes = SCOPES[accountType]
 	if (scopes) url += `&scope=${scopes.join('+')}`
 	return url

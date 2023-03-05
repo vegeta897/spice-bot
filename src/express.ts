@@ -1,5 +1,11 @@
 import 'express-async-errors'
-import express, { Express, Request, Response, NextFunction } from 'express'
+import express, {
+	Express,
+	Request,
+	Response,
+	NextFunction,
+	Application,
+} from 'express'
 import session from 'express-session'
 import { join, dirname } from 'path'
 import randomstring from 'randomstring'
@@ -40,10 +46,6 @@ export async function initExpressApp() {
 		join(dirname(fileURLToPath(import.meta.url)), '../src/views')
 	)
 	app.set('view engine', 'ejs')
-	app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-		timestampLog('Express caught error:', err)
-		res.render('error', { error: err })
-	})
 	return new Promise<Express>((resolve) => {
 		app.listen(process.env.EXPRESS_PORT, () => {
 			console.log('Express server ready')
@@ -52,8 +54,16 @@ export async function initExpressApp() {
 	})
 }
 
+export function createExpressErrorHandler(app: Application) {
+	app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+		timestampLog('Express caught error:', err)
+		res.render('error', { error: err })
+	})
+}
+
 declare module 'express-session' {
 	interface SessionData {
 		username?: string
+		oauthState?: string
 	}
 }

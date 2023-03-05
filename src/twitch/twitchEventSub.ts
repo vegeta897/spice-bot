@@ -38,6 +38,7 @@ import { Express } from 'express'
 import { ChatEvents } from './twitchChat.js'
 
 // TODO: Think about splitting up this file
+// Maybe use Emittery to forward events, let them be handled in other files
 
 type EventSubListener = EventSubHttpListener | EventSubMiddleware
 
@@ -198,6 +199,7 @@ async function initScopedEventSubs(listener: EventSubListener) {
 				console.log(event.rewardTitle, event.status, event.rewardPrompt)
 				ChatEvents.emit('redemption', {
 					username: event.userName,
+					userID: event.userId,
 					title: DEV_MODE ? 'GRACE' : event.rewardTitle,
 					date: event.redemptionDate,
 					status: event.status,
