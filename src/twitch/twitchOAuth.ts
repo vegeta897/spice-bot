@@ -12,6 +12,7 @@ import { sessionStore } from '../express.js'
 
 const SCOPES: Record<AccountType, string[]> = {
 	bot: [
+		'user:read:follows',
 		'user:read:subscriptions',
 		'channel:moderate',
 		'chat:read',
