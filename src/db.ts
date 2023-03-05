@@ -35,6 +35,7 @@ type DBData = {
 	expressSessionSecret: string | null
 	twitchEventSubSecret: string | null
 	twitchTokens: Record<AccountType, AccessToken | null>
+	twichGraceTrainRecord: number
 }
 
 const filename = DEV_MODE ? 'db-dev.json' : 'db.json'
@@ -51,6 +52,7 @@ export async function initDB() {
 		expressSessionSecret: null,
 		twitchEventSubSecret: null,
 		twitchTokens: { bot: null, streamer: null, admin: null },
+		twichGraceTrainRecord: 0,
 	}
 	if (DEV_MODE)
 		db.data.streams = db.data.streams.filter((s) => s.streamID !== 'test')

@@ -1,18 +1,33 @@
 import { type HelixUser } from '@twurple/api'
 import { type RefreshingAuthProvider } from '@twurple/auth'
-import { ChatClient, toUserName } from '@twurple/chat'
+import { ChatClient, toUserName, PrivateMessage } from '@twurple/chat'
 import { ParsedMessageEmotePart } from '@twurple/common'
 import { AuthEvents, getUserScopes } from './twitchApi.js'
 import { timestampLog } from '../util.js'
+import Emittery from 'emittery'
+import { initGrace } from './grace.js'
 
 // Idea: stream recap when !recap command used, or raid initialized
 //       maybe include emote usage, pogger/sogger ratio
-// Idea: grace train tracker
-//       redemptions without messages do not show up in chat, need to use eventsub
-//       use event timestamp and message timestamp to ensure chain timing?
 // Idea: !tally counts results of impromptu chat polls (e.g. say 1 or 2 in chat)
 //       maybe send amended messages if people vote after command is used
 // Use emotes if given a gift subscription (and thank the gifter!)
+
+export const ChatEvents = new Emittery<{
+	message: {
+		username: string
+		text: string
+		date: Date
+		msg: PrivateMessage
+	}
+	redemption: {
+		username: string
+		title: string
+		date: Date
+		status: string
+		rewardText: string
+	}
+}>()
 
 let chatClient: ChatClient
 
@@ -21,6 +36,7 @@ export async function initTwitchChat(
 	botUser: HelixUser
 ) {
 	initChatClient(authProvider, botUser)
+	initGrace()
 	AuthEvents.on('auth', async ({ accountType }) => {
 		if (accountType === 'bot') initChatClient(authProvider, botUser)
 	})
@@ -57,8 +73,10 @@ async function initChatClient(
 	chatClient.onMessage((channel, user, text, msg) => {
 		// console.log(channel, user, text)
 		if (toUserName(channel) !== process.env.TWITCH_STREAMER_USERNAME) return
+		if (user === process.env.TWITCH_BOT_USERNAME) return
 		const broadcaster = msg.userInfo.isBroadcaster ? '[STREAMER] ' : ''
 		const mod = msg.userInfo.isMod ? '[MOD] ' : ''
+		ChatEvents.emit('message', { username: user, text, date: msg.date, msg })
 		const redemption = msg.isRedemption ? ' (REDEEM)' : ''
 		const emotes = msg
 			.parseEmotes()
@@ -76,6 +94,11 @@ async function initChatClient(
 	chatClient.onWhisper((user, text, msg) => {
 		// Need to use apiClient.whispers.sendWhisper() to reply
 	})
+}
+
+export function sendChatMessage(text: string) {
+	if (!chatClient) return
+	chatClient.say(process.env.TWITCH_STREAMER_USERNAME, text)
 }
 
 function hasRequiredScopes(scopes: string[]) {

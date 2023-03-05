@@ -35,6 +35,7 @@ import { getStreamEndEmbed, getStreamStartEmbed } from './twitchEmbeds.js'
 import randomstring from 'randomstring'
 import { AuthEvents, getUserScopes, UserAccountTypes } from './twitchApi.js'
 import { Express } from 'express'
+import { ChatEvents } from './twitchChat.js'
 
 // TODO: Think about splitting up this file
 
@@ -194,10 +195,14 @@ async function initScopedEventSubs(listener: EventSubListener) {
 		scopedEventSubs.set(
 			'channelRedemptionAddSub',
 			listener.onChannelRedemptionAdd(streamerUser, async (event) => {
-				// TODO: Watch for GRACE
-				if (DEV_MODE) {
-				}
 				console.log(event.rewardTitle, event.status, event.rewardPrompt)
+				ChatEvents.emit('redemption', {
+					username: event.userName,
+					title: DEV_MODE ? 'GRACE' : event.rewardTitle,
+					date: event.redemptionDate,
+					status: event.status,
+					rewardText: event.input,
+				})
 			})
 		)
 		console.log(
