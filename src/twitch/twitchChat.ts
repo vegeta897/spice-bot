@@ -8,6 +8,7 @@ import Emittery from 'emittery'
 import { initGrace } from './grace.js'
 import { initRecap } from './recap.js'
 import { POGGERS } from './emotes.js'
+import { initTally } from './tally.js'
 
 // Idea: !tally counts results of impromptu chat polls (e.g. say 1 or 2 in chat)
 //       maybe send amended messages if people vote after command is used
@@ -19,6 +20,7 @@ export const ChatEvents = new Emittery<{
 		text: string
 		date: Date
 		msg: PrivateMessage
+		mod: boolean
 	}
 	redemption: {
 		username: string
@@ -39,6 +41,7 @@ export async function initTwitchChat(
 	initChatClient(authProvider, botUser)
 	initGrace()
 	initRecap()
+	initTally()
 	AuthEvents.on('auth', async ({ accountType }) => {
 		if (accountType === 'bot') initChatClient(authProvider, botUser)
 	})
@@ -83,6 +86,7 @@ async function initChatClient(
 			text,
 			date: msg.date,
 			msg,
+			mod: msg.userInfo.isMod || msg.userInfo.isBroadcaster,
 		})
 		const redemption = msg.isRedemption ? ' (REDEEM)' : ''
 		const emotes = msg

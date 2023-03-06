@@ -36,7 +36,7 @@ import randomstring from 'randomstring'
 import { AuthEvents, getUserScopes, UserAccountTypes } from './twitchApi.js'
 import { Express } from 'express'
 import { ChatEvents } from './twitchChat.js'
-import { onStreamStart } from './recap.js'
+import Emittery from 'emittery'
 
 // TODO: Think about splitting up this file
 // Maybe use Emittery to forward events, let them be handled in other files
@@ -51,6 +51,11 @@ const scopedEventSubs: Map<
 > = new Map()
 
 const processingStreamOnlineEvents: Set<string> = new Set()
+
+export const TwitchEvents = new Emittery<{
+	streamOnline: { id: string }
+	streamOffline: undefined
+}>()
 
 export async function initTwitchEventSub(params: {
 	apiClient: ApiClient
@@ -124,7 +129,7 @@ async function initGlobalEventSubs(listener: EventSubListener) {
 				console.log(`Stream record ID ${event.id} already exists`)
 				return
 			}
-			onStreamStart()
+			TwitchEvents.emit('streamOnline', { id: event.id })
 			const streamRecord = recordStream({
 				streamID: event.id,
 				streamStatus: 'live',

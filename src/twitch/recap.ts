@@ -7,6 +7,7 @@ import {
 } from './emotes.js'
 import { GRACE } from './grace.js'
 import { ChatEvents, sendChatMessage } from './twitchChat.js'
+import { TwitchEvents } from './twitchEventSub.js'
 
 // Move this to db for persistence?
 const emoteCounts: Map<string, number> = new Map()
@@ -17,7 +18,7 @@ const COOLDOWN = 10 * 1000
 
 export function initRecap() {
 	ChatEvents.on('message', (event) => {
-		if (event.text.toLowerCase() === '!recap') {
+		if (event.text.toLowerCase() === '!recap' && event.mod) {
 			sendRecap()
 			return
 		}
@@ -31,6 +32,10 @@ export function initRecap() {
 	})
 	ChatEvents.on('redemption', (event) => {
 		redeemCounts.set(event.title, (redeemCounts.get(event.title) || 0) + 1)
+	})
+	TwitchEvents.on('streamOnline', () => {
+		emoteCounts.clear()
+		redeemCounts.clear()
 	})
 }
 
@@ -85,9 +90,4 @@ async function sendRecap() {
 		)
 	const stretchChecks = redeemCounts.get('Stretch Check') || 0
 	if (stretchChecks > 0) sendChatMessage(`Stretch checks: ${stretchChecks}`)
-}
-
-export function onStreamStart() {
-	emoteCounts.clear()
-	redeemCounts.clear()
 }
