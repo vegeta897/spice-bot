@@ -48,7 +48,7 @@ function tallyUp() {
 		if (text === 'six') text = '6'
 		// Consolidate repeated digits or letters
 		for (const singleChar of '123456abcde') {
-			const regex = new RegExp(singleChar + '+')
+			const regex = new RegExp(`^${singleChar}+$`)
 			if (regex.test(text.replace(/ /g, ''))) {
 				text = singleChar
 				break
