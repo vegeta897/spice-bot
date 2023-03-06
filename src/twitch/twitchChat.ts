@@ -6,33 +6,29 @@ import { AuthEvents, getUserScopes } from './twitchApi.js'
 import { timestampLog } from '../util.js'
 import Emittery from 'emittery'
 import { initGrace } from './grace.js'
+import { initRecap } from './recap.js'
+import { POGGERS } from './emotes.js'
 
-// Idea: stream recap when !recap command used, or raid initialized
-//       maybe include emote usage, pogger/sogger ratio
 // Idea: !tally counts results of impromptu chat polls (e.g. say 1 or 2 in chat)
 //       maybe send amended messages if people vote after command is used
-// Use emotes if given a gift subscription (and thank the gifter!)
 
 export const ChatEvents = new Emittery<{
 	message: {
 		username: string
+		userID: string
 		text: string
 		date: Date
 		msg: PrivateMessage
 	}
 	redemption: {
 		username: string
+		userID: string
 		title: string
 		date: Date
 		status: string
 		rewardText: string
 	}
 }>()
-
-// Emotes
-export const POGGERS = 'ybbaaaPoggers'
-export const SOGGERS = 'ybbaaaSoggers'
-export const PRAYBEE = 'ybbaaaPrayBee'
 
 let chatClient: ChatClient
 
@@ -42,6 +38,7 @@ export async function initTwitchChat(
 ) {
 	initChatClient(authProvider, botUser)
 	initGrace()
+	initRecap()
 	AuthEvents.on('auth', async ({ accountType }) => {
 		if (accountType === 'bot') initChatClient(authProvider, botUser)
 	})
@@ -76,12 +73,17 @@ async function initChatClient(
 	})
 
 	chatClient.onMessage((channel, user, text, msg) => {
-		// console.log(channel, user, text)
 		if (toUserName(channel) !== process.env.TWITCH_STREAMER_USERNAME) return
 		if (user === process.env.TWITCH_BOT_USERNAME) return
 		const broadcaster = msg.userInfo.isBroadcaster ? '[STREAMER] ' : ''
 		const mod = msg.userInfo.isMod ? '[MOD] ' : ''
-		ChatEvents.emit('message', { username: user, text, date: msg.date, msg })
+		ChatEvents.emit('message', {
+			username: user,
+			userID: msg.userInfo.userId,
+			text,
+			date: msg.date,
+			msg,
+		})
 		const redemption = msg.isRedemption ? ' (REDEEM)' : ''
 		const emotes = msg
 			.parseEmotes()
@@ -93,7 +95,6 @@ async function initChatClient(
 		timestampLog(
 			`${broadcaster}${mod}${user}: ${text}${redemption}${emoteList}`
 		)
-		// if (text === '!ping') chatClient.say(channel, 'pong!')
 	})
 
 	chatClient.onSubGift((channel, user, subInfo, msg) => {
@@ -101,9 +102,8 @@ async function initChatClient(
 		if (user !== process.env.TWITCH_BOT_USERNAME) return
 		const gifter = subInfo.gifterDisplayName || 'anonymous'
 		timestampLog(`Bot received a gift sub from ${gifter}`)
-		chatClient.say(
-			channel,
-			`Thank you ${gifter} for the gift sub! ${POGGERS} ${POGGERS}`
+		sendChatMessage(
+			`Thank you ${gifter} for the gift sub! <3 ${POGGERS} ${POGGERS}`
 		)
 	})
 

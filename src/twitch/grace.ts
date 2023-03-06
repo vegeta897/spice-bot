@@ -1,13 +1,10 @@
 import { getData, modifyData } from '../db.js'
-import { getBotSub } from './twitchApi.js'
-import {
-	botInChat,
-	ChatEvents,
-	PRAYBEE,
-	sendChatMessage,
-} from './twitchChat.js'
+import { getEmoteByName, getUsableEmotes, PRAYBEE } from './emotes.js'
+import { botInChat, ChatEvents, sendChatMessage } from './twitchChat.js'
 
-type Grace = { date: Date }
+type Grace = { date: Date; userID: string }
+
+export const GRACE = 'GRACE'
 
 const train: Grace[] = []
 
@@ -23,9 +20,12 @@ export function initGrace() {
 		}
 	})
 	ChatEvents.on('redemption', (event) => {
-		if (event.title !== 'GRACE') return
+		if (event.title !== GRACE) return
 		if (!botInChat) return
-		train.push({ date: event.date })
+		// Only add to train if it's a different user than the last grace
+		if (train.at(-1)?.userID !== event.userID) {
+			train.push({ date: event.date, userID: event.userID })
+		}
 	})
 }
 
@@ -37,9 +37,11 @@ async function endGraceTrain(endUser: string) {
 	let message = `Grace train ended by ${endUser}! That was ${trainLength} graces`
 	if (trainLength > longestTrain) {
 		// New longest train!
-		const exclamations = '!'.repeat(Math.ceil(trainLength / 5))
-		message += `, a NEW RECORD${exclamations}`
-		if (await getBotSub()) message += ` ${PRAYBEE}`
+		message += `, a NEW RECORD!`
+		if (getEmoteByName(PRAYBEE, await getUsableEmotes())) {
+			const prayBees = `${PRAYBEE} `.repeat(Math.ceil(trainLength / 5))
+			message += prayBees
+		}
 		modifyData({ twichGraceTrainRecord: trainLength })
 	} else if (trainLength === longestTrain) {
 		// Equal to longest train

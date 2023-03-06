@@ -53,7 +53,9 @@ export async function createAuthAndApiClient() {
 		streamer: await getUser(process.env.TWITCH_STREAMER_USERNAME),
 		admin: await getUser(process.env.TWITCH_ADMIN_USERNAME),
 	}
-	accountTypes.forEach((accountType) => addUserToAuth(accountType))
+	for (const accountType of accountTypes) {
+		await addUserToAuth(accountType)
+	}
 	if (!(await botIsFollowingStreamer())) {
 		console.log(
 			'RECOMMENDED: Your bot is not following the streamer. Following can unlock free emotes!'
