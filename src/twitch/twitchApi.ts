@@ -4,6 +4,8 @@ import {
 	RefreshingAuthProvider,
 	revokeToken,
 	getTokenInfo,
+	accessTokenIsExpired,
+	refreshUserToken,
 } from '@twurple/auth'
 import Emittery from 'emittery'
 import { getTwitchToken, setTwitchToken } from '../db.js'
@@ -19,7 +21,8 @@ export const AuthEvents = new Emittery<{
 	authRevoke: { accountType: AccountType; method: 'sign-out' | 'disconnect' }
 }>()
 
-export type AccountType = 'streamer' | 'bot' | 'admin'
+const accountTypes = ['streamer', 'bot', 'admin'] as const
+export type AccountType = typeof accountTypes[number]
 export const UserAccountTypes: Record<string, AccountType> = {
 	[process.env.TWITCH_STREAMER_USERNAME]: 'streamer',
 	[process.env.TWITCH_BOT_USERNAME]: 'bot',
@@ -50,9 +53,7 @@ export async function createAuthAndApiClient() {
 		streamer: await getUser(process.env.TWITCH_STREAMER_USERNAME),
 		admin: await getUser(process.env.TWITCH_ADMIN_USERNAME),
 	}
-	Object.entries(helixUsers).forEach(([accountType, user]) =>
-		addUserToAuth(accountType as AccountType)
-	)
+	accountTypes.forEach((accountType) => addUserToAuth(accountType))
 	if (!(await botIsFollowingStreamer())) {
 		console.log(
 			'RECOMMENDED: Your bot is not following the streamer. Following can unlock free emotes!'
@@ -60,7 +61,7 @@ export async function createAuthAndApiClient() {
 	}
 	AuthEvents.on('auth', ({ accountType, token }) => {
 		setTwitchToken(accountType, token)
-		addUserToAuth(accountType)
+		addUserToAuth(accountType, token)
 		if (accountType === 'streamer') streamerAuthRevoked = false
 	})
 	AuthEvents.on('authRevoke', async ({ accountType, method }) => {
@@ -76,11 +77,8 @@ export async function createAuthAndApiClient() {
 		if (accountType === 'streamer') streamerAuthRevoked = true // To true to prevent token refreshes
 	})
 	setInterval(() => {
-		Object.keys(helixUsers).forEach((accountType) => {
-			const token = getTwitchToken(accountType as AccountType)
-			if (token) getTokenInfo(token.accessToken)
-		})
-	}, 60 * 60 * 1000) // Validate tokens hourly
+		accountTypes.forEach((accountType) => verifyToken(accountType))
+	}, 60 * 60 * 1000) // Verify tokens hourly
 	return { authProvider, apiClient, helixUsers }
 }
 
@@ -91,9 +89,13 @@ async function getUser(username: string) {
 	return user
 }
 
-function addUserToAuth(accountType: AccountType) {
-	const token = getTwitchToken(accountType) as AccessToken
+async function addUserToAuth(
+	accountType: AccountType,
+	token?: AccessToken | false
+) {
+	token ||= await verifyToken(accountType)
 	if (!token) {
+		// Print auth link to console
 		const authStrings = {
 			bot: [
 				'REQUIRED: Use your bot account to auth with this link:',
@@ -113,6 +115,22 @@ function addUserToAuth(accountType: AccountType) {
 	} else {
 		authProvider.addUser(helixUsers[accountType], token)
 	}
+}
+
+async function verifyToken(accountType: AccountType, token?: AccessToken) {
+	if (accountType === 'streamer' && streamerAuthRevoked) return false
+	token ||= getTwitchToken(accountType)
+	if (!token) return false
+	if (accessTokenIsExpired(token)) {
+		token = await refreshUserToken(
+			process.env.TWITCH_CLIENT_ID,
+			process.env.TWITCH_CLIENT_SECRET,
+			token.refreshToken!
+		)
+		setTwitchToken(accountType, token)
+	}
+	await getTokenInfo(token.accessToken)
+	return token
 }
 
 export async function getUserScopes(user: HelixUser): Promise<string[]> {

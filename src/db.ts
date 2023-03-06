@@ -56,7 +56,7 @@ export async function initDB() {
 	}
 	if (DEV_MODE)
 		db.data.streams = db.data.streams.filter((s) => s.streamID !== 'test')
-	db.write()
+	db.write() // Creates the initial db file if it doesn't exist
 	console.log('Database connected')
 }
 
@@ -159,7 +159,7 @@ const cloneStreamRecord = (
 })
 
 export const getTwitchToken = (accountType: AccountType) =>
-	cloneTwitchToken(getData().twitchTokens[accountType])
+	cloneTwitchToken(getData().twitchTokens[accountType]) as AccessToken
 
 const cloneTwitchToken = (
 	token: AccessToken | DeepReadonly<AccessToken> | null
