@@ -1,6 +1,7 @@
 import { DateTime, Duration } from 'luxon'
 
 export const DEV_MODE = process.env.NODE_ENV === 'development'
+export const CHAT_TEST_MODE = process.env.TEST_MODE === 'true'
 
 export const HOST_URL = DEV_MODE
 	? `http://localhost:${process.env.EXPRESS_PORT}`

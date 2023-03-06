@@ -3,15 +3,12 @@ import { type RefreshingAuthProvider } from '@twurple/auth'
 import { ChatClient, toUserName, PrivateMessage } from '@twurple/chat'
 import { ParsedMessageEmotePart } from '@twurple/common'
 import { AuthEvents, getUserScopes } from './twitchApi.js'
-import { timestampLog } from '../util.js'
+import { CHAT_TEST_MODE, timestampLog } from '../util.js'
 import Emittery from 'emittery'
 import { initGrace } from './grace.js'
 import { initRecap } from './recap.js'
 import { POGGERS } from './emotes.js'
 import { initTally } from './tally.js'
-
-// Idea: !tally counts results of impromptu chat polls (e.g. say 1 or 2 in chat)
-//       maybe send amended messages if people vote after command is used
 
 export const ChatEvents = new Emittery<{
 	message: {
@@ -118,6 +115,10 @@ async function initChatClient(
 
 export function sendChatMessage(text: string) {
 	if (!chatClient) return
+	if (CHAT_TEST_MODE) {
+		timestampLog(`Sent: ${text}`)
+		return
+	}
 	chatClient.say(process.env.TWITCH_STREAMER_USERNAME, text)
 }
 

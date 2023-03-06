@@ -18,6 +18,7 @@ declare global {
 			NICKNAME?: string
 			EXPRESS_HOSTNAME: string
 			EXPRESS_PORT: string
+			CHAT_TEST_MODE: string
 			NODE_ENV?: 'development' | 'production'
 		}
 	}

@@ -13,9 +13,6 @@ import { TwitchEvents } from './twitchEventSub.js'
 const emoteCounts: Map<string, number> = new Map()
 const redeemCounts: Map<string, number> = new Map()
 
-let commandLastUsed = new Date(0)
-const COOLDOWN = 10 * 1000
-
 export function initRecap() {
 	ChatEvents.on('message', (event) => {
 		if (event.text.toLowerCase() === '!recap' && event.mod) {
@@ -38,6 +35,9 @@ export function initRecap() {
 		redeemCounts.clear()
 	})
 }
+
+let commandLastUsed = new Date(0)
+const COOLDOWN = 10 * 1000
 
 async function sendRecap() {
 	const now = new Date()
