@@ -39,7 +39,7 @@ export function initRecap() {
 let commandLastUsed = new Date(0)
 const COOLDOWN = 10 * 1000
 
-async function sendRecap() {
+export async function sendRecap() {
 	const now = new Date()
 	if (now.getTime() - commandLastUsed.getTime() < COOLDOWN) return
 	commandLastUsed = now
@@ -70,14 +70,14 @@ async function sendRecap() {
 			else poggersMessage += 'POGGERS emotes this stream!'
 			sendChatMessage(poggersMessage)
 		}
-		let noSoggersMessage = 'There were no SOGGERS this stream!'
-		if (canPoggers) noSoggersMessage += ` That is ${POGGERS}`
-		sendChatMessage(noSoggersMessage)
+		// let noSoggersMessage = 'There were no SOGGERS this stream!'
+		// if (canPoggers) noSoggersMessage += ` That is ${POGGERS}`
+		// sendChatMessage(noSoggersMessage)
 	}
 	const graces = redeemCounts.get(GRACE) || 0
 	if (graces > 0)
 		sendChatMessage(
-			`GRACE count: ${graces}${
+			`GRACE count: ${graces} ${
 				getEmoteByName(PRAYBEE, usableEmotes) ? PRAYBEE : ''
 			}`
 		)
@@ -85,7 +85,9 @@ async function sendRecap() {
 	if (hydroChecks > 0)
 		sendChatMessage(
 			`Hydration checks: ${hydroChecks}${
-				getEmoteByName('ybbaaaJug', usableEmotes) ? 'ybbaaaJug' : ''
+				getEmoteByName('ybbaaaJug', usableEmotes)
+					? ' ybbaaaJug'.repeat(hydroChecks)
+					: ''
 			}`
 		)
 	const stretchChecks = redeemCounts.get('Stretch Check') || 0

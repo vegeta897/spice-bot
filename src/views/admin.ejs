@@ -19,23 +19,27 @@
         <tr>
           <td>Streamer</td>
           <td><code><%= streamer.username %></code></td>
-          <td><%= streamer.authed ?
-						'Yes ✔️' : 'No ❌' %></td>
+          <td><%= streamer.authed ? 'Yes ✔️' : 'No ❌' %></td>
         </tr>
         <tr>
           <td>Bot</td>
           <td><code><%= bot.username %></code></td>
-          <td><%= bot.authed ?
-						'Yes ✔️' : 'No ❌' %></td>
+          <td><%= bot.authed ? 'Yes ✔️' : 'No ❌' %></td>
         </tr>
         <tr>
           <td>Admin</td>
           <td><code><%= admin.username %></code></td>
-          <td><%= admin.authed ?
-						'Yes ✔️' : 'No ❌' %></td>
+          <td><%= admin.authed ? 'Yes ✔️' : 'No ❌' %></td>
         </tr>
       </tbody>
     </table>
+    <% if(chatTestMode) { %>
+    <p class="button-row">
+      <% for(const command of testCommands) { %>
+      <a class="button button-small" href="#" onclick="fetch('test?command=<%= command %>',{method:'POST'})">Test !<%= command %></a>
+      <% } %>
+    </p>
+    <% } %>
     <p><a href="unlink">Sign out</a></p>
   </main>
 </body>

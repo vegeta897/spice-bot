@@ -1,5 +1,10 @@
 import { Express } from 'express'
-import { compareArrays, HOST_URL, timestampLog } from '../util.js'
+import {
+	CHAT_TEST_MODE,
+	compareArrays,
+	HOST_URL,
+	timestampLog,
+} from '../util.js'
 import { getTwitchToken } from '../db.js'
 import { exchangeCode, getTokenInfo, revokeToken } from '@twurple/auth'
 import {
@@ -10,6 +15,8 @@ import {
 } from './twitchApi.js'
 import { createExpressErrorHandler, sessionStore } from '../express.js'
 import randomstring from 'randomstring'
+import { sendRecap } from './recap.js'
+import { tallyUp } from './tally.js'
 
 const SCOPES: Record<AccountType, string[]> = {
 	bot: [
@@ -145,7 +152,20 @@ export function initTwitchOAuthServer(app: Express) {
 				username: process.env.TWITCH_ADMIN_USERNAME,
 				authed: !!getTwitchToken('admin'),
 			},
+			chatTestMode: CHAT_TEST_MODE,
+			testCommands: ['recap', 'tally'],
 		})
+	})
+	app.post('/test', (req, res) => {
+		if (req.session.username !== process.env.TWITCH_ADMIN_USERNAME) {
+			return res.sendStatus(401)
+		}
+		if (!CHAT_TEST_MODE) return res.sendStatus(400)
+		const { command } = req.query
+		timestampLog(`Testing !${command} command`)
+		if (command === 'recap') sendRecap()
+		if (command === 'tally') tallyUp()
+		res.sendStatus(200)
 	})
 	createExpressErrorHandler(app)
 	AuthEvents.on('authRevoke', ({ accountType }) => {

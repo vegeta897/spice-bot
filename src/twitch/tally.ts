@@ -31,7 +31,7 @@ export function initTally() {
 let commandLastUsed = new Date(0)
 const COOLDOWN = 10 * 1000
 
-function tallyUp() {
+export function tallyUp() {
 	const now = new Date()
 	if (now.getTime() - commandLastUsed.getTime() < COOLDOWN) return
 	commandLastUsed = now
