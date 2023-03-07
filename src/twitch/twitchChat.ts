@@ -2,12 +2,15 @@ import { type RefreshingAuthProvider } from '@twurple/auth'
 import { ChatClient, toUserName, PrivateMessage } from '@twurple/chat'
 import { ParsedMessageEmotePart } from '@twurple/common'
 import { AuthEvents, getAccountScopes, sendWhisper } from './twitchApi.js'
-import { CHAT_TEST_MODE, timestampLog } from '../util.js'
+import { CHAT_TEST_MODE, DEV_MODE, timestampLog } from '../util.js'
 import Emittery from 'emittery'
 import { initGrace } from './grace.js'
 import { initRecap } from './recap.js'
 import { POGGERS } from './emotes.js'
 import { initTally } from './tally.js'
+
+// Idea: Detect incrementing numbers in ryan's messages for death tracker
+//       Then we can provide a command to check the count
 
 export const ChatEvents = new Emittery<{
 	message: {
@@ -86,9 +89,10 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 			emotes.length > 0
 				? ` <EMOTES: ${emotes.map((e) => e.name).join(', ')}>`
 				: ''
-		timestampLog(
-			`${broadcaster}${mod}${user}: ${text}${redemption}${emoteList}`
-		)
+		if (DEV_MODE)
+			timestampLog(
+				`${broadcaster}${mod}${user}: ${text}${redemption}${emoteList}`
+			)
 	})
 
 	chatClient.onSubGift((channel, user, subInfo, msg) => {

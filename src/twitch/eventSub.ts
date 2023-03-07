@@ -155,6 +155,8 @@ async function initScopedEventSubs(listener: EventSubListener) {
 			})
 		)
 	}
+	// Maybe keep this in prod, and add the remove event too,
+	// to check when the bot is modded or de-modded
 	if (DEV_MODE && streamerScopes.includes('moderation:read')) {
 		scopedEventSubs.set(
 			'channelModAddSub',
