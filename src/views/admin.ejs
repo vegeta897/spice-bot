@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<%- include('head') %>
+
+<body>
+  <header>
+    <h1>Admin Panel</h1>
+  </header>
+  <main>
+    <table>
+      <thead>
+        <tr>
+          <th>Account</th>
+          <th>Username</th>
+          <th>Authed</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Streamer</td>
+          <td><code><%= streamer.username %></code></td>
+          <td><%= streamer.authed ? 'Yes ✔️' : 'No ❌' %></td>
+        </tr>
+        <tr>
+          <td>Bot</td>
+          <td><code><%= bot.username %></code></td>
+          <td><%= bot.authed ? 'Yes ✔️' : 'No ❌' %></td>
+        </tr>
+        <tr>
+          <td>Admin</td>
+          <td><code><%= admin.username %></code></td>
+          <td><%= admin.authed ? 'Yes ✔️' : 'No ❌' %></td>
+        </tr>
+      </tbody>
+    </table>
+    <% if(chatTestMode) { %>
+    <h3>Test commands</h3>
+    <p class="button-row">
+      <% for(const command of testCommands) { %>
+      <a class="button button-small" href="#" onclick="fetch('test?command=<%= command %>',{method:'POST'})">Test !<%= command %></a>
+      <% } %>
+    </p>
+    <h3>Test events</h3>
+    <p class="button-row">
+      <% for(const event of testEvents) { %>
+      <a class="button button-small" href="#" onclick="fetch('test?event=<%= event %>',{method:'POST'})">Test <%= event %></a>
+      <% } %>
+    </p>
+    <% } %>
+    <p><a href="unlink">Sign out</a></p>
+  </main>
+</body>
+
+</html>

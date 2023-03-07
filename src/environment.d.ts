@@ -1,12 +1,11 @@
 declare global {
 	namespace NodeJS {
 		interface ProcessEnv {
-			TWITCH_USERNAME: string
+			TWITCH_STREAMER_USERNAME: string
+			TWITCH_BOT_USERNAME: string
+			TWITCH_ADMIN_USERNAME: string
 			TWITCH_CLIENT_ID: string
 			TWITCH_CLIENT_SECRET: string
-			TWITCH_EVENTSUB_HOSTNAME: string
-			TWITCH_EVENTSUB_PATH_PREFIX: string
-			TWITCH_EVENTSUB_PORT: string
 			TWITCH_BANNER_URL?: string
 			TWITTER_USERNAME: string
 			TWITTER_SCRAPE_MODE: string
@@ -18,6 +17,9 @@ declare global {
 			DISCORD_TWITCH_CHANNEL_ID: string
 			DISCORD_TWITTER_CHANNEL_ID: string
 			NICKNAME?: string
+			EXPRESS_HOSTNAME: string
+			EXPRESS_PORT: string
+			CHAT_TEST_MODE: string
 			NODE_ENV?: 'development' | 'production'
 		}
 	}

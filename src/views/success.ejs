@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<%- include('head') %>
+
+<body>
+  <header>
+    <h1 class="emoji">🌶️🤖🤙</h1>
+  </header>
+  <main>
+    <% if(asBot) { %>
+    <h2>The bot is all set!</h2>
+    <p>
+      Your bot, <code><%= botUsername %></code> should be in the streamer's chat now.
+    </p>
+    <% } else { %>
+    <h2>Spice Bot is almost ready to rock!</h2>
+    <p>
+      Go to your channel and type <code>/mod <%= botUsername %></code> in chat
+    </p>
+    <% } %>
+    <p><a href="/">View bot status</a></p>
+  </main>
+</body>
+
+</html>

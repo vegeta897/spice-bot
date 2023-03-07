@@ -1,169 +1,110 @@
-import { ClientCredentialsAuthProvider } from '@twurple/auth'
 import {
-	ApiClient,
-	type HelixVideo,
-	type HelixStream,
+	type ApiClient,
 	type HelixUser,
+	type HelixStream,
+	type HelixVideo,
 } from '@twurple/api'
-import {
-	ReverseProxyAdapter,
-	EventSubHttpListener,
-} from '@twurple/eventsub-http'
-import { DEV_MODE, sleep, timestampLog } from './util.js'
-import { NgrokAdapter } from '@twurple/eventsub-ngrok'
-import {
-	getData,
-	getStreamRecords,
-	modifyData,
-	recordStream,
-	StreamRecord,
-	updateStreamRecord,
-} from './db.js'
 import { type MessageCreateOptions } from 'discord.js'
+import {
+	getStreamRecords,
+	recordStream,
+	type StreamRecord,
+	updateStreamRecord,
+} from '../db.js'
+import {
+	getMockInitialVideos,
+	getMockStream,
+	getMockVideosAfterStream,
+} from '../dev.js'
 import {
 	createStreamMessage,
 	deleteStreamMessage,
 	editStreamMessage,
-} from './discord.js'
-import { getTwitchPingButtons, getTwitchPingRole } from './pings.js'
-import {
-	getMockStreamOnlineEvent,
-	getMockInitialVideos,
-	getMockVideosAfterStream,
-	getMockStream,
-} from './dev.js'
+} from '../discord.js'
+import { getTwitchPingButtons, getTwitchPingRole } from '../pings.js'
+import { DEV_MODE, sleep, timestampLog } from '../util.js'
 import { getStreamEndEmbed, getStreamStartEmbed } from './twitchEmbeds.js'
-import randomstring from 'randomstring'
+import { TwitchEvents } from './eventSub.js'
+import { getUserByAccountType } from './twitchApi.js'
 
-// TODO: Think about splitting up this file
-
-const TWITCH_USERNAME = process.env.TWITCH_USERNAME
+const processingStreamOnlineEvents: Set<string> = new Set()
 
 let apiClient: ApiClient
-let twitchUser: HelixUser
+let streamerUser: HelixUser
 
-const processingEvents: Set<string> = new Set()
+export function initStreams(params: { apiClient: ApiClient }) {
+	apiClient = params.apiClient
+	streamerUser = getUserByAccountType('streamer')
 
-export async function initTwitch() {
-	const authProvider = new ClientCredentialsAuthProvider(
-		process.env.TWITCH_CLIENT_ID,
-		process.env.TWITCH_CLIENT_SECRET
-	)
-
-	apiClient = new ApiClient({ authProvider })
-	twitchUser = (await apiClient.users.getUserByName(TWITCH_USERNAME))!
-	if (!twitchUser) throw `Could not find twitch user "${TWITCH_USERNAME}"`
-	const adapter = DEV_MODE
-		? new NgrokAdapter()
-		: new ReverseProxyAdapter({
-				hostName: process.env.TWITCH_EVENTSUB_HOSTNAME,
-				pathPrefix: process.env.TWITCH_EVENTSUB_PATH_PREFIX,
-				port: +process.env.TWITCH_EVENTSUB_PORT,
-		  })
-	if (DEV_MODE) {
-		await apiClient.eventSub.deleteAllSubscriptions()
-		modifyData({
-			streams: getStreamRecords().filter(
-				(sr) => !sr.streamID.startsWith('test_')
-			),
+	TwitchEvents.on('streamOnline', async (event) => {
+		timestampLog(`${event.displayName} just went live!`)
+		if (getStreamRecords().find((sr) => sr.streamID === event.id)) {
+			console.log(`Stream record ID ${event.id} already exists`)
+			return
+		}
+		processingStreamOnlineEvents.add(event.id)
+		const streamRecord = recordStream({
+			streamID: event.id,
+			streamStatus: 'live',
+			streamInfo: false,
 		})
-	}
-	let eventSubSecret = getData().twitchEventSubSecret
-	if (!eventSubSecret) {
-		eventSubSecret = randomstring.generate()
-		modifyData({ twitchEventSubSecret: eventSubSecret })
-		console.log('Generated new EventSub listener secret')
-		await apiClient.eventSub.deleteAllSubscriptions()
-		console.log('Deleted all EventSub subscriptions')
-	}
-	const listener = new EventSubHttpListener({
-		apiClient,
-		adapter,
-		secret: eventSubSecret,
-		strictHostCheck: true,
-	})
-	const onlineSubscription = await listener.subscribeToStreamOnlineEvents(
-		twitchUser.id,
-		async (event) => {
-			if (DEV_MODE) event = getMockStreamOnlineEvent(twitchUser.id)
-			processingEvents.add(event.id)
-			if (event.broadcasterId !== twitchUser.id) return // Just to be safe
-			timestampLog(`${TWITCH_USERNAME} just went live!`)
-			if (getStreamRecords().find((sr) => sr.streamID === event.id)) {
-				console.log(`Stream record ID ${event.id} already exists`)
+		let getStreamAttempts = 0
+		let streamInfo: HelixStream | null = null
+		let messageID: string | undefined
+		// Stream info may be null at first
+		do {
+			if (!processingStreamOnlineEvents.has(event.id)) {
+				// Processing was ended elsewhere
 				return
 			}
-			const streamRecord = recordStream({
-				streamID: event.id,
-				streamStatus: 'live',
-				streamInfo: false,
-			})
-			let getStreamAttempts = 0
-			let streamInfo: HelixStream | null = null
-			let messageID: string | undefined
-			// Stream info may be null at first
-			do {
-				if (!processingEvents.has(event.id)) {
-					// Processing was ended elsewhere
+			streamInfo = (await streamerUser.getStream()) as HelixStream | null
+			if (!streamInfo) {
+				getStreamAttempts++
+				if (getStreamAttempts === 2) {
+					// After 2 attempts, post a message without stream info
+					console.log('Posting stream message without full info')
+					messageID = await sendOrUpdateLiveMessage(streamRecord)
+				}
+				if (getStreamAttempts === 60) {
+					// Give up after 5 minutes of no stream info
+					timestampLog(`Gave up trying to get stream info for ID ${event.id}`)
+					processingStreamOnlineEvents.delete(event.id)
 					return
 				}
-				streamInfo = (await event.getStream()) as HelixStream | null
-				if (!streamInfo) {
-					getStreamAttempts++
-					if (getStreamAttempts === 2) {
-						// After 2 attempts, post a message without stream info
-						console.log('Posting stream message without full info')
-						messageID = await sendOrUpdateLiveMessage(streamRecord)
-					}
-					if (getStreamAttempts === 60) {
-						// Give up after 5 minutes of no stream info
-						timestampLog(`Gave up trying to get stream info for ID ${event.id}`)
-						processingEvents.delete(event.id)
-						return
-					}
-					await sleep(5000)
-				}
-			} while (!streamInfo)
-			console.log('Got stream info, posting/updating message')
-			processingEvents.delete(event.id)
-			streamRecord.streamInfo = true
-			streamRecord.startTime = streamInfo.startDate.getTime()
-			streamRecord.title = streamInfo.title
-			streamRecord.games.push(streamInfo.gameName)
-			streamRecord.thumbnailURL = streamInfo.getThumbnailUrl(360, 180)
-			if (messageID) streamRecord.messageID = messageID
-			sendOrUpdateLiveMessage(streamRecord)
-		}
-	)
-	const offlineSubscription = await listener.subscribeToStreamOfflineEvents(
-		twitchUser.id,
-		async (event) => {
-			if (!DEV_MODE && event.broadcasterId !== twitchUser.id) return // Just to be safe
-			timestampLog(`${TWITCH_USERNAME} just went offline`)
-			// It's so annoying that the stream ID isn't part of this event 😤
-			checkVideos()
-		}
-	)
-	await listener.start()
+				await sleep(5000)
+			}
+		} while (!streamInfo)
+		timestampLog('Got stream info, posting/updating message')
+		processingStreamOnlineEvents.delete(event.id)
+		streamRecord.streamInfo = true
+		streamRecord.startTime = streamInfo.startDate.getTime()
+		streamRecord.title = streamInfo.title
+		streamRecord.games.push(streamInfo.gameName)
+		streamRecord.thumbnailURL = streamInfo.getThumbnailUrl(360, 180)
+		if (messageID) streamRecord.messageID = messageID
+		sendOrUpdateLiveMessage(streamRecord)
+	})
+
+	TwitchEvents.on('streamOffline', (event) => {
+		timestampLog(`${event.displayName} just went offline`)
+		// It's so annoying that the stream ID isn't part of this event 😤
+		checkVideos()
+	})
 	if (!DEV_MODE) checkStreamAndVideos()
-	// Check for stream/video updates every 5 minutes
+	// Check for stream/video updates every 5 minutes (30 sec in dev mode)
 	setInterval(() => checkStreamAndVideos(), (DEV_MODE ? 0.5 : 5) * 60 * 1000)
-	if (DEV_MODE) {
-		console.log(await onlineSubscription.getCliTestCommand())
-		console.log(await offlineSubscription.getCliTestCommand())
-	}
-	console.log('Twitch EventSub connected')
 }
 
 async function checkStreamAndVideos() {
-	const stream = DEV_MODE ? getMockStream() : await twitchUser.getStream()
+	if (DEV_MODE) return // TODO: Remove
+	const stream = DEV_MODE ? getMockStream() : await streamerUser.getStream()
 	handleStream(stream)
 	checkVideos(stream)
 }
 
 function handleStream(stream: HelixStream | null) {
 	if (!stream) return
-	if (processingEvents.has(stream.id)) {
+	if (processingStreamOnlineEvents.has(stream.id)) {
 		// The live event for this stream was received and is still processing
 		return
 	}
@@ -213,7 +154,7 @@ async function checkVideos(stream: HelixStream | null = null) {
 		? checkVideosRun++ === 0
 			? getMockInitialVideos()
 			: getMockVideosAfterStream()
-		: await apiClient.videos.getVideosByUser(twitchUser.id, {
+		: await apiClient.videos.getVideosByUser(streamerUser.id, {
 				limit: 4, // A safe buffer
 				type: 'archive',
 		  })
@@ -248,7 +189,7 @@ async function checkVideos(stream: HelixStream | null = null) {
 		if (
 			streamRecord.streamStatus === 'live' && // Marked as live
 			streamRecord.streamID !== stream?.id && // Not still going
-			!processingEvents.has(streamRecord.streamID) // Not currently processing
+			!processingStreamOnlineEvents.has(streamRecord.streamID) // Not currently processing
 		) {
 			// End this stream
 			timestampLog(`Ending stream ID ${video!.streamId}`)
@@ -260,7 +201,7 @@ async function checkVideos(stream: HelixStream | null = null) {
 		(sr) =>
 			sr.streamStatus === 'live' && // Marked as live
 			sr.streamID !== stream?.id && // Not still going
-			!processingEvents.has(sr.streamID) && // Not currently processing
+			!processingStreamOnlineEvents.has(sr.streamID) && // Not currently processing
 			sr.startTime < Date.now() - 5 * 60 * 1000 && // Older than 5 minutes
 			sr.streamID < newestVideo.streamId! && // Older than the newest video
 			sr.messageID // Has a message to edit
@@ -275,6 +216,7 @@ async function checkVideos(stream: HelixStream | null = null) {
 			streamStatus: 'ended',
 			videoInfo: false,
 		})
+		// TODO: Maybe delete the message instead
 		editStreamMessage(updatedRecord.messageID!, {
 			content: '',
 			embeds: [getStreamEndEmbed(updatedRecord)],

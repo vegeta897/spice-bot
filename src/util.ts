@@ -1,9 +1,14 @@
 import { DateTime, Duration } from 'luxon'
 
+export const DEV_MODE = process.env.NODE_ENV === 'development'
+export const CHAT_TEST_MODE = process.env.CHAT_TEST_MODE === 'true'
+
+export const HOST_URL = DEV_MODE
+	? `http://localhost:${process.env.EXPRESS_PORT}`
+	: `https://${process.env.EXPRESS_HOSTNAME}`
+
 export const sleep = (ms: number) =>
 	new Promise((resolve) => setTimeout(resolve, ms))
-
-export const DEV_MODE = process.env.NODE_ENV === 'development'
 
 export const timestamp = () => DateTime.now().toFormat('yyyy-MM-dd, tt')
 
@@ -19,6 +24,17 @@ export const formatDuration = (seconds: number) =>
 // Sort an array of objects by the specified prop key
 export const sortByProp = <T>(arr: T[], prop: keyof T, reverse = false) =>
 	arr.sort((a, b) => (a[prop] > b[prop] ? 1 : -1) * (reverse ? -1 : 1))
+
+export const compareArrays = (first: unknown[], second: unknown[]) => {
+	const extra = first.filter((el) => !second.includes(el))
+	const missing = second.filter((el) => !first.includes(el))
+	return {
+		extra,
+		missing,
+		bothHave: first.filter((el) => second.includes(el)),
+		bothHaveAll: extra.length + missing.length === 0,
+	}
+}
 
 // https://stackoverflow.com/a/59700012/2612679
 export type DeepReadonly<T> = T extends Function // eslint-disable-line @typescript-eslint/ban-types

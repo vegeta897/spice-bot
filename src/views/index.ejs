@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<%- include('head') %>
+
+<body>
+  <header>
+    <h1>Spice Bot 🌶️</h1>
+  </header>
+  <main>
+    <% if(username) { %>
+    <p>Spice Bot is authorized to <code><%= username %></code> on Twitch</p>
+    <% if(!botIsMod) { %>
+    <section>
+      <h3 class="warning">Spice Bot is not a moderator in your channel</h3>
+      <p>Go to your channel and type <code>/mod spicebot2</code> in chat</p>
+    </section>
+    <% } %>
+    <p><a href="unlink">Sign out</a></p>
+    <% } else { %>
+    <h2>Let's get spicy</h2>
+    <p>Use the button below to authorize Spice Bot to your Twitch account</p>
+    <p>It's easier to do this in a browser that's already logged into Twitch</p>
+    <p><a href="/auth" class="button">Authorize</a></p>
+    <% } %>
+  </main>
+</body>
+
+</html>

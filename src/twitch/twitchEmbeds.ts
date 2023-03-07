@@ -1,22 +1,22 @@
 import { type HelixVideo } from '@twurple/api'
 import { EmbedBuilder, type APIEmbedField } from 'discord.js'
-import { type StreamRecord } from './db.js'
-import { formatDuration } from './util.js'
+import { type StreamRecord } from '../db.js'
+import { formatDuration } from '../util.js'
 
-const TWITCH_USERNAME = process.env.TWITCH_USERNAME
-const TWITCH_URL = `https://www.twitch.tv/${TWITCH_USERNAME}`
+const STREAMER_USERNAME = process.env.TWITCH_STREAMER_USERNAME
+const TWITCH_URL = `https://www.twitch.tv/${STREAMER_USERNAME}`
 const ARCHIVE_URL = `${TWITCH_URL}/videos?filter=archives&sort=time`
 
 export function getStreamStartEmbed(streamRecord: StreamRecord) {
 	const embed = new EmbedBuilder()
-		.setTitle(`${process.env.NICKNAME || TWITCH_USERNAME} is live!`)
+		.setTitle(`${process.env.NICKNAME || STREAMER_USERNAME} is live!`)
 		.setURL(TWITCH_URL)
 		.setColor(0xe735c1)
 		.setTimestamp(streamRecord.startTime)
 	const fields: APIEmbedField[] = [
 		{
 			name: 'Watch',
-			value: `[twitch.tv/${TWITCH_USERNAME}](${TWITCH_URL})`,
+			value: `[twitch.tv/${STREAMER_USERNAME}](${TWITCH_URL})`,
 			inline: true,
 		},
 		{
