@@ -28,7 +28,7 @@ const SCOPES: Record<AccountType, string[]> = {
 		'chat:read',
 		'chat:edit',
 		'whispers:read',
-		'whispers:edit',
+		'user:manage:whispers',
 		'moderator:read:chat_settings',
 		'moderator:read:chatters',
 		'moderator:read:followers',

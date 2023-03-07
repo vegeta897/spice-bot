@@ -177,3 +177,7 @@ function getAccountTypeForId(id: string) {
 export async function botIsFollowingStreamer() {
 	return await helixUsers.bot.follows(helixUsers.streamer)
 }
+
+export async function sendWhisper(toUserID: string, text: string) {
+	await apiClient.whispers.sendWhisper(helixUsers.bot, toUserID, text)
+}

@@ -1,7 +1,7 @@
 import { type RefreshingAuthProvider } from '@twurple/auth'
 import { ChatClient, toUserName, PrivateMessage } from '@twurple/chat'
 import { ParsedMessageEmotePart } from '@twurple/common'
-import { AuthEvents, getAccountScopes } from './twitchApi.js'
+import { AuthEvents, getAccountScopes, sendWhisper } from './twitchApi.js'
 import { CHAT_TEST_MODE, timestampLog } from '../util.js'
 import Emittery from 'emittery'
 import { initGrace } from './grace.js'
@@ -101,8 +101,21 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 		)
 	})
 
+	const whispers: Map<string, number> = new Map()
+	const whisperCooldown = 30 * 1000
 	chatClient.onWhisper((user, text, msg) => {
-		// Need to use apiClient.whispers.sendWhisper() to reply
+		timestampLog(`Whisper from ${msg.userInfo.displayName}: ${text}`)
+		const userID = msg.userInfo.userId
+		if ((whispers.get(userID) || 0) + whisperCooldown > Date.now()) return
+		whispers.set(userID, Date.now())
+		sendWhisper(
+			userID,
+			`Hi, I'm Spice Bot! I do various tasks in ${
+				process.env.NICKNAME || process.env.TWITCH_STREAMER_USERNAME
+			}'s channel. Please contact ${
+				process.env.TWITCH_ADMIN_USERNAME
+			} with any problems or questions`
+		)
 	})
 }
 
