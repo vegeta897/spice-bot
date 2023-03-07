@@ -46,6 +46,11 @@ export async function initExpressApp() {
 		join(dirname(fileURLToPath(import.meta.url)), '../src/views')
 	)
 	app.set('view engine', 'ejs')
+	app.use(
+		express.static(
+			join(dirname(fileURLToPath(import.meta.url)), '../src/public')
+		)
+	)
 	return new Promise<Express>((resolve) => {
 		app.listen(process.env.EXPRESS_PORT, () => {
 			console.log('Express server ready')
