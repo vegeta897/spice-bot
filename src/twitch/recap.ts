@@ -8,12 +8,16 @@ import {
 import { GRACE } from './grace.js'
 import { ChatEvents, sendChatMessage } from './twitchChat.js'
 import { TwitchEvents } from './eventSub.js'
+import { getData, modifyData } from '../db.js'
+import { DEV_MODE } from '../util.js'
 
-// Move this to db for persistence?
-const emoteCounts: Map<string, number> = new Map()
-const redeemCounts: Map<string, number> = new Map()
+let emoteCounts: Map<string, number>
+let redeemCounts: Map<string, number>
 
 export function initRecap() {
+	emoteCounts = new Map(getData().emoteCounts)
+	redeemCounts = new Map(getData().redeemCounts)
+	if (DEV_MODE) clearCounts()
 	ChatEvents.on('message', (event) => {
 		if (event.text.toLowerCase() === '!recap' && event.mod) {
 			sendRecap()
@@ -26,14 +30,20 @@ export function initRecap() {
 				emoteCounts.set(msgPart.name, (emoteCounts.get(msgPart.name) || 0) + 1)
 			}
 		})
+		modifyData({ emoteCounts: [...emoteCounts.entries()] })
 	})
 	ChatEvents.on('redemption', (event) => {
 		redeemCounts.set(event.title, (redeemCounts.get(event.title) || 0) + 1)
+		modifyData({ redeemCounts: [...redeemCounts.entries()] })
 	})
-	TwitchEvents.on('streamOnline', () => {
-		emoteCounts.clear()
-		redeemCounts.clear()
-	})
+	TwitchEvents.on('streamOnline', () => clearCounts())
+}
+
+function clearCounts() {
+	emoteCounts.clear()
+	redeemCounts.clear()
+	modifyData({ emoteCounts: [] })
+	modifyData({ redeemCounts: [] })
 }
 
 let commandLastUsed = new Date(0)
