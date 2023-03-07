@@ -8,6 +8,7 @@ declare global {
 			TWITCH_CLIENT_SECRET: string
 			TWITCH_BANNER_URL?: string
 			TWITTER_USERNAME: string
+			TWITTER_SCRAPE_MODE: string
 			TWITTER_TOKEN: string
 			TWITTER_INCLUDE_RETWEETS: string
 			TWITTER_INCLUDE_REPLIES: string

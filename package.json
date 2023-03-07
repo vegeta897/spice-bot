@@ -52,5 +52,9 @@
 	"engines": {
 		"node": ">=16.9.0"
 	},
-	"type": "module"
+	"type": "module",
+	"optionalDependencies": {
+		"puppeteer": "^19.7.2",
+		"puppeteer-autoscroll-down": "^1.1.1"
+	}
 }

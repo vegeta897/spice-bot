@@ -104,6 +104,8 @@ export function recordTweet({
 	}
 	if (pingButtons) tweetRecord.pingButtons = 'posted'
 	const tweets = [...getData().tweets, tweetRecord]
+	// Sorting by tweet_id as a string is safe because all tweets from 2019 onward are 19 digits
+	// Tweet IDs won't gain another digit until the year 2086
 	const sortedTrimmed = sortByProp(tweets, 'tweet_id').slice(-20)
 	modifyData({ tweets: sortedTrimmed })
 	return { ...tweetRecord }

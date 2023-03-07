@@ -75,9 +75,11 @@ export async function initPings(bot: Client, server: Guild) {
 		twitchPingRole =
 			roles.find((role) => role.name === pingConfigs.twitch.roleName) ||
 			(await server.roles.create({ name: pingConfigs.twitch.roleName }))
-		twitterPingRole =
-			roles.find((role) => role.name === pingConfigs.twitter.roleName) ||
-			(await server.roles.create({ name: pingConfigs.twitter.roleName }))
+		if (process.env.DISCORD_TWITTER_CHANNEL_ID !== '') {
+			twitterPingRole =
+				roles.find((role) => role.name === pingConfigs.twitter.roleName) ||
+				(await server.roles.create({ name: pingConfigs.twitter.roleName }))
+		}
 	} catch (e) {
 		console.log(e)
 		throw 'Error creating ping roles!'
