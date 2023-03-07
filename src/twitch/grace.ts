@@ -39,7 +39,7 @@ async function endGraceTrain(endUser: string) {
 		// New longest train!
 		message += `, a NEW RECORD!`
 		if (getEmoteByName(PRAYBEE, await getUsableEmotes())) {
-			const prayBees = `${PRAYBEE} `.repeat(Math.ceil(trainLength / 5))
+			const prayBees = ` ${PRAYBEE}`.repeat(Math.ceil(trainLength / 5))
 			message += prayBees
 		}
 		modifyData({ twichGraceTrainRecord: trainLength })
