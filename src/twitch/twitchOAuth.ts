@@ -2,6 +2,7 @@ import { Express } from 'express'
 import {
 	CHAT_TEST_MODE,
 	compareArrays,
+	DEV_MODE,
 	HOST_URL,
 	timestampLog,
 } from '../util.js'
@@ -17,6 +18,7 @@ import { createExpressErrorHandler, sessionStore } from '../express.js'
 import randomstring from 'randomstring'
 import { sendRecap } from './recap.js'
 import { tallyUp } from './tally.js'
+import { ChatEvents } from './twitchChat.js'
 
 const SCOPES: Record<AccountType, string[]> = {
 	bot: [
@@ -154,19 +156,37 @@ export function initTwitchOAuthServer(app: Express) {
 			},
 			chatTestMode: CHAT_TEST_MODE,
 			testCommands: ['recap', 'tally'],
+			testEvents: ['grace'],
 		})
 	})
+	let testUserID = 1000
 	app.post('/test', (req, res) => {
 		if (req.session.username !== process.env.TWITCH_ADMIN_USERNAME) {
 			return res.sendStatus(401)
 		}
 		if (!CHAT_TEST_MODE) return res.sendStatus(400)
-		const { command } = req.query
-		timestampLog(`Testing !${command} command`)
+		const { command, event } = req.query
+		if (command) timestampLog(`Testing !${command} command`)
 		if (command === 'recap') sendRecap()
 		if (command === 'tally') tallyUp()
+		if (event) timestampLog(`Testing ${event} event`)
+		if (event === 'grace')
+			ChatEvents.emit('redemption', {
+				username: process.env.TWITCH_ADMIN_USERNAME,
+				userID: `${testUserID++}`,
+				title: 'GRACE',
+				date: new Date(),
+				status: '',
+				rewardText: '',
+			})
+		// TODO: Add stream online/offline, tweets, etc
 		res.sendStatus(200)
 	})
+	console.log(
+		`Admin panel: ${DEV_MODE ? 'http://' : 'https://'}${
+			process.env.EXPRESS_HOSTNAME
+		}/admin`
+	)
 	createExpressErrorHandler(app)
 	AuthEvents.on('authRevoke', ({ accountType }) => {
 		if (accountType !== 'streamer') return

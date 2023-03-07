@@ -129,19 +129,16 @@ async function initScopedEventSubs(listener: EventSubListener) {
 		scopedEventSubs.set(
 			'channelRedemptionAddSub',
 			listener.onChannelRedemptionAdd(streamerUser, async (event) => {
-				console.log(event.rewardTitle, event.status, event.rewardPrompt)
+				timestampLog(event.rewardTitle, event.status, event.userDisplayName)
 				ChatEvents.emit('redemption', {
 					username: event.userName,
 					userID: event.userId,
-					title: DEV_MODE ? 'GRACE' : event.rewardTitle,
+					title: event.rewardTitle,
 					date: event.redemptionDate,
 					status: event.status,
 					rewardText: event.input,
 				})
 			})
-		)
-		console.log(
-			await scopedEventSubs.get('channelRedemptionAddSub')!.getCliTestCommand()
 		)
 	}
 	if (streamerScopes.includes('moderator:read:followers')) {

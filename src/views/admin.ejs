@@ -34,9 +34,16 @@
       </tbody>
     </table>
     <% if(chatTestMode) { %>
+    <h3>Test commands</h3>
     <p class="button-row">
       <% for(const command of testCommands) { %>
       <a class="button button-small" href="#" onclick="fetch('test?command=<%= command %>',{method:'POST'})">Test !<%= command %></a>
+      <% } %>
+    </p>
+    <h3>Test events</h3>
+    <p class="button-row">
+      <% for(const event of testEvents) { %>
+      <a class="button button-small" href="#" onclick="fetch('test?event=<%= event %>',{method:'POST'})">Test <%= event %></a>
       <% } %>
     </p>
     <% } %>
