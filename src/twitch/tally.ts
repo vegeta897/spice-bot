@@ -81,6 +81,7 @@ export function tallyUp() {
 	})
 	if (winners.length === 0) {
 		sendChatMessage("Sorry, can't find anything to tally!")
+		return // Early return so recent messages aren't cleared
 	} else if (winners.length === 1) {
 		sendChatMessage(`"${winners[0].name}" won with ${winners[0].votes} votes!`)
 	} else {
