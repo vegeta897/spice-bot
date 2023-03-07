@@ -19,6 +19,7 @@ import randomstring from 'randomstring'
 import { sendRecap } from './recap.js'
 import { tallyUp } from './tally.js'
 import { ChatEvents } from './twitchChat.js'
+import { getEventSubs } from './eventSub.js'
 
 const SCOPES: Record<AccountType, string[]> = {
 	bot: [
@@ -144,11 +145,11 @@ export function initTwitchOAuthServer(app: Express) {
 			},
 			chatTestMode: CHAT_TEST_MODE,
 			testCommands: ['recap', 'tally'],
-			testEvents: ['grace'],
+			testEvents: ['grace', 'event-subs'],
 		})
 	})
 	let testUserID = 1000
-	app.post('/test', (req, res) => {
+	app.post('/test', async (req, res) => {
 		if (req.session.username !== process.env.TWITCH_ADMIN_USERNAME) {
 			return res.sendStatus(401)
 		}
@@ -167,6 +168,7 @@ export function initTwitchOAuthServer(app: Express) {
 				status: '',
 				rewardText: '',
 			})
+		if (event === 'event-subs') console.log(await getEventSubs())
 		// TODO: Add stream online/offline, tweets, etc
 		res.sendStatus(200)
 	})

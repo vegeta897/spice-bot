@@ -164,3 +164,8 @@ async function initScopedEventSubs(listener: EventSubListener) {
 		)
 	}
 }
+
+export async function getEventSubs() {
+	const subs = await apiClient.eventSub.getSubscriptions()
+	return subs.data.map((e) => ({ id: e.id, type: e.type, status: e.status }))
+}
