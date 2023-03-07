@@ -1,4 +1,4 @@
-import { HelixChannelEmote, type ApiClient, type HelixUser } from '@twurple/api'
+import { HelixChannelEmote, type ApiClient } from '@twurple/api'
 import { DEV_MODE } from '../util.js'
 import {
 	botIsFollowingStreamer,

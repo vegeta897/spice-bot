@@ -4,7 +4,6 @@ import {
 	type TweetStream,
 	type TweetV2SingleStreamResult,
 	TwitterApi,
-	type TweetV2,
 	type UserV2,
 } from 'twitter-api-v2'
 import {
