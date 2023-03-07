@@ -104,6 +104,7 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 	const whispers: Map<string, number> = new Map()
 	const whisperCooldown = 30 * 1000
 	chatClient.onWhisper((user, text, msg) => {
+		// Maybe use this to send debug commands?
 		timestampLog(`Whisper from ${msg.userInfo.displayName}: ${text}`)
 		const userID = msg.userInfo.userId
 		if ((whispers.get(userID) || 0) + whisperCooldown > Date.now()) return

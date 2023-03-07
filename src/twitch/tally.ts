@@ -44,7 +44,15 @@ export function tallyUp() {
 			if (gap > 60 * 1000) break
 		}
 		prevMsg = msg
-		let text = msg.text.toLowerCase().replace(/!/g, '')
+		let text = msg.text.toLowerCase().replace(/[,\.!?]/g, '')
+		// Check first word
+		const firsts = [...'123456', 'one', 'two', 'three', 'four', 'five', 'six']
+		for (const firstWord of firsts) {
+			if (text.split(' ')[0] === firstWord) {
+				text = firstWord
+				break
+			}
+		}
 		// Change written numbers to digits
 		if (text === 'one') text = '1'
 		if (text === 'two') text = '2'

@@ -44,21 +44,6 @@ const SCOPES: Record<AccountType, string[]> = {
 	admin: [],
 }
 
-// Auth flow:
-// Streamer visits auth URL containing Spice Bot client ID and requested scopes
-// Twitch redirects to REDIRECT_URI with one-time auth code that expires shortly
-// That code is sent to twitch via exchangeCode() to get access and refresh tokens
-// Refresh token can always be used to get a new access token (and possibly refresh token)
-// Unless streamer changes their password or removes the app connection
-
-// When twitch sends us an auth code and we get the tokens,
-// use getTokenInfo() to check that the username matches TWITCH_STREAMER_USERNAME
-// Ignore all other users, just in case others somehow authorize to our app
-
-// The bot user and streamer require their own auth flows
-// The streamer authorizing the bot application allows eventsubs, no token required
-// The streamer's token is required for api calls like moderation and polls
-
 export function initTwitchOAuthServer(app: Express) {
 	app.get('/', async (req, res) => {
 		if (req.session.username === process.env.TWITCH_ADMIN_USERNAME) {
