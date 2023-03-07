@@ -1,6 +1,8 @@
 import { HelixChannelEmote, type ApiClient } from '@twurple/api'
-import { DEV_MODE } from '../util.js'
+import { getTwitchToken } from '../db.js'
+import { DEV_MODE, sleep } from '../util.js'
 import {
+	AuthEvents,
 	botIsFollowingStreamer,
 	getBotSub,
 	getUserByAccountType,
@@ -17,9 +19,15 @@ export async function initEmotes(options: { apiClient: ApiClient }) {
 	apiClient = options.apiClient
 	fetchChannelEmotes()
 	setInterval(() => fetchChannelEmotes(), 24 * 60 * 60 * 1000) // Refresh daily
+	AuthEvents.on('auth', async (event) => {
+		if (event.accountType !== 'streamer') return
+		await sleep(1000) // Make sure streamer was added to auth provider
+		fetchChannelEmotes()
+	})
 }
 
-async function fetchChannelEmotes() {
+export async function fetchChannelEmotes() {
+	if (!getTwitchToken('streamer')) return
 	channelEmotes.length = 0
 	const streamer = DEV_MODE
 		? (await apiClient.users.getUserByName('ybbaaabby'))!
