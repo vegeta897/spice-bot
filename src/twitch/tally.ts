@@ -21,7 +21,6 @@ export function initTally() {
 				break
 			}
 		}
-		// Check message for tally
 	})
 	TwitchEvents.on('streamOnline', () => {
 		recentMessages.length = 0
