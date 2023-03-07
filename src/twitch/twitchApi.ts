@@ -9,7 +9,7 @@ import {
 } from '@twurple/auth'
 import Emittery from 'emittery'
 import { getTwitchToken, setTwitchToken } from '../db.js'
-import { HOST_URL, timestampLog } from '../util.js'
+import { DEV_MODE, HOST_URL, timestampLog } from '../util.js'
 
 let authProvider: RefreshingAuthProvider
 let apiClient: ApiClient
@@ -41,7 +41,7 @@ export async function createAuthAndApiClient() {
 				)
 				return
 			}
-			timestampLog(`Refreshed token for ${accountType}`)
+			if (DEV_MODE) timestampLog(`Refreshed token for ${accountType}`)
 			// Don't refresh token for streamer if revoked
 			if (accountType !== 'streamer' || !streamerAuthRevoked)
 				setTwitchToken(accountType, newToken)
