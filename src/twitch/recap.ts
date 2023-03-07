@@ -7,7 +7,7 @@ import {
 } from './emotes.js'
 import { GRACE } from './grace.js'
 import { ChatEvents, sendChatMessage } from './twitchChat.js'
-import { TwitchEvents } from './twitchEventSub.js'
+import { TwitchEvents } from './eventSub.js'
 
 // Move this to db for persistence?
 const emoteCounts: Map<string, number> = new Map()
