@@ -155,7 +155,7 @@ async function initScopedEventSubs(listener: EventSubListener) {
 			})
 		)
 	}
-	if (streamerScopes.includes('moderation:read')) {
+	if (DEV_MODE && streamerScopes.includes('moderation:read')) {
 		scopedEventSubs.set(
 			'channelModAddSub',
 			listener.onChannelModeratorAdd(streamerUser, (event) => {
