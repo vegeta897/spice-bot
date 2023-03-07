@@ -1,8 +1,7 @@
-import { type HelixUser } from '@twurple/api'
 import { type RefreshingAuthProvider } from '@twurple/auth'
 import { ChatClient, toUserName, PrivateMessage } from '@twurple/chat'
 import { ParsedMessageEmotePart } from '@twurple/common'
-import { AuthEvents, getUserScopes } from './twitchApi.js'
+import { AuthEvents, getAccountScopes } from './twitchApi.js'
 import { CHAT_TEST_MODE, timestampLog } from '../util.js'
 import Emittery from 'emittery'
 import { initGrace } from './grace.js'
@@ -31,28 +30,22 @@ export const ChatEvents = new Emittery<{
 
 let chatClient: ChatClient
 
-export async function initTwitchChat(
-	authProvider: RefreshingAuthProvider,
-	botUser: HelixUser
-) {
-	initChatClient(authProvider, botUser)
+export async function initTwitchChat(authProvider: RefreshingAuthProvider) {
+	initChatClient(authProvider)
 	initGrace()
 	initRecap()
 	initTally()
 	AuthEvents.on('auth', async ({ accountType }) => {
-		if (accountType === 'bot') initChatClient(authProvider, botUser)
+		if (accountType === 'bot') initChatClient(authProvider)
 	})
 	AuthEvents.on('authRevoke', ({ accountType }) => {
 		if (accountType === 'bot') chatClient.quit()
 	})
 }
 
-async function initChatClient(
-	authProvider: RefreshingAuthProvider,
-	botUser: HelixUser
-) {
+async function initChatClient(authProvider: RefreshingAuthProvider) {
 	if (chatClient) chatClient.quit()
-	const botScopes = await getUserScopes(botUser)
+	const botScopes = await getAccountScopes('bot')
 	if (!hasRequiredScopes(botScopes)) {
 		console.log('WARNING: Chat bot is missing read/edit scopes!')
 		return

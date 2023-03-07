@@ -29,6 +29,9 @@ const SCOPES: Record<AccountType, string[]> = {
 		'chat:edit',
 		'whispers:read',
 		'whispers:edit',
+		'moderator:read:chat_settings',
+		'moderator:read:chatters',
+		'moderator:read:followers',
 	],
 	streamer: [
 		'channel:read:hype_train',
@@ -37,9 +40,6 @@ const SCOPES: Record<AccountType, string[]> = {
 		'channel:read:redemptions',
 		'channel:read:subscriptions',
 		'moderation:read',
-		'moderator:read:chat_settings',
-		'moderator:read:chatters',
-		'moderator:read:followers',
 	],
 	admin: [],
 }
@@ -120,7 +120,10 @@ export function initTwitchOAuthServer(app: Express) {
 	})
 	app.get('/success', (req, res) => {
 		if (!req.session.username) return res.redirect('/')
-		res.render('success', { botUsername: process.env.TWITCH_BOT_USERNAME })
+		res.render('success', {
+			botUsername: process.env.TWITCH_BOT_USERNAME,
+			asBot: req.session.username === process.env.TWITCH_BOT_USERNAME,
+		})
 	})
 	app.get('/wrong-account', (req, res) => {
 		if (!req.session.username) return res.redirect('/')

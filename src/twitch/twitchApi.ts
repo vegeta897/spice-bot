@@ -81,7 +81,7 @@ export async function createAuthAndApiClient() {
 	setInterval(() => {
 		accountTypes.forEach((accountType) => verifyToken(accountType))
 	}, 60 * 60 * 1000) // Verify tokens hourly
-	return { authProvider, apiClient, helixUsers }
+	return { authProvider, apiClient }
 }
 
 async function getUser(username: string) {
@@ -135,7 +135,13 @@ async function verifyToken(accountType: AccountType, token?: AccessToken) {
 	return token
 }
 
-export async function getUserScopes(user: HelixUser): Promise<string[]> {
+export const getUserByAccountType = (accountType: AccountType) =>
+	helixUsers[accountType]
+
+export async function getAccountScopes(
+	accountType: AccountType
+): Promise<string[]> {
+	const user = getUserByAccountType(accountType)
 	if (user.id === helixUsers.streamer.id && streamerAuthRevoked) return []
 	const token = await authProvider.getAccessTokenForUser(user)
 	return token?.scope || []

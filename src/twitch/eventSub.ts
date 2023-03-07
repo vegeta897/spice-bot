@@ -1,4 +1,4 @@
-import { type ApiClient, type HelixUser } from '@twurple/api'
+import { type ApiClient } from '@twurple/api'
 import {
 	EventSubHttpListener,
 	EventSubMiddleware,
@@ -8,7 +8,12 @@ import { NgrokAdapter } from '@twurple/eventsub-ngrok'
 import { getData, getStreamRecords, modifyData } from '../db.js'
 import { getMockStreamOnlineEvent } from '../dev.js'
 import randomstring from 'randomstring'
-import { AuthEvents, getUserScopes, UserAccountTypes } from './twitchApi.js'
+import {
+	AuthEvents,
+	getAccountScopes,
+	getUserByAccountType,
+	UserAccountTypes,
+} from './twitchApi.js'
 import { Express } from 'express'
 import { ChatEvents } from './twitchChat.js'
 import Emittery from 'emittery'
@@ -17,7 +22,6 @@ import { initStreams } from './streams.js'
 type EventSubListener = EventSubHttpListener | EventSubMiddleware
 
 let apiClient: ApiClient
-let streamerUser: HelixUser
 const scopedEventSubs: Map<
 	string,
 	ReturnType<EventSubListener['onChannelFollow']>
@@ -31,10 +35,8 @@ export const TwitchEvents = new Emittery<{
 export async function initTwitchEventSub(params: {
 	apiClient: ApiClient
 	expressApp: Express
-	streamerUser: HelixUser
 }) {
 	apiClient = params.apiClient
-	streamerUser = params.streamerUser
 
 	let eventSubSecret = getData().twitchEventSubSecret
 	if (!eventSubSecret) {
@@ -74,7 +76,7 @@ export async function initTwitchEventSub(params: {
 	initGlobalEventSubs(listener)
 	await initScopedEventSubs(listener)
 	AuthEvents.on('auth', ({ accountType }) => {
-		if (accountType === 'streamer') initScopedEventSubs(listener)
+		if (accountType !== 'admin') initScopedEventSubs(listener)
 	})
 	AuthEvents.on('authRevoke', ({ accountType, method }) => {
 		if (accountType !== 'streamer') return
@@ -82,11 +84,12 @@ export async function initTwitchEventSub(params: {
 		apiClient.eventSub.deleteBrokenSubscriptions()
 	})
 	if (DEV_MODE) (listener as EventSubHttpListener).start()
-	initStreams({ apiClient, streamerUser })
+	initStreams({ apiClient })
 	console.log('Twitch EventSub connected')
 }
 
 async function initGlobalEventSubs(listener: EventSubListener) {
+	const streamerUser = getUserByAccountType('streamer')
 	const streamOnlineSub = listener.onStreamOnline(
 		streamerUser,
 		async (event) => {
@@ -124,7 +127,9 @@ async function initGlobalEventSubs(listener: EventSubListener) {
 }
 
 async function initScopedEventSubs(listener: EventSubListener) {
-	const streamerScopes = await getUserScopes(streamerUser)
+	const streamerUser = getUserByAccountType('streamer')
+	const streamerScopes = await getAccountScopes('streamer')
+	const botScopes = await getAccountScopes('bot')
 	if (streamerScopes.includes('channel:read:redemptions')) {
 		scopedEventSubs.set(
 			'channelRedemptionAddSub',
@@ -141,11 +146,12 @@ async function initScopedEventSubs(listener: EventSubListener) {
 			})
 		)
 	}
-	if (streamerScopes.includes('moderator:read:followers')) {
+	if (DEV_MODE && botScopes.includes('moderator:read:followers')) {
+		const botUser = getUserByAccountType('bot')
 		scopedEventSubs.set(
 			'channelFollowSub',
-			listener.onChannelFollow(streamerUser, streamerUser, (event) => {
-				console.log(event.userName, 'is now following!')
+			listener.onChannelFollow(streamerUser, botUser, (event) => {
+				timestampLog(event.userName, 'is now following!')
 			})
 		)
 	}
@@ -153,7 +159,7 @@ async function initScopedEventSubs(listener: EventSubListener) {
 		scopedEventSubs.set(
 			'channelModAddSub',
 			listener.onChannelModeratorAdd(streamerUser, (event) => {
-				console.log(event.userName, 'is now a mod!')
+				timestampLog(event.userName, 'is now a mod!')
 			})
 		)
 	}

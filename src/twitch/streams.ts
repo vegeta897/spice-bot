@@ -25,18 +25,16 @@ import { getTwitchPingButtons, getTwitchPingRole } from '../pings.js'
 import { DEV_MODE, sleep, timestampLog } from '../util.js'
 import { getStreamEndEmbed, getStreamStartEmbed } from './twitchEmbeds.js'
 import { TwitchEvents } from './eventSub.js'
+import { getUserByAccountType } from './twitchApi.js'
 
 const processingStreamOnlineEvents: Set<string> = new Set()
 
 let apiClient: ApiClient
 let streamerUser: HelixUser
 
-export function initStreams(params: {
-	apiClient: ApiClient
-	streamerUser: HelixUser
-}) {
-	streamerUser = params.streamerUser
+export function initStreams(params: { apiClient: ApiClient }) {
 	apiClient = params.apiClient
+	streamerUser = getUserByAccountType('streamer')
 
 	TwitchEvents.on('streamOnline', async (event) => {
 		timestampLog(`${event.displayName} just went live!`)
