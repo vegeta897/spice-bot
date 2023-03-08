@@ -148,6 +148,18 @@ export function initTwitchOAuthServer(app: Express) {
 			testEvents: ['grace', 'event-subs'],
 		})
 	})
+	app.get('/preview', (req, res) => {
+		if (req.session.username !== process.env.TWITCH_ADMIN_USERNAME) {
+			return res.redirect('/')
+		}
+		const page = Object.keys(req.query)[0]
+		if (!page) return res.send('Missing page name in query (e.g. ?success)')
+		return res.render(page, req.query, (err, html) => {
+			if (!err) return res.send(html)
+			console.log(err)
+			res.send('Missing page param(s), check console for details')
+		})
+	})
 	let testUserID = 1000
 	app.post('/test', async (req, res) => {
 		if (req.session.username !== process.env.TWITCH_ADMIN_USERNAME) {
