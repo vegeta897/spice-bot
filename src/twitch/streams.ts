@@ -5,14 +5,7 @@ import {
 	type HelixVideo,
 } from '@twurple/api'
 import { type MessageCreateOptions } from 'discord.js'
-import {
-	getStreamRecords,
-	recordStream,
-	type StreamRecord,
-	updateStreamRecord,
-	modifyData,
-	getData,
-} from '../db.js'
+import { modifyData } from '../db.js'
 import {
 	getMockInitialVideos,
 	getMockStream,
@@ -28,6 +21,12 @@ import { DEV_MODE, sleep, timestampLog } from '../util.js'
 import { getStreamEndEmbed, getStreamStartEmbed } from './twitchEmbeds.js'
 import { TwitchEvents } from './eventSub.js'
 import { getUserByAccountType } from './twitchApi.js'
+import {
+	getStreamRecords,
+	recordStream,
+	StreamRecord,
+	updateStreamRecord,
+} from './streamRecord.js'
 
 const processingStreamOnlineEvents: Set<string> = new Set()
 

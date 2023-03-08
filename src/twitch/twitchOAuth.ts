@@ -6,7 +6,6 @@ import {
 	HOST_URL,
 	timestampLog,
 } from '../util.js'
-import { getTwitchToken } from '../db.js'
 import { exchangeCode, getTokenInfo, revokeToken } from '@twurple/auth'
 import {
 	type AccountType,
@@ -20,6 +19,7 @@ import { sendRecap } from './recap.js'
 import { tallyUp } from './tally.js'
 import { ChatEvents } from './twitchChat.js'
 import { getEventSubs } from './eventSub.js'
+import { getTwitchToken } from './streamRecord.js'
 
 const SCOPES: Record<AccountType, string[]> = {
 	bot: [

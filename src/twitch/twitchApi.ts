@@ -8,8 +8,8 @@ import {
 	refreshUserToken,
 } from '@twurple/auth'
 import Emittery from 'emittery'
-import { getTwitchToken, setTwitchToken } from '../db.js'
 import { DEV_MODE, HOST_URL, timestampLog } from '../util.js'
+import { setTwitchToken, getTwitchToken } from './streamRecord.js'
 
 let authProvider: RefreshingAuthProvider
 let apiClient: ApiClient

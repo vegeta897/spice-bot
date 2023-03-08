@@ -5,7 +5,7 @@ import {
 } from '@twurple/eventsub-http'
 import { DEV_MODE, timestampLog } from '../util.js'
 import { NgrokAdapter } from '@twurple/eventsub-ngrok'
-import { getData, getStreamRecords, modifyData } from '../db.js'
+import { getData, modifyData } from '../db.js'
 import { getMockStreamOnlineEvent } from '../dev.js'
 import randomstring from 'randomstring'
 import {
@@ -18,6 +18,7 @@ import { Express } from 'express'
 import { ChatEvents } from './twitchChat.js'
 import Emittery from 'emittery'
 import { initStreams } from './streams.js'
+import { getStreamRecords } from './streamRecord.js'
 
 type EventSubListener = EventSubHttpListener | EventSubMiddleware
 
