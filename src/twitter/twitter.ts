@@ -36,6 +36,7 @@ let user: UserV2
 export async function initTwitter() {
 	if (!USERNAME) {
 		console.log('TWITTER_USERNAME is blank, skipping Twitter module')
+		return
 	}
 	if (process.env.TWITTER_SCRAPE_MODE === 'true') {
 		await initTwitterScraper()
