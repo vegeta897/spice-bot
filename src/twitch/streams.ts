@@ -10,6 +10,8 @@ import {
 	recordStream,
 	type StreamRecord,
 	updateStreamRecord,
+	modifyData,
+	getData,
 } from '../db.js'
 import {
 	getMockInitialVideos,
@@ -90,13 +92,18 @@ export function initStreams(params: { apiClient: ApiClient }) {
 		// It's so annoying that the stream ID isn't part of this event 😤
 		checkVideos()
 	})
-	if (!DEV_MODE) checkStreamAndVideos()
-	// Check for stream/video updates every 5 minutes (30 sec in dev mode)
-	setInterval(() => checkStreamAndVideos(), (DEV_MODE ? 0.5 : 5) * 60 * 1000)
+	if (!DEV_MODE) {
+		checkStreamAndVideos()
+		// Check for stream/video updates every 5 minutes
+		setInterval(() => checkStreamAndVideos(), 5 * 60 * 1000)
+	} else {
+		modifyData({
+			streams: getStreamRecords().filter((s) => s.streamID !== 'test'),
+		})
+	}
 }
 
 async function checkStreamAndVideos() {
-	if (DEV_MODE) return // TODO: Remove
 	const stream = DEV_MODE ? getMockStream() : await streamerUser.getStream()
 	handleStream(stream)
 	checkVideos(stream)

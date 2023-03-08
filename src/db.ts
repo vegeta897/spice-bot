@@ -2,7 +2,12 @@ import { fileURLToPath } from 'node:url'
 import { join, dirname } from 'node:path'
 import { Low } from 'lowdb'
 import { JSONFile } from 'lowdb/node'
-import { type DeepReadonly, DEV_MODE, sortByProp } from './util.js'
+import {
+	type DeepReadonly,
+	DEV_MODE,
+	sortByProp,
+	MaybeReadonly,
+} from './util.js'
 import { type AccessToken } from '@twurple/auth'
 import { type SessionRecord } from './dbSessionStore.js'
 import { type AccountType } from './twitch/twitchApi.js'
@@ -58,15 +63,19 @@ export async function initDB() {
 		emoteCounts: [],
 		redeemCounts: [],
 	}
-	if (DEV_MODE)
-		db.data.streams = db.data.streams.filter((s) => s.streamID !== 'test')
-	db.write() // Creates the initial db file if it doesn't exist
+	let fileLocked = true
+	do {
+		try {
+			await db.write() // Creates the initial db file if it doesn't exist
+			fileLocked = false
+		} catch (_) {}
+	} while (fileLocked) // Retry if write fails (can happen on dev-mode restarts)
 	console.log('Database connected')
 }
 
 export const getData = (): DeepReadonly<DBData> => db.data!
 
-export async function modifyData(data: Partial<DBData>) {
+export async function modifyData(data: MaybeReadonly<Partial<DBData>>) {
 	db.data = <DBData>{ ...db.data, ...data }
 	await db.write()
 }
@@ -84,7 +93,7 @@ export function recordStream(
 	}
 	const streams = [...getData().streams, streamRecord]
 	const sortedTrimmed = sortByProp(streams, 'startTime').slice(-5)
-	modifyData({ streams: sortedTrimmed as StreamRecord[] })
+	modifyData({ streams: sortedTrimmed })
 	return cloneStreamRecord(streamRecord) as StreamRecord
 }
 
@@ -157,9 +166,7 @@ export const getStreamRecords = () =>
 export const getTweetRecords = () =>
 	getData().tweets.map((tr) => ({ ...tr })) as TweetRecord[]
 
-const cloneStreamRecord = (
-	streamRecord: StreamRecord | DeepReadonly<StreamRecord>
-) => ({
+const cloneStreamRecord = (streamRecord: MaybeReadonly<StreamRecord>) => ({
 	...streamRecord,
 	games: [...streamRecord.games],
 })
@@ -167,9 +174,7 @@ const cloneStreamRecord = (
 export const getTwitchToken = (accountType: AccountType) =>
 	cloneTwitchToken(getData().twitchTokens[accountType]) as AccessToken
 
-const cloneTwitchToken = (
-	token: AccessToken | DeepReadonly<AccessToken> | null
-) =>
+const cloneTwitchToken = (token: MaybeReadonly<AccessToken> | null) =>
 	(token && {
 		...token,
 		scope: [...token.scope],
@@ -181,5 +186,5 @@ export const setTwitchToken = (
 	token: AccessToken | null
 ) =>
 	modifyData({
-		twitchTokens: { ...db.data!.twitchTokens, [accountType]: token },
+		twitchTokens: { ...getData().twitchTokens, [accountType]: token },
 	})

@@ -5,7 +5,7 @@ import { deleteTweetMessage } from './discord.js'
 import { checkTweetPingButtons, postTweet } from './twitter.js'
 import { sortByProp, timestampLog } from './util.js'
 
-// TODO: Make this a separate module on NPM?
+// Make this a separate module on NPM?
 
 const USERNAME = process.env.TWITTER_USERNAME
 const INCLUDE_RETWEETS = process.env.TWITTER_INCLUDE_RETWEETS === 'true'
