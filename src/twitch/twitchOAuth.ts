@@ -20,7 +20,7 @@ import { tallyUp } from './tally.js'
 import { ChatEvents } from './twitchChat.js'
 import { getEventSubs } from './eventSub.js'
 import { getTwitchToken } from './streamRecord.js'
-import { getData } from '../db.js'
+import { getCensoredJSON, getData } from '../db.js'
 import 'highlight.js'
 import hljs from 'highlight.js/lib/core'
 
@@ -149,9 +149,7 @@ export function initTwitchOAuthServer(app: Express) {
 			chatTestMode: CHAT_TEST_MODE,
 			testCommands: ['recap', 'tally'],
 			testEvents: ['grace', 'event-subs'],
-			db: hljs.highlight(JSON.stringify(getData(), null, 2), {
-				language: 'json',
-			}).value,
+			db: hljs.highlight(getCensoredJSON(), { language: 'json' }).value,
 		})
 	})
 	app.get('/preview', (req, res) => {
