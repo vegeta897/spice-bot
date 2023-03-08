@@ -210,23 +210,22 @@ async function checkVideos(stream: HelixStream | null = null) {
 			!processingStreamOnlineEvents.has(sr.streamID) && // Not currently processing
 			sr.startTime < Date.now() - 5 * 60 * 1000 && // Older than 5 minutes
 			sr.streamID < newestVideo.streamId! && // Older than the newest video
-			sr.messageID // Has a message to edit
+			sr.messageID // Has a message to delete
 	)
-	if (staleStreamRecords.length > 0)
-		timestampLog(
-			`Force ending ${staleStreamRecords.length} stale stream(s) marked as "live"`
-		)
 	for (const staleStreamRecord of staleStreamRecords) {
-		const updatedRecord = updateStreamRecord({
-			streamID: staleStreamRecord.streamID,
-			streamStatus: 'ended',
-			videoInfo: false,
-		})
-		// TODO: Maybe delete the message instead
-		editStreamMessage(updatedRecord.messageID!, {
-			content: '',
-			embeds: [getStreamEndEmbed(updatedRecord)],
-		})
+		timestampLog(
+			`Force ending stale stream ID ${staleStreamRecord.streamID} marked as "live"`
+		)
+		deleteStreamMessage(staleStreamRecord.messageID!)
+		updateStreamRecord(
+			{
+				streamID: staleStreamRecord.streamID,
+				streamStatus: 'ended',
+				videoInfo: false,
+			},
+			['messageID']
+		) // Message deleted
+		checkStreamPingButtons() // Add ping buttons back to previous message
 	}
 }
 
@@ -264,8 +263,7 @@ async function endStream(streamRecord: StreamRecord, video: HelixVideo) {
 	const messageOptions: MessageCreateOptions = {
 		embeds: [getStreamEndEmbed(updatedRecord, video)],
 	}
-	const twitchPingRole = getTwitchPingRole()
-	if (twitchPingRole) {
+	if (getTwitchPingRole()) {
 		messageOptions.components = getTwitchPingButtons()
 		updatedRecord.pingButtons = 'posted'
 	}
@@ -289,4 +287,19 @@ function cleanPingButtons(exceptStreamID?: string) {
 			pingButtons: 'cleaned',
 		})
 	}
+}
+
+// Add ping buttons to last stream message if latest was deleted
+export async function checkStreamPingButtons() {
+	if (!getTwitchPingRole()) return
+	const postedRecords = getStreamRecords().filter((sr) => sr.messageID)
+	const lastPostedRecord = postedRecords.at(-1)
+	if (!lastPostedRecord || lastPostedRecord.pingButtons === 'posted') return
+	editStreamMessage(lastPostedRecord.messageID!, {
+		components: getTwitchPingButtons(),
+	})
+	updateStreamRecord({
+		streamID: lastPostedRecord.streamID,
+		pingButtons: 'posted',
+	})
 }
