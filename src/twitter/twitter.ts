@@ -11,14 +11,15 @@ import {
 	getTweetRecords,
 	recordTweet,
 	updateTweetRecord,
-} from './db.js'
+} from '../db.js'
 import {
 	createTweetMessage,
 	deleteTweetMessage,
 	editTweetMessage,
-} from './discord.js'
-import { getTwitterPingButtons, getTwitterPingRole } from './pings.js'
-import { DEV_MODE, sleep, timestampLog } from './util.js'
+} from '../discord.js'
+import { getTwitterPingButtons, getTwitterPingRole } from '../pings.js'
+import { DEV_MODE, sleep, timestampLog } from '../util.js'
+import { initTwitterScraper } from './scraper.js'
 
 const USERNAME = process.env.TWITTER_USERNAME
 const INCLUDE_RETWEETS = process.env.TWITTER_INCLUDE_RETWEETS === 'true'
@@ -33,6 +34,13 @@ let client: TwitterApi
 let user: UserV2
 
 export async function initTwitter() {
+	if (!USERNAME) {
+		console.log('TWITTER_USERNAME is blank, skipping Twitter module')
+	}
+	if (process.env.TWITTER_SCRAPE_MODE === 'true') {
+		await initTwitterScraper()
+		return
+	}
 	client = new TwitterApi(process.env.TWITTER_TOKEN)
 	const rules = await client.readOnly.v2.streamRules()
 	// Delete unused rules, if any

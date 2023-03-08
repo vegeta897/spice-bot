@@ -1,9 +1,9 @@
 import puppeteer from 'puppeteer'
 import { scrollPageToBottom } from 'puppeteer-autoscroll-down'
-import { deleteTweetRecord, getTweetRecords } from './db.js'
-import { deleteTweetMessage } from './discord.js'
+import { deleteTweetRecord, getTweetRecords } from '../db.js'
+import { deleteTweetMessage } from '../discord.js'
 import { checkTweetPingButtons, postTweet } from './twitter.js'
-import { sortByProp, timestampLog } from './util.js'
+import { sortByProp, timestampLog } from '../util.js'
 
 // Make this a separate module on NPM?
 
