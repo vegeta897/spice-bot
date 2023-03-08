@@ -1,6 +1,6 @@
 import { HelixChannelEmote, type ApiClient } from '@twurple/api'
-import { getTwitchToken } from '../db.js'
 import { DEV_MODE, sleep } from '../util.js'
+import { getTwitchToken } from './streamRecord.js'
 import {
 	AuthEvents,
 	botIsFollowingStreamer,
