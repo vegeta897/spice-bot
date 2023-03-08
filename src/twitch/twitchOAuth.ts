@@ -133,34 +133,26 @@ export function initTwitchOAuthServer(app: Express) {
 		if (req.session.username !== process.env.TWITCH_ADMIN_USERNAME) {
 			return res.redirect('/')
 		}
-		res.render(
-			'admin',
-			{
-				streamer: {
-					username: process.env.TWITCH_STREAMER_USERNAME,
-					authed: !!getTwitchToken('streamer'),
-				},
-				bot: {
-					username: process.env.TWITCH_BOT_USERNAME,
-					authed: !!getTwitchToken('bot'),
-				},
-				admin: {
-					username: process.env.TWITCH_ADMIN_USERNAME,
-					authed: !!getTwitchToken('admin'),
-				},
-				chatTestMode: CHAT_TEST_MODE,
-				testCommands: ['recap', 'tally'],
-				testEvents: ['grace', 'event-subs'],
-				db: hljs.highlight(JSON.stringify(getData(), null, 2), {
-					language: 'json',
-				}).value,
-			} /*,
-			(err, html) => {
-				const dbJSON = JSON.stringify(hljs.highlight(getData(), { language: 'json' }).value, null, 2)
-				html.replace(/<pre>(.*)</pre>/g,hljs.highlight(html, { language: 'json' }).value)
-				res.send()
-			}*/
-		)
+		res.render('admin', {
+			streamer: {
+				username: process.env.TWITCH_STREAMER_USERNAME,
+				authed: !!getTwitchToken('streamer'),
+			},
+			bot: {
+				username: process.env.TWITCH_BOT_USERNAME,
+				authed: !!getTwitchToken('bot'),
+			},
+			admin: {
+				username: process.env.TWITCH_ADMIN_USERNAME,
+				authed: !!getTwitchToken('admin'),
+			},
+			chatTestMode: CHAT_TEST_MODE,
+			testCommands: ['recap', 'tally'],
+			testEvents: ['grace', 'event-subs'],
+			db: hljs.highlight(JSON.stringify(getData(), null, 2), {
+				language: 'json',
+			}).value,
+		})
 	})
 	app.get('/preview', (req, res) => {
 		if (
