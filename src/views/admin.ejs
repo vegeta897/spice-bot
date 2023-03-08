@@ -47,8 +47,13 @@
       <% } %>
     </p>
     <% } %>
+    <details>
+      <summary>View full database</summary>
+      <pre><%- db %></pre>
+    </details>
     <p><a href="unlink">Sign out</a></p>
   </main>
+  <%- include('highlight') %>
 </body>
 
 </html>
