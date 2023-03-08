@@ -1,6 +1,6 @@
 import puppeteer from 'puppeteer'
 import { scrollPageToBottom } from 'puppeteer-autoscroll-down'
-import { deleteTweetRecord, getTweetRecords } from '../db.js'
+import { deleteTweetRecord, getTweetRecords } from './tweetRecord.js'
 import { deleteTweetMessage } from '../discord.js'
 import { checkTweetPingButtons, postTweet } from './twitter.js'
 import { sortByProp, timestampLog } from '../util.js'

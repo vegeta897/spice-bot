@@ -11,7 +11,7 @@ import {
 	getTweetRecords,
 	recordTweet,
 	updateTweetRecord,
-} from '../db.js'
+} from './tweetRecord.js'
 import {
 	createTweetMessage,
 	deleteTweetMessage,
