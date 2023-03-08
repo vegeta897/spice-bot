@@ -66,8 +66,8 @@ function censorToken(token: AccessToken | null) {
 
 export function getCensoredJSON() {
 	const cloned = JSON.parse(JSON.stringify(getData())) as DBData
-	cloned.expressSessionSecret = REDACTED
-	cloned.twitchEventSubSecret = REDACTED
+	cloned.expressSessionSecret &&= REDACTED // Leave nulls intact
+	cloned.twitchEventSubSecret &&= REDACTED
 	censorToken(cloned.twitchTokens.bot)
 	censorToken(cloned.twitchTokens.streamer)
 	censorToken(cloned.twitchTokens.admin)
