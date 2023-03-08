@@ -65,24 +65,13 @@ export async function sendRecap() {
 		)
 	const pogCount = emoteCounts.get(POGGERS) || 0
 	const sogCount = emoteCounts.get(SOGGERS) || 0
-	if (pogCount > 0 && sogCount > 0) {
+	if (pogCount > 0 || sogCount > 0) {
 		let pogSogRatioMessage = `Pog/Sog ratio: ${pogCount}:${sogCount}`
 		if (canPoggers) {
 			if (pogCount > sogCount) pogSogRatioMessage += ` ${POGGERS}`
 			if (pogCount < sogCount) pogSogRatioMessage += ` ${SOGGERS}`
 		}
 		sendChatMessage(pogSogRatioMessage)
-	}
-	if (sogCount === 0) {
-		if (pogCount > 0 && mostUsedEmoteName !== POGGERS) {
-			let poggersMessage = `There were ${pogCount} `
-			if (canPoggers) poggersMessage += `${POGGERS} this stream!`
-			else poggersMessage += 'POGGERS emotes this stream!'
-			sendChatMessage(poggersMessage)
-		}
-		// let noSoggersMessage = 'There were no SOGGERS this stream!'
-		// if (canPoggers) noSoggersMessage += ` That is ${POGGERS}`
-		// sendChatMessage(noSoggersMessage)
 	}
 	const graces = redeemCounts.get(GRACE) || 0
 	if (graces > 0)
