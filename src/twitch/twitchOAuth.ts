@@ -149,7 +149,10 @@ export function initTwitchOAuthServer(app: Express) {
 		})
 	})
 	app.get('/preview', (req, res) => {
-		if (req.session.username !== process.env.TWITCH_ADMIN_USERNAME) {
+		if (
+			!DEV_MODE &&
+			req.session.username !== process.env.TWITCH_ADMIN_USERNAME
+		) {
 			return res.redirect('/')
 		}
 		const page = Object.keys(req.query)[0]
