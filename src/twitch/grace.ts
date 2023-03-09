@@ -11,6 +11,7 @@ const train: Grace[] = []
 export function initGrace() {
 	ChatEvents.on('message', (event) => {
 		if (train.length === 0) return
+		if (event.msg.isRedemption && isGraceText(event.text)) return
 		for (let i = train.length - 1; i >= 0; i--) {
 			if (train[i].date < event.date) {
 				if (i < train.length - 2) train.splice(i, train.length - i)
@@ -20,7 +21,7 @@ export function initGrace() {
 		}
 	})
 	ChatEvents.on('redemption', (event) => {
-		if (event.title !== GRACE) return
+		if (event.title !== GRACE && !isGraceText(event.rewardText)) return
 		if (!botInChat) return
 		// Only add to train if it's a different user than the last grace
 		if (train.at(-1)?.userID !== event.userID) {
@@ -29,10 +30,14 @@ export function initGrace() {
 	})
 }
 
+function isGraceText(text: string) {
+	return text.toLowerCase().replace(/ /g, '').startsWith('grace')
+}
+
 async function endGraceTrain(endUser: string) {
 	const trainLength = train.length
 	train.length = 0
-	if (trainLength < 3) return
+	if (trainLength < 5) return
 	const longestTrain = getData().twichGraceTrainRecord
 	let message = `Grace train ended by ${endUser}! That was ${trainLength} graces`
 	if (trainLength > longestTrain) {
