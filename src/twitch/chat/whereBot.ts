@@ -6,7 +6,7 @@ import { ChatEvents, sendChatMessage } from './twitchChat.js'
 
 export function initWhereBot() {
 	ChatEvents.on('message', (event) => {
-		if (/where('?|( i))s? spice[ -]?bot/gi.test(event.text)) {
+		if (/where('?|( i))s?( (our|that|dat))? spice[ -]?bot/gi.test(event.text)) {
 			handleWhereBotPrompt(event.msg)
 			return
 		}
@@ -39,8 +39,6 @@ async function handleWhereBotPrompt(msg: PrivateMessage) {
 	sendChatMessage(...sendMessageArgs)
 }
 
-let whereBotNextReplyIndex = 0
-let lastWhereBotReplyTime = 0
 const whereBotReplies: (
 	| string
 	| { text: string; emotes?: [string, string][]; reply?: boolean }
@@ -78,6 +76,8 @@ const whereBotReplies: (
 	'/me is gone', // This works without ChatClient.action()
 ]
 
+let whereBotNextReplyIndex = 0
+let lastWhereBotReplyTime = 0
 function reset() {
 	whereBotNextReplyIndex = 0
 	lastWhereBotReplyTime = 0
