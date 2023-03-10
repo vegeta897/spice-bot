@@ -76,10 +76,9 @@ const whereBotReplies: (
 	'/me is gone', // This works without ChatClient.action()
 ]
 
-let whereBotNextReplyIndex = 0
 let lastWhereBotReplyTime = 0
 const COOLDOWN = 3 * 1000
+let whereBotNextReplyIndex = 0
 function reset() {
 	whereBotNextReplyIndex = 0
-	lastWhereBotReplyTime = 0
 }
