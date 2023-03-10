@@ -10,8 +10,11 @@ const train: Grace[] = []
 
 export function initGrace() {
 	ChatEvents.on('message', (event) => {
+		if (event.msg.isHighlight && isGraceText(event.text)) {
+			addGrace(event.date, event.userID)
+			return
+		}
 		if (train.length === 0) return
-		if (event.msg.isRedemption && isGraceText(event.text)) return
 		for (let i = train.length - 1; i >= 0; i--) {
 			if (train[i].date < event.date) {
 				if (i < train.length - 2) train.splice(i, train.length - i)
@@ -21,13 +24,15 @@ export function initGrace() {
 		}
 	})
 	ChatEvents.on('redemption', (event) => {
-		if (!botInChat()) return
-		if (event.title !== GRACE && !isGraceText(event.rewardText)) return
-		// Only add to train if it's a different user than the last grace
-		if (train.at(-1)?.userID !== event.userID) {
-			train.push({ date: event.date, userID: event.userID })
-		}
+		if (botInChat()) addGrace(event.date, event.userID)
 	})
+}
+
+function addGrace(date: Date, userID: string) {
+	// Only add to train if it's a different user than the last grace
+	if (train.at(-1)?.userID !== userID) {
+		train.push({ date, userID })
+	}
 }
 
 function isGraceText(text: string) {

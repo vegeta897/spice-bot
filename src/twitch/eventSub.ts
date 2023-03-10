@@ -135,13 +135,8 @@ async function initScopedEventSubs(listener: EventSubListener) {
 		scopedEventSubs.set(
 			'channelRedemptionAddSub',
 			listener.onChannelRedemptionAdd(streamerUser, async (event) => {
-				if (DEV_MODE || event.input)
-					timestampLog(
-						event.rewardTitle,
-						event.status,
-						event.userDisplayName,
-						event.input
-					)
+				if (DEV_MODE)
+					timestampLog(event.rewardTitle, event.status, event.userDisplayName)
 				ChatEvents.emit('redemption', {
 					username: event.userName,
 					userID: event.userId,
