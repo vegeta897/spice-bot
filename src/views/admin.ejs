@@ -47,6 +47,12 @@
       <% } %>
     </p>
     <% } %>
+    <h3>Logging</h3>
+    <p class="button-row">
+      <% for(const log of testLogs) { %>
+      <a class="button button-small" href="#" onclick="fetch('test?log=<%= log %>',{method:'POST'})">Log <%= log %></a>
+      <% } %>
+    </p>
     <details>
       <summary>View full database</summary>
       <pre><%- db %></pre>

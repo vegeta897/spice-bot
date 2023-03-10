@@ -147,7 +147,8 @@ export function initTwitchOAuthServer(app: Express) {
 			},
 			chatTestMode: DEV_MODE || CHAT_TEST_MODE,
 			testCommands: ['recap', 'tally'],
-			testEvents: ['grace', 'event-subs'], // Move event-subs to log section
+			testEvents: ['grace'],
+			testLogs: ['event-subs'],
 			db: hljs.highlight(getCensoredJSON(), { language: 'json' }).value,
 		})
 	})
@@ -171,8 +172,10 @@ export function initTwitchOAuthServer(app: Express) {
 		if (req.session.username !== process.env.TWITCH_ADMIN_USERNAME) {
 			return res.sendStatus(401)
 		}
-		if (!CHAT_TEST_MODE) return res.sendStatus(400)
-		const { command, event } = req.query
+		const { command, event, log } = req.query
+		if (log === 'event-subs') console.log(await getEventSubs())
+		if ((command || event) && !DEV_MODE && !CHAT_TEST_MODE)
+			return res.sendStatus(400)
 		if (command) {
 			timestampLog(`Testing !${command} command`)
 			ChatEvents.emit('message', {
@@ -184,18 +187,19 @@ export function initTwitchOAuthServer(app: Express) {
 				mod: true,
 			})
 		}
-		if (event) timestampLog(`Testing ${event} event`)
-		if (event === 'grace')
-			ChatEvents.emit('redemption', {
-				username: process.env.TWITCH_ADMIN_USERNAME,
-				userID: `${testUserID++}`,
-				title: 'GRACE',
-				date: new Date(),
-				status: '',
-				rewardText: '',
-			})
-		if (event === 'event-subs') console.log(await getEventSubs())
-		// TODO: Add stream online/offline, tweets, etc
+		if (event) {
+			timestampLog(`Testing ${event} event`)
+			if (event === 'grace')
+				ChatEvents.emit('redemption', {
+					username: process.env.TWITCH_ADMIN_USERNAME,
+					userID: `${testUserID++}`,
+					title: 'GRACE',
+					date: new Date(),
+					status: '',
+					rewardText: '',
+				})
+			// TODO: Add stream online/offline, tweets, etc
+		}
 		res.sendStatus(200)
 	})
 	console.log(
