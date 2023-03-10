@@ -27,12 +27,12 @@ export function initTally() {
 	})
 }
 
-let commandLastUsed = new Date(0)
+let commandLastUsed = 0
 const COOLDOWN = 10 * 1000
 
 export function tallyUp() {
-	const now = new Date()
-	if (now.getTime() - commandLastUsed.getTime() < COOLDOWN) return
+	const now = Date.now()
+	if (now - commandLastUsed < COOLDOWN) return
 	commandLastUsed = now
 	let prevMsg: Message | undefined
 	const options: Record<string, Set<string>> = {}

@@ -171,8 +171,7 @@ export async function getBotSub() {
 
 function getAccountTypeForId(id: string) {
 	const [accountType] =
-		Object.entries(helixUsers).find(([accountType, user]) => user.id === id) ||
-		[]
+		Object.entries(helixUsers).find(([, user]) => user.id === id) || []
 	return accountType as AccountType | undefined
 }
 

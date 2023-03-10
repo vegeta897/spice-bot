@@ -41,12 +41,12 @@ function clearCounts() {
 	modifyData({ redeemCounts: [] })
 }
 
-let commandLastUsed = new Date(0)
+let commandLastUsed = 0
 const COOLDOWN = 10 * 1000
 
 export async function sendRecap() {
-	const now = new Date()
-	if (now.getTime() - commandLastUsed.getTime() < COOLDOWN) return
+	const now = Date.now()
+	if (now - commandLastUsed < COOLDOWN) return
 	commandLastUsed = now
 	sendChatMessage(`STREAM RECAP!`)
 	const usableEmotes = await getUsableEmotes()

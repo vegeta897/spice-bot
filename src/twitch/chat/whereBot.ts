@@ -16,7 +16,7 @@ export function initWhereBot() {
 
 async function handleWhereBotPrompt(msg: PrivateMessage) {
 	const now = Date.now()
-	if (now - lastWhereBotReplyTime < 3 * 1000) return // Too soon
+	if (now - lastWhereBotReplyTime < COOLDOWN) return // Too soon
 	lastWhereBotReplyTime = now
 	const reply = whereBotReplies[whereBotNextReplyIndex]
 	if (!reply) return // No more replies to give
@@ -78,6 +78,7 @@ const whereBotReplies: (
 
 let whereBotNextReplyIndex = 0
 let lastWhereBotReplyTime = 0
+const COOLDOWN = 3 * 1000
 function reset() {
 	whereBotNextReplyIndex = 0
 	lastWhereBotReplyTime = 0
