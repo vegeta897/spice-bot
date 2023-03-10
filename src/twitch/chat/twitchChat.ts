@@ -9,6 +9,7 @@ import { initRecap } from './recap.js'
 import { Emotes } from './emotes.js'
 import { initTally } from './tally.js'
 import { initWhereBot } from './whereBot.js'
+import { initThanks } from './thanks.js'
 
 // Idea: Detect incrementing numbers in ryan's messages for death tracker
 //       Then we can provide a command to check the count
@@ -40,6 +41,7 @@ export async function initTwitchChat(authProvider: RefreshingAuthProvider) {
 	initRecap()
 	initTally()
 	initWhereBot()
+	initThanks()
 	AuthEvents.on('auth', async ({ accountType }) => {
 		if (accountType === 'bot') initChatClient(authProvider)
 	})
