@@ -87,6 +87,7 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 		})
 		const redemption = msg.isRedemption ? ' (REDEEM)' : ''
 		const highlight = msg.isHighlight ? ' (HIGHLIGHT)' : ''
+		const cheer = msg.isCheer ? ' (CHEER)' : ''
 		const emotes = msg
 			.parseEmotes()
 			.filter((part) => part.type === 'emote') as ParsedMessageEmotePart[]
@@ -96,7 +97,7 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 				: ''
 		if (DEV_MODE)
 			timestampLog(
-				`${broadcaster}${mod}${user}: ${text}${redemption}${highlight}${emoteList}`
+				`${broadcaster}${mod}${user}: ${text}${redemption}${highlight}${cheer}${emoteList}`
 			)
 	})
 

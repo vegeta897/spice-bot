@@ -10,7 +10,10 @@ const train: Grace[] = []
 
 export function initGrace() {
 	ChatEvents.on('message', (event) => {
-		if (event.msg.isHighlight && isGraceText(event.text)) {
+		if (
+			(event.msg.isHighlight || event.msg.isCheer) &&
+			isGraceText(event.text)
+		) {
 			addGrace(event.date, event.userID)
 			return
 		}
@@ -36,13 +39,7 @@ function addGrace(date: Date, userID: string) {
 }
 
 function isGraceText(text: string) {
-	return text
-		.toLowerCase()
-		.replace(/ /g, '')
-		.replace('classic', '')
-		.replace(new RegExp(Emotes.PRAYBEE, 'g'), '')
-		.replace(/old?school/g, '')
-		.startsWith('grace')
+	return text.toLowerCase().replace(/ /g, '').includes('grace')
 }
 
 async function endGraceTrain(endUser: string) {
