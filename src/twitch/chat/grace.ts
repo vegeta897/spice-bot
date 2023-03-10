@@ -21,8 +21,8 @@ export function initGrace() {
 		}
 	})
 	ChatEvents.on('redemption', (event) => {
+		if (!botInChat()) return
 		if (event.title !== GRACE && !isGraceText(event.rewardText)) return
-		if (!botInChat) return
 		// Only add to train if it's a different user than the last grace
 		if (train.at(-1)?.userID !== event.userID) {
 			train.push({ date: event.date, userID: event.userID })
@@ -31,7 +31,13 @@ export function initGrace() {
 }
 
 function isGraceText(text: string) {
-	return text.toLowerCase().replace(/ /g, '').startsWith('grace')
+	return text
+		.toLowerCase()
+		.replace(/ /g, '')
+		.replace('classic', '')
+		.replace(new RegExp(Emotes.PRAYBEE, 'g'), '')
+		.replace(/old?school/g, '')
+		.startsWith('grace')
 }
 
 async function endGraceTrain(endUser: string) {
