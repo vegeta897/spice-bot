@@ -15,7 +15,7 @@ import {
 	UserAccountTypes,
 } from './twitchApi.js'
 import { Express } from 'express'
-import { ChatEvents } from './twitchChat.js'
+import { ChatEvents } from './chat/twitchChat.js'
 import Emittery from 'emittery'
 import { initStreams } from './streams.js'
 import { getStreamRecords } from './streamRecord.js'

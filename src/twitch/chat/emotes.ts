@@ -1,19 +1,27 @@
 import { HelixChannelEmote, type ApiClient } from '@twurple/api'
-import { DEV_MODE, sleep } from '../util.js'
-import { getTwitchToken } from './streamRecord.js'
+import { DEV_MODE, sleep } from '../../util.js'
+import { getTwitchToken } from '../streamRecord.js'
 import {
 	AuthEvents,
 	botIsFollowingStreamer,
 	getBotSub,
 	getUserByAccountType,
-} from './twitchApi.js'
+} from '../twitchApi.js'
 
 let apiClient: ApiClient
 const channelEmotes: HelixChannelEmote[] = []
 
-export const POGGERS = 'ybbaaaPoggers'
-export const SOGGERS = 'ybbaaaSoggers'
-export const PRAYBEE = 'ybbaaaPrayBee'
+export const Emotes = {
+	POGGERS: 'ybbaaaPoggers',
+	SOGGERS: 'ybbaaaSoggers',
+	PRAYBEE: 'ybbaaaPrayBee',
+	RAGE: 'ybbaaaRage',
+	SURE: 'ybbaaaSure',
+	SCREAM: 'ybbaaaSCREAM',
+	THISISFINE: 'ybbaaaThisisfine',
+	BANANA: 'ybbaaaBanana',
+	DAWG: 'ybbaaaDawg',
+}
 
 export async function initEmotes(options: { apiClient: ApiClient }) {
 	apiClient = options.apiClient

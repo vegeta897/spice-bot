@@ -161,6 +161,8 @@ export async function botIsMod() {
 }
 
 export async function getBotSub() {
+	// Maybe replace this with a db value, updated with eventsub?
+	// Then it can be cached and not require an API call every time
 	return await apiClient.subscriptions.checkUserSubscription(
 		helixUsers.bot,
 		helixUsers.streamer

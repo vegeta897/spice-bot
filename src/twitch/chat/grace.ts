@@ -1,5 +1,5 @@
-import { getData, modifyData } from '../db.js'
-import { getEmoteByName, getUsableEmotes, PRAYBEE } from './emotes.js'
+import { getData, modifyData } from '../../db.js'
+import { getEmoteByName, getUsableEmotes, Emotes } from './emotes.js'
 import { botInChat, ChatEvents, sendChatMessage } from './twitchChat.js'
 
 type Grace = { date: Date; userID: string }
@@ -43,8 +43,8 @@ async function endGraceTrain(endUser: string) {
 	if (trainLength > longestTrain) {
 		// New longest train!
 		message += `, a NEW RECORD!`
-		if (getEmoteByName(PRAYBEE, await getUsableEmotes())) {
-			const prayBees = ` ${PRAYBEE}`.repeat(Math.ceil(trainLength / 5))
+		if (getEmoteByName(Emotes.PRAYBEE, await getUsableEmotes())) {
+			const prayBees = ` ${Emotes.PRAYBEE}`.repeat(Math.ceil(trainLength / 5))
 			message += prayBees
 		}
 		modifyData({ twichGraceTrainRecord: trainLength })

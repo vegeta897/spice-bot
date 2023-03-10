@@ -15,14 +15,13 @@ import {
 } from './twitchApi.js'
 import { createExpressErrorHandler, sessionStore } from '../express.js'
 import randomstring from 'randomstring'
-import { sendRecap } from './recap.js'
-import { tallyUp } from './tally.js'
-import { ChatEvents } from './twitchChat.js'
+import { ChatEvents } from './chat/twitchChat.js'
 import { getEventSubs } from './eventSub.js'
 import { getTwitchToken } from './streamRecord.js'
-import { getCensoredJSON, getData } from '../db.js'
+import { getCensoredJSON } from '../db.js'
 import 'highlight.js'
 import hljs from 'highlight.js/lib/core'
+import { type PrivateMessage } from '@twurple/chat'
 
 const SCOPES: Record<AccountType, string[]> = {
 	bot: [
@@ -146,9 +145,9 @@ export function initTwitchOAuthServer(app: Express) {
 				username: process.env.TWITCH_ADMIN_USERNAME,
 				authed: !!getTwitchToken('admin'),
 			},
-			chatTestMode: CHAT_TEST_MODE,
+			chatTestMode: DEV_MODE || CHAT_TEST_MODE,
 			testCommands: ['recap', 'tally'],
-			testEvents: ['grace', 'event-subs'],
+			testEvents: ['grace', 'event-subs'], // Move event-subs to log section
 			db: hljs.highlight(getCensoredJSON(), { language: 'json' }).value,
 		})
 	})
@@ -174,9 +173,17 @@ export function initTwitchOAuthServer(app: Express) {
 		}
 		if (!CHAT_TEST_MODE) return res.sendStatus(400)
 		const { command, event } = req.query
-		if (command) timestampLog(`Testing !${command} command`)
-		if (command === 'recap') sendRecap()
-		if (command === 'tally') tallyUp()
+		if (command) {
+			timestampLog(`Testing !${command} command`)
+			ChatEvents.emit('message', {
+				username: process.env.TWITCH_ADMIN_USERNAME,
+				userID: `${testUserID++}`,
+				text: `!${command}`,
+				date: new Date(),
+				msg: {} as PrivateMessage,
+				mod: true,
+			})
+		}
 		if (event) timestampLog(`Testing ${event} event`)
 		if (event === 'grace')
 			ChatEvents.emit('redemption', {

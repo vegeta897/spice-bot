@@ -1,13 +1,14 @@
 import { type RefreshingAuthProvider } from '@twurple/auth'
 import { ChatClient, toUserName, PrivateMessage } from '@twurple/chat'
 import { ParsedMessageEmotePart } from '@twurple/common'
-import { AuthEvents, getAccountScopes, sendWhisper } from './twitchApi.js'
-import { CHAT_TEST_MODE, DEV_MODE, timestampLog } from '../util.js'
+import { AuthEvents, getAccountScopes, sendWhisper } from '../twitchApi.js'
+import { CHAT_TEST_MODE, DEV_MODE, timestampLog } from '../../util.js'
 import Emittery from 'emittery'
 import { initGrace } from './grace.js'
 import { initRecap } from './recap.js'
-import { POGGERS } from './emotes.js'
+import { Emotes } from './emotes.js'
 import { initTally } from './tally.js'
+import { initWhereBot } from './whereBot.js'
 
 // Idea: Detect incrementing numbers in ryan's messages for death tracker
 //       Then we can provide a command to check the count
@@ -38,6 +39,7 @@ export async function initTwitchChat(authProvider: RefreshingAuthProvider) {
 	initGrace()
 	initRecap()
 	initTally()
+	initWhereBot()
 	AuthEvents.on('auth', async ({ accountType }) => {
 		if (accountType === 'bot') initChatClient(authProvider)
 	})
@@ -101,7 +103,7 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 		const gifter = subInfo.gifterDisplayName || 'anonymous'
 		timestampLog(`Bot received a gift sub from ${gifter}`)
 		sendChatMessage(
-			`Thank you ${gifter} for the gift sub! <3 ${POGGERS} ${POGGERS}`
+			`Thank you ${gifter} for the gift sub! <3 ${Emotes.POGGERS} ${Emotes.POGGERS}`
 		)
 	})
 
@@ -124,13 +126,16 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 	})
 }
 
-export function sendChatMessage(text: string) {
+export function sendChatMessage(
+	text: string,
+	replyTo?: string | PrivateMessage
+) {
 	if (!chatClient) return
 	if (CHAT_TEST_MODE) {
 		timestampLog(`Sent: ${text}`)
 		return
 	}
-	chatClient.say(process.env.TWITCH_STREAMER_USERNAME, text)
+	chatClient.say(process.env.TWITCH_STREAMER_USERNAME, text, { replyTo })
 }
 
 function hasRequiredScopes(scopes: string[]) {

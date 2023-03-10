@@ -1,15 +1,9 @@
-import {
-	getEmoteByName,
-	getUsableEmotes,
-	POGGERS,
-	PRAYBEE,
-	SOGGERS,
-} from './emotes.js'
+import { getEmoteByName, getUsableEmotes, Emotes } from './emotes.js'
 import { GRACE } from './grace.js'
 import { ChatEvents, sendChatMessage } from './twitchChat.js'
-import { TwitchEvents } from './eventSub.js'
-import { getData, modifyData } from '../db.js'
-import { DEV_MODE } from '../util.js'
+import { TwitchEvents } from '../eventSub.js'
+import { getData, modifyData } from '../../db.js'
+import { DEV_MODE } from '../../util.js'
 
 let emoteCounts: Map<string, number>
 let redeemCounts: Map<string, number>
@@ -23,6 +17,7 @@ export function initRecap() {
 			sendRecap()
 			return
 		}
+		if (event.text.startsWith('!')) return // Ignore other commands
 		event.msg.parseEmotes().forEach((msgPart) => {
 			if (msgPart.type !== 'emote') return
 			// Only count channel emotes
@@ -55,7 +50,7 @@ export async function sendRecap() {
 	commandLastUsed = now
 	sendChatMessage(`STREAM RECAP!`)
 	const usableEmotes = await getUsableEmotes()
-	const canPoggers = getEmoteByName(POGGERS, usableEmotes)
+	const canPoggers = getEmoteByName(Emotes.POGGERS, usableEmotes)
 	const [mostUsedEmoteName, mostUsedEmoteTimes] = [
 		...emoteCounts.entries(),
 	].reduce((prev, curr) => (curr[1] > prev[1] ? curr : prev), ['', 0])
@@ -63,13 +58,13 @@ export async function sendRecap() {
 		sendChatMessage(
 			`Most used emote: ${mostUsedEmoteName} x ${mostUsedEmoteTimes}`
 		)
-	const pogCount = emoteCounts.get(POGGERS) || 0
-	const sogCount = emoteCounts.get(SOGGERS) || 0
+	const pogCount = emoteCounts.get(Emotes.POGGERS) || 0
+	const sogCount = emoteCounts.get(Emotes.SOGGERS) || 0
 	if (pogCount > 0 || sogCount > 0) {
 		let pogSogRatioMessage = `Pog/Sog ratio: ${pogCount}:${sogCount}`
 		if (canPoggers) {
-			if (pogCount > sogCount) pogSogRatioMessage += ` ${POGGERS}`
-			if (pogCount < sogCount) pogSogRatioMessage += ` ${SOGGERS}`
+			if (pogCount > sogCount) pogSogRatioMessage += ` ${Emotes.POGGERS}`
+			if (pogCount < sogCount) pogSogRatioMessage += ` ${Emotes.SOGGERS}`
 		}
 		sendChatMessage(pogSogRatioMessage)
 	}
@@ -77,7 +72,7 @@ export async function sendRecap() {
 	if (graces > 0)
 		sendChatMessage(
 			`GRACE count: ${graces} ${
-				getEmoteByName(PRAYBEE, usableEmotes) ? PRAYBEE : ''
+				getEmoteByName(Emotes.PRAYBEE, usableEmotes) ? Emotes.PRAYBEE : ''
 			}`
 		)
 	const hydroChecks = redeemCounts.get('Hydration Check!') || 0
