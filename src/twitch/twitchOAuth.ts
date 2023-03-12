@@ -55,6 +55,7 @@ export function initTwitchOAuthServer(app: Express) {
 		res.render('index', {
 			username: req.session.username,
 			botIsMod: req.session.username && (await botIsMod()),
+			enableOverlay: DEV_MODE,
 		})
 	})
 	app.get('/callback', async (req, res) => {

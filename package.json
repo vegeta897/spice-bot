@@ -34,7 +34,8 @@
 		"lowdb": "^5.0.5",
 		"luxon": "^3.2.1",
 		"randomstring": "^1.2.3",
-		"twitter-api-v2": "^1.14.0"
+		"twitter-api-v2": "^1.14.0",
+		"ws": "^8.13.0"
 	},
 	"devDependencies": {
 		"@types/ejs": "^3.1.2",
@@ -43,6 +44,7 @@
 		"@types/luxon": "^3.2.0",
 		"@types/node": "^18.11.18",
 		"@types/randomstring": "^1.1.8",
+		"@types/ws": "^8.5.4",
 		"cross-env": "^7.0.3",
 		"nodemon": "^2.0.20",
 		"prettier": "^2.6.2",

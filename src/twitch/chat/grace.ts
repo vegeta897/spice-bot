@@ -1,3 +1,4 @@
+import Emittery from 'emittery';
 import { getData, modifyData } from '../../db.js'
 import { getEmoteByName, getUsableEmotes, Emotes } from './emotes.js'
 import { botInChat, ChatEvents, sendChatMessage } from './twitchChat.js'
@@ -5,6 +6,11 @@ import { botInChat, ChatEvents, sendChatMessage } from './twitchChat.js'
 type Grace = { date: Date; userID: string }
 
 export const GRACE = 'GRACE'
+export const GraceEvents = new Emittery<{
+	grace: {
+		type: 'redeem'|'highlight'|'normal'
+	}
+}>
 
 const train: Grace[] = []
 
@@ -32,6 +38,7 @@ export function initGrace() {
 }
 
 function addGrace(date: Date, userID: string) {
+	GraceEvents.emit('grace',{type:'redeem'})
 	// Only add to train if it's a different user than the last grace
 	if (train.at(-1)?.userID !== userID) {
 		train.push({ date, userID })

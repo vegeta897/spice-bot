@@ -13,13 +13,15 @@ import { fileURLToPath } from 'url'
 import { getData, modifyData } from './db.js'
 import DBSessionStore from './dbSessionStore.js'
 import { DEV_MODE, timestampLog } from './util.js'
+import http from 'http'
 
 const SESSION_TTL = 2 * 7 * 24 * 60 * 60 * 1000 // 2 weeks
 
 export let sessionStore: DBSessionStore
 
-export async function initExpressApp() {
+export async function initExpressServer() {
 	const app = express()
+	const server = http.createServer(app)
 	if (!DEV_MODE) app.set('trust proxy', 1) // Trust nginx reverse proxy
 	let sessionSecret = getData().expressSessionSecret
 	if (!sessionSecret) {
@@ -51,12 +53,23 @@ export async function initExpressApp() {
 			join(dirname(fileURLToPath(import.meta.url)), '../src/public')
 		)
 	)
-	return new Promise<Express>((resolve) => {
-		app.listen(process.env.EXPRESS_PORT, () => {
-			console.log('Express server ready')
-			resolve(app)
+	app.get('/overlay-setup', (req, res) => {
+		if (!DEV_MODE && !req.session.username) return res.redirect('/')
+		// TODO: Create & pass unique key if not already exists for account type
+		const overlayKey = '123abc'
+		res.render('overlay-setup', {
+			overlayKey,
+			hostname: process.env.EXPRESS_HOSTNAME,
 		})
 	})
+	return new Promise<{ expressApp: Express; server: http.Server }>(
+		(resolve) => {
+			server.listen(process.env.EXPRESS_PORT, () => {
+				console.log('Express server ready')
+				resolve({ expressApp: app, server })
+			})
+		}
+	)
 }
 
 export function createExpressErrorHandler(app: Application) {

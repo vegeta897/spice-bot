@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<%- include('head') %>
+
+<body>
+  <header>
+    <h1>Overlay Setup</h1>
+  </header>
+  <main>
+    <h2>Get your overlay URL</h2>
+    <p>
+      Create a Browser source in OBS with this URL<br>
+      <input id="overlayURL" value="https://<%= hostname %>/overlay/?key=<%= overlayKey %>" type="text" disabled /><br>
+      <button id="copyURLButton" onclick="copyURL()">Copy URL</button>
+    </p>
+    <p><a href="/">View bot status</a></p>
+  </main>
+  <script>
+    const urlText = document.getElementById('overlayURL').innerHTML;
+    const buttonElement = document.getElementById('copyURLButton')
+    const copyURL = async () => {
+      try {
+        await navigator.clipboard.writeText(urlText);
+        buttonElement.innerText = 'Copied!'
+        console.log('Content copied to clipboard');
+      } catch (err) {
+        console.error('Failed to copy: ', err);
+      }
+    }
+  </script>
+</body>
+
+</html>

@@ -64,6 +64,11 @@
       text-decoration: underline;
     }
 
+    button {
+      all: unset;
+    }
+
+    button,
     a.button,
     a.button:visited {
       display: inline-block;
@@ -75,8 +80,11 @@
       font-weight: bold;
       text-decoration: none;
       transition: all 80ms ease-out;
+      cursor: pointer;
     }
 
+    button:hover,
+    button:active,
     a.button:hover,
     a.button:active {
       background: #e98976;
@@ -88,7 +96,17 @@
       border-radius: 0.75rem;
     }
 
-    code {
+    input[type=text] {
+      all: unset;
+      font-family: monospace;
+      cursor: text;
+      display: block;
+      box-sizing: border-box;
+      width: 100%;
+    }
+
+    code,
+    input[type=text] {
       background: rgba(255, 255, 255, 0.12);
       color: #e98976;
       display: inline-block;
