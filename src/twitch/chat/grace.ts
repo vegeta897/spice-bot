@@ -1,5 +1,6 @@
 import Emittery from 'emittery'
 import { getData, modifyData } from '../../db.js'
+import { TwitchEvents } from '../eventSub.js'
 import { getEmoteByName, getUsableEmotes, Emotes } from './emotes.js'
 import {
 	botInChat,
@@ -25,6 +26,7 @@ const POINTS: Record<GraceType, number> = {
 	highlight: 5,
 	normal: 1,
 }
+const TRAIN_TIMEOUT = 5 * 60 * 1000 // 5 minutes
 
 type TimeStats = { min: number; max: number; avg: number; count: number }
 const redemptionTimeStats: TimeStats = {
@@ -55,6 +57,7 @@ export function initGrace() {
 		console.log('redemption time stats:', redemptionTimeStats)
 		if (botInChat()) addGrace(event.date, event.userID, 'redeem')
 	})
+	TwitchEvents.on('streamOnline', () => clearTrain())
 }
 
 function onMessage(event: TwitchMessageEvent) {
@@ -82,6 +85,12 @@ function onMessage(event: TwitchMessageEvent) {
 function addGrace(date: Date, userID: string, type: GraceType) {
 	GraceEvents.emit('grace', { type })
 	if (train.length === 0) {
+		train.push({ date, userID, type })
+		return
+	}
+	const lastGraceDate = train.at(-1)!.date
+	if (date.getTime() - lastGraceDate.getTime() > TRAIN_TIMEOUT) {
+		clearTrain()
 		train.push({ date, userID, type })
 		return
 	}
@@ -172,7 +181,7 @@ async function endGraceTrain(endUser: string) {
 		message += '!'
 	}
 	sendChatMessage(message)
-	message = `GRACE SCORE: ${totalScore} points`
+	message = `GRACE SCORE: ${totalScore.toLocaleString('en-US')} points`
 	if (totalScore > bestScore) {
 		message += `, a NEW RECORD for best score!`
 		if (newRecords.bestLength && canPrayBee) message += ` ${Emotes.PRAYBEE}`
@@ -191,7 +200,7 @@ async function endGraceTrain(endUser: string) {
 	})
 	// message = `Points breakdown: `
 	// TODO: Call out users who tried to spam it
-	train.length = 0
+	clearTrain()
 }
 
 function endCombo(
@@ -202,4 +211,8 @@ function endCombo(
 	comboSize = Math.max(comboSize, 1)
 	const userCount = Math.max(comboUsers.size, 1)
 	return comboPoints * (1 + (comboSize - 1) / 2) * (1 + (userCount - 1) / 5)
+}
+
+function clearTrain() {
+	train.length = 0
 }
