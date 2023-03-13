@@ -175,7 +175,10 @@ export function initTwitchOAuthServer(app: Express) {
 	})
 	let testUserID = 1000
 	app.post('/test', async (req, res) => {
-		if (req.session.username !== process.env.TWITCH_ADMIN_USERNAME) {
+		if (
+			!DEV_MODE &&
+			req.session.username !== process.env.TWITCH_ADMIN_USERNAME
+		) {
 			return res.sendStatus(401)
 		}
 		const { command, event, log } = req.query
