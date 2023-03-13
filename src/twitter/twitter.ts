@@ -174,9 +174,13 @@ async function checkDeletedTweets() {
 	const fetchedTweets = await client.readOnly.v2.tweets(
 		recordedTweets.map((t) => t.tweet_id)
 	)
-	if (!fetchedTweets.errors) return // No deleted tweets found
-	timestampLog(`Found ${fetchedTweets.errors.length} deleted tweet(s)`)
-	for (const deletedTweet of fetchedTweets.errors) {
+	if (!fetchedTweets.errors) return // No errors fetching tweets
+	// Filter to deleted tweets, not protected tweets
+	const deletedTweets = fetchedTweets.errors.filter(
+		(e) => e.type === 'https://api.twitter.com/2/problems/resource-not-found'
+	)
+	timestampLog(`Found ${deletedTweets.length} deleted tweet(s)`)
+	for (const deletedTweet of deletedTweets) {
 		const tweetRecord = recordedTweets.find(
 			(rt) => rt.tweet_id === deletedTweet.resource_id
 		)
