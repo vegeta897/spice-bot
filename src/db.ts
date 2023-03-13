@@ -8,6 +8,7 @@ import { type SessionRecord } from './dbSessionStore.js'
 import { type AccountType } from './twitch/twitchApi.js'
 import { type TweetRecord } from './twitter/tweetRecord.js'
 import { type StreamRecord } from './twitch/streamRecord.js'
+import { GraceTrainRecords } from './twitch/chat/grace.js'
 
 type DBData = {
 	tweets: TweetRecord[]
@@ -16,7 +17,7 @@ type DBData = {
 	expressSessionSecret: string | null
 	twitchEventSubSecret: string | null
 	twitchTokens: Record<AccountType, AccessToken | null>
-	twichGraceTrainRecord: number
+	graceTrainRecords: GraceTrainRecords
 	emoteCounts: [string, number][]
 	redeemCounts: [string, number][]
 }
@@ -35,7 +36,11 @@ export async function initDB() {
 		expressSessionSecret: null,
 		twitchEventSubSecret: null,
 		twitchTokens: { bot: null, streamer: null, admin: null },
-		twichGraceTrainRecord: 0,
+		graceTrainRecords: {
+			bestLength: 0,
+			bestScore: 0,
+			mostUsers: 0,
+		},
 		emoteCounts: [],
 		redeemCounts: [],
 	}
@@ -45,12 +50,16 @@ export async function initDB() {
 
 async function writeData() {
 	let fileLocked = true
+	let attempts = 0
 	do {
 		try {
+			attempts++
 			await db.write() // Creates the initial db file if it doesn't exist
 			fileLocked = false
 		} catch (_) {}
 	} while (fileLocked) // Retry if write fails (can happen on dev-mode restarts)
+	if (DEV_MODE && attempts > 1)
+		console.log('db write took', attempts, 'attempts')
 }
 
 export const getData = (): DeepReadonly<DBData> => db.data!

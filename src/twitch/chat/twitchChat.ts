@@ -14,15 +14,17 @@ import { initThanks } from './thanks.js'
 // Idea: Detect incrementing numbers in ryan's messages for death tracker
 //       Then we can provide a command to check the count
 
+export type TwitchMessageEvent = {
+	username: string
+	userID: string
+	text: string
+	date: Date
+	msg: PrivateMessage
+	mod: boolean
+}
+
 export const ChatEvents = new Emittery<{
-	message: {
-		username: string
-		userID: string
-		text: string
-		date: Date
-		msg: PrivateMessage
-		mod: boolean
-	}
+	message: TwitchMessageEvent
 	redemption: {
 		username: string
 		userID: string
