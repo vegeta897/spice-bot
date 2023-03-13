@@ -39,7 +39,7 @@ export async function initExpressServer() {
 			cookie: {
 				secure: !DEV_MODE,
 				httpOnly: true,
-				maxAge: SESSION_TTL,
+				maxAge: 30 * 60 * 1000, // 30 minutes, extends when authed
 			},
 		})
 	)

@@ -95,6 +95,8 @@ export function initTwitchOAuthServer(app: Express) {
 			)
 		}
 		req.session.username = username
+		// Extend cookie expiration
+		req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000 // 30 days
 		console.log(username, 'successfully authorized')
 		if (accountType === 'admin') return res.redirect('admin')
 		res.redirect('success')
@@ -130,7 +132,10 @@ export function initTwitchOAuthServer(app: Express) {
 		res.render('unlinked')
 	})
 	app.get('/admin', (req, res) => {
-		if (req.session.username !== process.env.TWITCH_ADMIN_USERNAME) {
+		if (
+			!DEV_MODE &&
+			req.session.username !== process.env.TWITCH_ADMIN_USERNAME
+		) {
 			return res.redirect('/')
 		}
 		res.render('admin', {
