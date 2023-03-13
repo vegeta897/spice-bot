@@ -107,6 +107,7 @@ async function endGraceTrain(endUser: string) {
 		train.length = 0
 		return
 	}
+	let qualifiedLength = 0
 	let redemptionStreak = 0
 	let bestRedemptionStreak = 0
 	let totalScore = 0
@@ -116,6 +117,7 @@ async function endGraceTrain(endUser: string) {
 	let lastGraceType = ''
 	let lastGraceUser = ''
 	for (const grace of train) {
+		qualifiedLength++
 		if (grace.type === 'redeem') {
 			if (grace.userID !== lastGraceUser) redemptionStreak++
 		} else {
@@ -130,6 +132,7 @@ async function endGraceTrain(endUser: string) {
 			comboSize = 0
 			comboUsers.clear()
 		} else if (grace.userID === lastGraceUser) {
+			qualifiedLength--
 			comboSize--
 		}
 		comboPoints += POINTS[grace.type]
@@ -141,20 +144,21 @@ async function endGraceTrain(endUser: string) {
 	if (redemptionStreak > bestRedemptionStreak) {
 		bestRedemptionStreak = redemptionStreak
 	}
+	// TODO: Do something with bestRedemptionStreak?
 	totalScore += endCombo(comboPoints, comboSize, comboUsers)
 	totalScore *= 1 + (trainUsers.size - 1) / 10
 	totalScore = Math.ceil(totalScore)
 	const { bestLength, bestScore, mostUsers } = getData().graceTrainRecords
 	const newRecords: Partial<GraceTrainRecords> = {}
 	const canPrayBee = getEmoteByName(Emotes.PRAYBEE, await getUsableEmotes())
-	let message = `Grace train ended by ${endUser}! That was ${train.length} graces`
-	if (train.length > bestLength) {
+	let message = `Grace train ended by ${endUser}! That was ${qualifiedLength} graces`
+	if (qualifiedLength > bestLength) {
 		message += `, a NEW RECORD for total length!`
 		if (canPrayBee) {
-			message += ` ${Emotes.PRAYBEE}`.repeat(Math.ceil(train.length / 10))
+			message += ` ${Emotes.PRAYBEE}`.repeat(Math.ceil(qualifiedLength / 10))
 		}
-		newRecords.bestLength = train.length
-	} else if (train.length === bestLength) {
+		newRecords.bestLength = qualifiedLength
+	} else if (qualifiedLength === bestLength) {
 		message += `, tying the record for total length!`
 	} else {
 		message += '!'
@@ -171,7 +175,7 @@ async function endGraceTrain(endUser: string) {
 	message = `GRACE SCORE: ${totalScore} points`
 	if (totalScore > bestScore) {
 		message += `, a NEW RECORD for best score!`
-		if (train.length < bestLength && canPrayBee) message += ` ${Emotes.PRAYBEE}`
+		if (newRecords.bestLength && canPrayBee) message += ` ${Emotes.PRAYBEE}`
 		newRecords.bestScore = totalScore
 	} else if (totalScore === bestScore) {
 		message += `, tying the record for best score!`
@@ -186,6 +190,7 @@ async function endGraceTrain(endUser: string) {
 		},
 	})
 	// message = `Points breakdown: `
+	// TODO: Call out users who tried to spam it
 	train.length = 0
 }
 
