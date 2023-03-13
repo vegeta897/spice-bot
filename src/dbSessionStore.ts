@@ -4,6 +4,7 @@ import { getData, modifyData } from './db.js'
 // Based on https://github.com/tj/connect-redis/blob/master/index.ts
 
 const noop = (_err?: unknown, _data?: SessionData) => {}
+const ONE_DAY = 24 * 60 * 60 * 1000
 
 export type SessionRecord = {
 	sid: string
@@ -15,6 +16,9 @@ export default class DBSessionStore extends Store {
 
 	constructor(options: { ttl: number }) {
 		super()
+		this.removeExpiredSessions()
+		const timer = setInterval(() => this.removeExpiredSessions(), ONE_DAY)
+		timer.unref()
 		this.ttl = options.ttl
 	}
 
@@ -79,6 +83,15 @@ export default class DBSessionStore extends Store {
 			return this.set(sid, session, cb)
 		} catch (err) {
 			return cb(err)
+		}
+	}
+
+	private removeExpiredSessions() {
+		const records = this.getRecords()
+		for (const record of records) {
+			if (this.getTTL(record.session) <= 0) {
+				this.destroy(record.sid)
+			}
 		}
 	}
 
