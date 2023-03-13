@@ -44,7 +44,6 @@ export async function initTwitter() {
 	}
 	client = new TwitterApi(process.env.TWITTER_TOKEN)
 	const rules = await client.readOnly.v2.streamRules()
-	console.log(rules)
 	// Delete unused rules, if any
 	const deleteRules =
 		(rules.data && rules.data.filter((rule) => rule.tag !== TWEET_TAG)) || []
