@@ -10,7 +10,8 @@ export const HOST_URL = DEV_MODE
 export const sleep = (ms: number) =>
 	new Promise((resolve) => setTimeout(resolve, ms))
 
-export const timestamp = () => DateTime.now().toFormat('yyyy-MM-dd, tt')
+export const timestamp = () =>
+	DateTime.now().setZone('America/New_York').toFormat('yyyy-MM-dd, tt ZZZZ')
 
 export const timestampLog = (message?: any, ...optionalParams: any[]) => {
 	console.log(timestamp(), message, ...optionalParams)
