@@ -57,7 +57,8 @@ export function initWebsocket(server: http.Server) {
 	})
 
 	GraceEvents.on('grace', (event) => {
-		console.log('sending grace to ws clients')
+		if (!DEV_MODE) return
+		// console.log('sending grace to ws clients')
 		wss.clients.forEach((client) => {
 			if (client.readyState !== WebSocket.OPEN) return
 			client.send('grace!')
