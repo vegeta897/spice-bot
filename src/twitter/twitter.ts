@@ -44,15 +44,17 @@ export async function initTwitter() {
 	}
 	client = new TwitterApi(process.env.TWITTER_TOKEN)
 	const rules = await client.readOnly.v2.streamRules()
+	console.log(rules)
 	// Delete unused rules, if any
-	const deleteRules = rules.data.filter((rule) => rule.tag !== TWEET_TAG)
+	const deleteRules =
+		(rules.data && rules.data.filter((rule) => rule.tag !== TWEET_TAG)) || []
 	if (deleteRules.length > 0) {
 		await client.readOnly.v2.updateStreamRules({
 			delete: { ids: deleteRules.map((rule) => rule.id) },
 		})
 	}
 	// Add rule if not found
-	if (!rules.data.find((rule) => rule.tag === TWEET_TAG)) {
+	if (!rules.data || !rules.data.find((rule) => rule.tag === TWEET_TAG)) {
 		await client.readOnly.v2.updateStreamRules({
 			add: [{ value: TWEET_QUERY, tag: TWEET_TAG }],
 		})
