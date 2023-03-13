@@ -91,27 +91,21 @@ export async function initTwitchEventSub(params: {
 
 async function initGlobalEventSubs(listener: EventSubListener) {
 	const streamerUser = getUserByAccountType('streamer')
-	const streamOnlineSub = listener.onStreamOnline(
-		streamerUser,
-		async (event) => {
-			if (DEV_MODE) event = getMockStreamOnlineEvent(streamerUser.id)
-			if (event.broadcasterId !== streamerUser.id) return // Just to be safe
-			TwitchEvents.emit('streamOnline', {
-				id: event.id,
-				displayName: event.broadcasterDisplayName,
-			})
-		}
-	)
-	const streamOfflineSub = listener.onStreamOffline(
-		streamerUser,
-		async (event) => {
-			if (!DEV_MODE && event.broadcasterId !== streamerUser.id) return // Just to be safe
-			TwitchEvents.emit('streamOffline', {
-				displayName: event.broadcasterDisplayName,
-			})
-		}
-	)
-	const userAuthRevokeSub = listener.onUserAuthorizationRevoke(
+	listener.onStreamOnline(streamerUser, async (event) => {
+		if (DEV_MODE) event = getMockStreamOnlineEvent(streamerUser.id)
+		if (event.broadcasterId !== streamerUser.id) return // Just to be safe
+		TwitchEvents.emit('streamOnline', {
+			id: event.id,
+			displayName: event.broadcasterDisplayName,
+		})
+	})
+	listener.onStreamOffline(streamerUser, async (event) => {
+		if (!DEV_MODE && event.broadcasterId !== streamerUser.id) return // Just to be safe
+		TwitchEvents.emit('streamOffline', {
+			displayName: event.broadcasterDisplayName,
+		})
+	})
+	listener.onUserAuthorizationRevoke(
 		process.env.TWITCH_CLIENT_ID,
 		async (event) => {
 			if (!event.userName) return
@@ -121,10 +115,11 @@ async function initGlobalEventSubs(listener: EventSubListener) {
 				AuthEvents.emit('authRevoke', { method: 'disconnect', accountType })
 		}
 	)
-	if (DEV_MODE) {
-		console.log(await streamOnlineSub.getCliTestCommand())
-		console.log(await streamOfflineSub.getCliTestCommand())
-	}
+	// Use admin panel instead
+	// if (DEV_MODE) {
+	// 	console.log(await streamOnlineSub.getCliTestCommand())
+	// 	console.log(await streamOfflineSub.getCliTestCommand())
+	// }
 }
 
 async function initScopedEventSubs(listener: EventSubListener) {
