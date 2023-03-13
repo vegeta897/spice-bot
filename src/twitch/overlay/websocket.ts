@@ -2,7 +2,7 @@ import http from 'http'
 import { WebSocketServer, WebSocket } from 'ws'
 import { DEV_MODE, timestampLog } from '../../util.js'
 import { GraceEvents } from '../chat/grace.js'
-import url from 'node:url'
+import qs from 'node:querystring'
 
 export function initWebsocket(server: http.Server) {
 	if (!DEV_MODE) return
@@ -15,7 +15,7 @@ export function initWebsocket(server: http.Server) {
 		wsMap.set(ws, { isAlive: true })
 
 		console.log('host:', req.headers.host) // TODO: Verify host matches env var?
-		const { query } = url.parse(req.url || '', true)
+		const query = qs.parse(req.url || '')
 		console.log('new ws connection', query.key)
 
 		ws.on('message', function (message) {
