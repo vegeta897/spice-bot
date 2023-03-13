@@ -125,6 +125,7 @@ async function endGraceTrain(endUser: string) {
 	let comboUsers: Set<string> = new Set()
 	let lastGraceType = ''
 	let lastGraceUser = ''
+	const pointBreakdown = { redeem: 0, highlight: 0, normal: 0 }
 	for (const grace of train) {
 		qualifiedLength++
 		if (grace.type === 'redeem') {
@@ -136,7 +137,9 @@ async function endGraceTrain(endUser: string) {
 			redemptionStreak = 0
 		}
 		if (lastGraceType && grace.type !== lastGraceType) {
-			totalScore += endCombo(comboPoints, comboSize, comboUsers)
+			const endedCombo = endCombo(comboPoints, comboSize, comboUsers)
+			totalScore += endedCombo
+			pointBreakdown[lastGraceType as GraceType] += endedCombo
 			comboPoints = 0
 			comboSize = 0
 			comboUsers.clear()
@@ -154,8 +157,11 @@ async function endGraceTrain(endUser: string) {
 		bestRedemptionStreak = redemptionStreak
 	}
 	// TODO: Do something with bestRedemptionStreak?
-	totalScore += endCombo(comboPoints, comboSize, comboUsers)
-	totalScore *= 1 + (trainUsers.size - 1) / 10
+	const endedCombo = endCombo(comboPoints, comboSize, comboUsers)
+	totalScore += endedCombo
+	pointBreakdown[lastGraceType as GraceType] += endedCombo
+	const userCountBonus = Math.ceil(totalScore * ((trainUsers.size - 1) / 10))
+	totalScore += userCountBonus
 	totalScore = Math.ceil(totalScore)
 	const { bestLength, bestScore, mostUsers } = getData().graceTrainRecords
 	const newRecords: Partial<GraceTrainRecords> = {}
@@ -181,7 +187,7 @@ async function endGraceTrain(endUser: string) {
 		message += '!'
 	}
 	sendChatMessage(message)
-	message = `GRACE SCORE: ${totalScore.toLocaleString('en-US')} points`
+	message = `GRACE SCORE: ${formatPoints(totalScore)} points`
 	if (totalScore > bestScore) {
 		message += `, a NEW RECORD for best score!`
 		if (newRecords.bestLength && canPrayBee) message += ` ${Emotes.PRAYBEE}`
@@ -199,7 +205,19 @@ async function endGraceTrain(endUser: string) {
 		},
 	})
 	// message = `Points breakdown: `
-	// TODO: Call out users who tried to spam it
+	// const breakdownParts: string[] = []
+	// if (pointBreakdown.redeem)
+	// 	breakdownParts.push(`redeemed: ${formatPoints(pointBreakdown.redeem)}`)
+	// if (pointBreakdown.highlight)
+	// 	breakdownParts.push(
+	// 		`highlighted: ${formatPoints(pointBreakdown.highlight)}`
+	// 	)
+	// if (pointBreakdown.normal)
+	// 	breakdownParts.push(`normal: ${formatPoints(pointBreakdown.normal)}`)
+	// breakdownParts.push(`Contributor bonus: ${formatPoints(userCountBonus)}`)
+	// message += breakdownParts.join(' — ')
+	// sendChatMessage(message)
+	// TODO: Call out users who tried to spam it?
 	clearTrain()
 }
 
@@ -210,7 +228,13 @@ function endCombo(
 ) {
 	comboSize = Math.max(comboSize, 1)
 	const userCount = Math.max(comboUsers.size, 1)
-	return comboPoints * (1 + (comboSize - 1) / 2) * (1 + (userCount - 1) / 5)
+	return Math.ceil(
+		comboPoints * (1 + (comboSize - 1) / 2) * (1 + (userCount - 1) / 5)
+	)
+}
+
+function formatPoints(points: number) {
+	return points.toLocaleString('en-US')
 }
 
 function clearTrain() {
