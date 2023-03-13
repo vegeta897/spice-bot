@@ -39,6 +39,11 @@ export async function initDB() {
 		emoteCounts: [],
 		redeemCounts: [],
 	}
+	await writeData()
+	console.log('Database connected')
+}
+
+async function writeData() {
 	let fileLocked = true
 	do {
 		try {
@@ -46,14 +51,13 @@ export async function initDB() {
 			fileLocked = false
 		} catch (_) {}
 	} while (fileLocked) // Retry if write fails (can happen on dev-mode restarts)
-	console.log('Database connected')
 }
 
 export const getData = (): DeepReadonly<DBData> => db.data!
 
 export async function modifyData(data: MaybeReadonly<Partial<DBData>>) {
 	db.data = <DBData>{ ...db.data, ...data }
-	await db.write()
+	await writeData()
 }
 
 const REDACTED = '<REDACTED>'
