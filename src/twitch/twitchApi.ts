@@ -46,6 +46,10 @@ export async function createAuthAndApiClient() {
 			if (accountType !== 'streamer' || !streamerAuthRevoked)
 				setTwitchToken(accountType, newToken)
 		},
+		onRefreshFailure: (userId) => {
+			const accountType = getAccountTypeForId(userId)
+			console.log(`WARNING: Failed to refresh token for ${accountType}`)
+		},
 	})
 	apiClient = new ApiClient({ authProvider })
 	helixUsers = {
