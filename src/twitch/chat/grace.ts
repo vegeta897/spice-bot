@@ -28,42 +28,42 @@ const POINTS: Record<GraceType, number> = {
 }
 const TRAIN_TIMEOUT = 5 * 60 * 1000 // 5 minutes
 
-type TimeStats = { min: number; max: number; avg: number; count: number }
-const redemptionTimeStats: TimeStats = {
-	min: Infinity,
-	max: 0,
-	avg: 0,
-	count: 0,
-}
-const messageTimeStats: TimeStats = {
-	min: Infinity,
-	max: 0,
-	avg: 0,
-	count: 0,
-}
+// type TimeStats = { min: number; max: number; avg: number; count: number }
+// const redemptionTimeStats: TimeStats = {
+// 	min: Infinity,
+// 	max: 0,
+// 	avg: 0,
+// 	count: 0,
+// }
+// const messageTimeStats: TimeStats = {
+// 	min: Infinity,
+// 	max: 0,
+// 	avg: 0,
+// 	count: 0,
+// }
 
-function updateTimeStats(stats: TimeStats, date: Date) {
-	const offset = Date.now() - date.getTime()
-	stats.count++
-	if (offset > stats.max) stats.max = offset
-	if (offset < stats.min) stats.min = offset
-	stats.avg += (offset - stats.avg) / stats.count
-}
+// function updateTimeStats(stats: TimeStats, date: Date) {
+// 	const offset = Date.now() - date.getTime()
+// 	stats.count++
+// 	if (offset > stats.max) stats.max = offset
+// 	if (offset < stats.min) stats.min = offset
+// 	stats.avg += (offset - stats.avg) / stats.count
+// }
 
 export function initGrace() {
 	ChatEvents.on('message', onMessage)
 	ChatEvents.on('redemption', (event) => {
-		updateTimeStats(redemptionTimeStats, event.date)
-		console.log('redemption time stats:', redemptionTimeStats)
+		// updateTimeStats(redemptionTimeStats, event.date)
+		// console.log('redemption time stats:', redemptionTimeStats)
 		if (botInChat()) addGrace(event.date, event.userID, 'redeem')
 	})
 	TwitchEvents.on('streamOnline', () => clearTrain())
 }
 
 function onMessage(event: TwitchMessageEvent) {
-	updateTimeStats(messageTimeStats, event.date)
-	if (messageTimeStats.count % 50 === 0)
-		console.log('message time stats:', messageTimeStats)
+	// updateTimeStats(messageTimeStats, event.date)
+	// if (messageTimeStats.count % 50 === 0)
+	// 	console.log('message time stats:', messageTimeStats)
 	if (isGraceText(event.text)) {
 		addGrace(
 			event.date,
@@ -73,41 +73,26 @@ function onMessage(event: TwitchMessageEvent) {
 		return
 	}
 	if (train.length === 0) return
-	for (let i = train.length - 1; i >= 0; i--) {
-		if (train[i].date < event.date) {
-			if (i < train.length - 2) train.splice(i, train.length - i)
-			endGraceTrain(event.msg.userInfo.displayName)
-			break
-		}
-	}
+	endGraceTrain(event.msg.userInfo.displayName)
 }
 
 function addGrace(date: Date, userID: string, type: GraceType) {
 	GraceEvents.emit('grace', { type })
-	if (train.length === 0) {
-		train.push({ date, userID, type })
-		return
+	if (train.length > 0) {
+		const lastGraceDate = train.at(-1)!.date
+		if (date.getTime() - lastGraceDate.getTime() > TRAIN_TIMEOUT) clearTrain()
 	}
-	const lastGraceDate = train.at(-1)!.date
-	if (date.getTime() - lastGraceDate.getTime() > TRAIN_TIMEOUT) {
-		clearTrain()
-		train.push({ date, userID, type })
-		return
-	}
-	for (let i = train.length - 1; i >= 0; i--) {
-		if (train[i].date < date) {
-			train.splice(i + 1, 0, { date, userID, type })
-			break
-		}
-	}
+	train.push({ date, userID, type })
 }
 
 function isGraceText(text: string) {
-	return text
-		.toLowerCase()
-		.replace(/ /g, '')
-		.replace(/[^\w\s]|(.)(?=\1)/gi, '') // Compress repeated chars
-		.includes('grace')
+	return (
+		text
+			.toLowerCase()
+			.replace(/ /g, '')
+			.replace(/[^\w\s]|(.)(?=\1)/gi, '') // Compress repeated chars
+			.includes('grace') || text.includes(Emotes.PRAYBEE)
+	)
 }
 
 async function endGraceTrain(endUser: string) {
