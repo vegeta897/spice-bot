@@ -53,6 +53,7 @@ const TRAIN_TIMEOUT = 5 * 60 * 1000 // 5 minutes
 export function initGrace() {
 	ChatEvents.on('message', onMessage)
 	ChatEvents.on('redemption', (event) => {
+		if (endingTrain) return
 		// updateTimeStats(redemptionTimeStats, event.date)
 		// console.log('redemption time stats:', redemptionTimeStats)
 		if (botInChat()) addGrace(event.date, event.userID, 'redeem')
@@ -61,6 +62,7 @@ export function initGrace() {
 }
 
 function onMessage(event: TwitchMessageEvent) {
+	if (endingTrain) return
 	// updateTimeStats(messageTimeStats, event.date)
 	// if (messageTimeStats.count % 50 === 0)
 	// 	console.log('message time stats:', messageTimeStats)
@@ -95,12 +97,15 @@ function isGraceText(text: string) {
 	)
 }
 
+let endingTrain = false
+
 async function endGraceTrain(endUser: string) {
 	const trainUsers: Set<string> = new Set(train.map((g) => g.userID))
 	if (train.length < 6 || trainUsers.size < 2) {
 		train.length = 0
 		return
 	}
+	endingTrain = true
 	let qualifiedLength = 0
 	let redemptionStreak = 0
 	let bestRedemptionStreak = 0
@@ -224,4 +229,5 @@ function formatPoints(points: number) {
 
 function clearTrain() {
 	train.length = 0
+	endingTrain = false
 }
