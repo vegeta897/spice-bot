@@ -116,7 +116,6 @@ async function endGraceTrain(endUser: string) {
 	let comboUsers: Set<string> = new Set()
 	let lastGraceType = ''
 	let lastGraceUser = ''
-	let nightbotGraced = false
 	const pointBreakdown = { redeem: 0, highlight: 0, normal: 0 }
 	for (const grace of train) {
 		qualifiedLength++
@@ -140,10 +139,7 @@ async function endGraceTrain(endUser: string) {
 			comboSize--
 		}
 		let points = POINTS[grace.type]
-		if (grace.userID === NightbotUserID) {
-			points = 10000 // Nightbot bonus!
-			nightbotGraced = true
-		}
+		if (grace.userID === NightbotUserID) points = 10000 // Nightbot bonus!
 		comboPoints += points
 		comboSize++
 		comboUsers.add(grace.userID)
@@ -177,7 +173,7 @@ async function endGraceTrain(endUser: string) {
 	}
 	sendChatMessage(message)
 	message = `${trainUsers.size} people contributed`
-	if (nightbotGraced) {
+	if (trainUsers.has(NightbotUserID)) {
 		message += `, including NIGHTBOT!? 🤖`
 	} else if (trainUsers.size > mostUsers) {
 		message += `, the most yet!`
