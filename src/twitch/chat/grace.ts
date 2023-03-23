@@ -27,6 +27,7 @@ const POINTS: Record<GraceType, number> = {
 	normal: 1,
 }
 const TRAIN_TIMEOUT = 5 * 60 * 1000 // 5 minutes
+const NightbotUserID = '19264788'
 
 // type TimeStats = { min: number; max: number; avg: number; count: number }
 // const redemptionTimeStats: TimeStats = {
@@ -115,6 +116,7 @@ async function endGraceTrain(endUser: string) {
 	let comboUsers: Set<string> = new Set()
 	let lastGraceType = ''
 	let lastGraceUser = ''
+	let nightbotGraced = false
 	const pointBreakdown = { redeem: 0, highlight: 0, normal: 0 }
 	for (const grace of train) {
 		qualifiedLength++
@@ -137,7 +139,12 @@ async function endGraceTrain(endUser: string) {
 			qualifiedLength--
 			comboSize--
 		}
-		comboPoints += POINTS[grace.type]
+		let points = POINTS[grace.type]
+		if (grace.userID === NightbotUserID) {
+			points = 10000 // Nightbot bonus!
+			nightbotGraced = true
+		}
+		comboPoints += points
 		comboSize++
 		comboUsers.add(grace.userID)
 		lastGraceType = grace.type
@@ -170,7 +177,9 @@ async function endGraceTrain(endUser: string) {
 	}
 	sendChatMessage(message)
 	message = `${trainUsers.size} people contributed`
-	if (trainUsers.size > mostUsers) {
+	if (nightbotGraced) {
+		message += `, including NIGHTBOT!? 🤖`
+	} else if (trainUsers.size > mostUsers) {
 		message += `, the most yet!`
 		newRecords.mostUsers = trainUsers.size
 	} else {

@@ -44,7 +44,7 @@ export async function initDB() {
 		emoteCounts: [],
 		redeemCounts: [],
 	}
-	await writeData()
+	await writeData() // Creates the initial db file if it doesn't exist
 	console.log('Database connected')
 }
 
@@ -54,7 +54,7 @@ async function writeData() {
 	do {
 		try {
 			attempts++
-			await db.write() // Creates the initial db file if it doesn't exist
+			await db.write()
 			fileLocked = false
 		} catch (_) {}
 	} while (fileLocked) // Retry if write fails (can happen on dev-mode restarts)
