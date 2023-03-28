@@ -8,7 +8,7 @@ import { type SessionRecord } from './dbSessionStore.js'
 import { type AccountType } from './twitch/twitchApi.js'
 import { type TweetRecord } from './twitter/tweetRecord.js'
 import { type StreamRecord } from './twitch/streamRecord.js'
-import { GraceTrainRecords } from './twitch/chat/grace.js'
+import { GraceTrainRecord } from './twitch/chat/grace.js'
 
 type DBData = {
 	tweets: TweetRecord[]
@@ -17,7 +17,7 @@ type DBData = {
 	expressSessionSecret: string | null
 	twitchEventSubSecret: string | null
 	twitchTokens: Record<AccountType, AccessToken | null>
-	graceTrainRecords: GraceTrainRecords
+	graceTrainRecords: GraceTrainRecord[]
 	emoteCounts: [string, number][]
 	redeemCounts: [string, number][]
 }
@@ -36,11 +36,7 @@ export async function initDB() {
 		expressSessionSecret: null,
 		twitchEventSubSecret: null,
 		twitchTokens: { bot: null, streamer: null, admin: null },
-		graceTrainRecords: {
-			bestLength: 0,
-			bestScore: 0,
-			mostUsers: 0,
-		},
+		graceTrainRecords: [],
 		emoteCounts: [],
 		redeemCounts: [],
 	}

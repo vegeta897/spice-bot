@@ -10,10 +10,11 @@ import {
 } from './twitchChat.js'
 
 type Grace = { date: Date; userID: string; type: GraceType }
-export type GraceTrainRecords = {
-	bestLength: number
-	bestScore: number
-	mostUsers: number
+export type GraceTrainRecord = {
+	length: number
+	score: number
+	users: number
+	date: number
 }
 
 export const GRACE = 'GRACE'
@@ -156,17 +157,21 @@ async function endGraceTrain(endUser: string) {
 	const userCountBonus = Math.ceil(totalScore * ((trainUsers.size - 1) / 10))
 	totalScore += userCountBonus
 	totalScore = Math.ceil(totalScore)
-	const { bestLength, bestScore, mostUsers } = getData().graceTrainRecords
-	const newRecords: Partial<GraceTrainRecords> = {}
+	const best = getData().graceTrainRecords[0] || {
+		score: 0,
+		length: 0,
+		users: 0,
+	}
+	const newRecords: Partial<GraceTrainRecord> = {}
 	const canPrayBee = getEmoteByName(Emotes.PRAYBEE, await getUsableEmotes())
 	let message = `Grace train ended by ${endUser}! That was ${qualifiedLength} graces`
-	if (qualifiedLength > bestLength) {
+	if (qualifiedLength > best.length) {
 		message += `, a NEW RECORD for total length!`
 		if (canPrayBee) {
 			message += ` ${Emotes.PRAYBEE}`.repeat(Math.ceil(qualifiedLength / 10))
 		}
-		newRecords.bestLength = qualifiedLength
-	} else if (qualifiedLength === bestLength) {
+		newRecords.length = qualifiedLength
+	} else if (qualifiedLength === best.length) {
 		message += `, tying the record for total length!`
 	} else {
 		message += '!'
@@ -175,30 +180,33 @@ async function endGraceTrain(endUser: string) {
 	message = `${trainUsers.size} people contributed`
 	if (trainUsers.has(NightbotUserID)) {
 		message += `, including NIGHTBOT!? 🤖`
-	} else if (trainUsers.size > mostUsers) {
+	} else if (trainUsers.size > best.users) {
 		message += `, the most yet!`
-		newRecords.mostUsers = trainUsers.size
+		newRecords.users = trainUsers.size
 	} else {
 		message += '!'
 	}
 	sendChatMessage(message)
 	message = `GRACE SCORE: ${formatPoints(totalScore)} points`
-	if (totalScore > bestScore) {
+	if (totalScore > best.score) {
 		message += `, a NEW RECORD for best score!`
-		if (newRecords.bestLength && canPrayBee) message += ` ${Emotes.PRAYBEE}`
-		newRecords.bestScore = totalScore
-	} else if (totalScore === bestScore) {
+		if (newRecords.length && canPrayBee) message += ` ${Emotes.PRAYBEE}`
+		newRecords.score = totalScore
+	} else if (totalScore === best.score) {
 		message += `, tying the record for best score!`
 	} else {
 		message += '!'
 	}
 	sendChatMessage(message)
-	modifyData({
-		graceTrainRecords: {
-			...getData().graceTrainRecords,
-			...newRecords,
-		},
-	})
+	const thisRecord = {
+		score: totalScore,
+		length: qualifiedLength,
+		users: trainUsers.size,
+		date: Date.now(),
+	}
+	const records = [...getData().graceTrainRecords, thisRecord]
+	records.sort((a, b) => (a.score < b.score ? 1 : -1))
+	modifyData({ graceTrainRecords: records.slice(0, 5) })
 	// message = `Points breakdown: `
 	// const breakdownParts: string[] = []
 	// if (pointBreakdown.redeem)
