@@ -5,6 +5,7 @@ import {
 	type TweetV2SingleStreamResult,
 	TwitterApi,
 	type UserV2,
+	TweetV2LookupResult,
 } from 'twitter-api-v2'
 import {
 	deleteTweetRecord,
@@ -172,9 +173,15 @@ export async function postTweet(tweetID: string) {
 async function checkDeletedTweets() {
 	const recordedTweets = getTweetRecords()
 	if (recordedTweets.length === 0) return
-	const fetchedTweets = await client.readOnly.v2.tweets(
-		recordedTweets.map((t) => t.tweet_id)
-	)
+	let fetchedTweets: TweetV2LookupResult
+	try {
+		fetchedTweets = await client.readOnly.v2.tweets(
+			recordedTweets.map((t) => t.tweet_id)
+		)
+	} catch (e) {
+		timestampLog('Error fetching tweets', e)
+		return
+	}
 	if (!fetchedTweets.errors) return // No errors fetching tweets
 	// Filter to deleted tweets, not protected tweets
 	const deletedTweets = fetchedTweets.errors.filter(
