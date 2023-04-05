@@ -5,11 +5,13 @@ type TrainEventBaseData = { id: number; combo: number; score: number }
 export type TrainStartData = TrainEventBaseData & { colors: string[] }
 export type TrainAddData = TrainEventBaseData & { color: string }
 export type TrainEndData = TrainEventBaseData & { username: string }
+export type OverlayData = { position: 'top' | 'bottom' }
 
 export const GraceTrainEvents = new Emittery<{
 	start: TrainStartData
 	add: TrainAddData
 	end: TrainEndData
+	overlay: OverlayData
 }>()
 
 export function sendTrainStartEvent(graceStats: GraceStats) {

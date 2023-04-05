@@ -1,5 +1,6 @@
 import { TwitchEvents } from '../eventSub.js'
 import { Emotes, canUseEmote } from './emotes.js'
+import { GraceTrainEvents, OverlayData } from './graceEvents.js'
 import { formatPoints } from './graceScore.js'
 import {
 	getBestRecord,
@@ -29,10 +30,33 @@ export function initGrace() {
 			type: 'redeem',
 		})
 	})
-	TwitchEvents.on('streamOnline', () => clearStats())
+	TwitchEvents.on('streamOnline', () => {
+		overlayPosition = 'bottom'
+		clearStats()
+	})
+	TwitchEvents.on('streamOffline', () => endGraceTrain('Abby'))
 }
 
+let overlayPosition: OverlayData['position'] = 'bottom'
+export const getOverlayPosition = () => overlayPosition
+
 function onMessage(event: TwitchMessageEvent) {
+	const positionCommand = parsePositionCommand(event)
+	if (positionCommand) {
+		// change overlay position
+		if (positionCommand !== true) {
+			if (overlayPosition === positionCommand) {
+				sendChatMessage(`Overlay is already at the ${overlayPosition}!`)
+				return
+			}
+			overlayPosition = positionCommand
+		} else {
+			overlayPosition = overlayPosition === 'top' ? 'bottom' : 'top'
+		}
+		GraceTrainEvents.emit('overlay', { position: overlayPosition })
+		sendChatMessage(`OK, moving overlay to the ${overlayPosition}`)
+		return
+	}
 	if (isGraceText(event.text)) {
 		addGrace({
 			date: event.date,
@@ -43,6 +67,17 @@ function onMessage(event: TwitchMessageEvent) {
 	}
 	// A non-grace message ends the train
 	endGraceTrain(event.msg.userInfo.displayName)
+}
+
+function parsePositionCommand(event: TwitchMessageEvent) {
+	if (!event.mod) return false
+	const text = event.text.toLowerCase()
+	if (!text.startsWith('!')) return false
+	if (/^!(move )?overlay (top|upper)/.test(text)) return 'top'
+	if (/^!(move )?overlay (bottom|lower)/.test(text)) return 'bottom'
+	if (/^!move ?(train|overlay)/.test(text)) return true
+	if (/^!train ?move/.test(text)) return true
+	if (/^!overlay ?move/.test(text)) return true
 }
 
 function isGraceText(text: string) {
