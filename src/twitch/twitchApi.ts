@@ -167,10 +167,16 @@ export async function botIsMod() {
 export async function getBotSub() {
 	// Maybe replace this with a db value, updated with eventsub?
 	// Then it can be cached and not require an API call every time
-	return await apiClient.subscriptions.checkUserSubscription(
-		helixUsers.bot,
-		helixUsers.streamer
-	)
+	// TODO: At the very least we can set a 30 day cache expiration when bot is gifted a sub
+	try {
+		return await apiClient.subscriptions.checkUserSubscription(
+			helixUsers.bot,
+			helixUsers.streamer
+		)
+	} catch (e) {
+		timestampLog('Error fetching bot sub', e)
+		return null
+	}
 }
 
 function getAccountTypeForId(id: string) {
@@ -180,7 +186,16 @@ function getAccountTypeForId(id: string) {
 }
 
 export async function botIsFollowingStreamer() {
-	return await helixUsers.bot.follows(helixUsers.streamer)
+	try {
+		const botFollows = await apiClient.channels.getFollowedChannels(
+			helixUsers.bot,
+			helixUsers.streamer
+		)
+		return botFollows.data.length > 0
+	} catch (e) {
+		timestampLog('Error checking if bot follows streamer:', e)
+		return false
+	}
 }
 
 export async function sendWhisper(toUserID: string, text: string) {
