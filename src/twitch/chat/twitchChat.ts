@@ -148,7 +148,11 @@ export function sendChatMessage(
 		timestampLog(`Sent: ${text}`)
 		return
 	}
-	chatClient.say(process.env.TWITCH_STREAMER_USERNAME, text, { replyTo })
+	try {
+		chatClient.say(process.env.TWITCH_STREAMER_USERNAME, text, { replyTo })
+	} catch (e) {
+		timestampLog('Error sending chat message', e)
+	}
 }
 
 function hasRequiredScopes(scopes: string[]) {
