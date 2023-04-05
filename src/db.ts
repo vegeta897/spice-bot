@@ -17,6 +17,7 @@ type DBData = {
 	expressSessionSecret: string | null
 	twitchEventSubSecret: string | null
 	twitchTokens: Record<AccountType, AccessToken | null>
+	streamOverlayAuthKeys: string[]
 	graceTrainRecords: GraceTrainRecord[]
 	emoteCounts: [string, number][]
 	redeemCounts: [string, number][]
@@ -36,6 +37,7 @@ export async function initDB() {
 		expressSessionSecret: null,
 		twitchEventSubSecret: null,
 		twitchTokens: { bot: null, streamer: null, admin: null },
+		streamOverlayAuthKeys: [],
 		graceTrainRecords: [],
 		emoteCounts: [],
 		redeemCounts: [],

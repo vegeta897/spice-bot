@@ -1,12 +1,15 @@
 import Emittery from 'emittery'
 import { GraceStats } from './graceStats.js'
 
-type TrainBaseEvent = { id: number; combo: number; score: number }
+type TrainEventBaseData = { id: number; combo: number; score: number }
+export type TrainStartData = TrainEventBaseData & { colors: string[] }
+export type TrainAddData = TrainEventBaseData & { color: string }
+export type TrainEndData = TrainEventBaseData & { username: string }
 
 export const GraceTrainEvents = new Emittery<{
-	start: TrainBaseEvent & { colors: string[] }
-	grace: TrainBaseEvent & { color: string }
-	end: TrainBaseEvent & { username: string }
+	start: TrainStartData
+	add: TrainAddData
+	end: TrainEndData
 }>()
 
 export function sendTrainStartEvent(graceStats: GraceStats) {
@@ -17,7 +20,7 @@ export function sendTrainStartEvent(graceStats: GraceStats) {
 }
 
 export function sendTrainAddEvent(graceStats: GraceStats) {
-	GraceTrainEvents.emit('grace', {
+	GraceTrainEvents.emit('add', {
 		...getBaseEvent(graceStats),
 		color: graceStats.graces.at(-1)!.user.color,
 	})
@@ -30,7 +33,7 @@ export function sendTrainEndEvent(graceStats: GraceStats) {
 	})
 }
 
-const getBaseEvent = (graceStats: GraceStats): TrainBaseEvent => ({
+const getBaseEvent = (graceStats: GraceStats): TrainEventBaseData => ({
 	id: graceStats.id,
 	combo: graceStats.totalCombo,
 	score: graceStats.finalScore || graceStats.runningTotalScore,

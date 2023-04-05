@@ -1,40 +1,58 @@
 import http from 'http'
 import { WebSocketServer, WebSocket } from 'ws'
 import { DEV_MODE, timestampLog } from '../../util.js'
-import { GraceTrainEvents } from '../chat/graceEvents.js'
-import qs from 'node:querystring'
+import {
+	GraceTrainEvents,
+	TrainAddData,
+	TrainEndData,
+	TrainStartData,
+} from '../chat/graceEvents.js'
+import { getData, modifyData } from '../../db.js'
+import randomstring from 'randomstring'
 
 export function initWebsocket(server: http.Server) {
 	if (!DEV_MODE) return
+	const authKeys = [...getData().streamOverlayAuthKeys]
+	if (authKeys.length === 0) {
+		authKeys.push(
+			randomstring.generate({
+				length: 10,
+				readable: true,
+				capitalization: 'lowercase',
+			})
+		)
+		modifyData({ streamOverlayAuthKeys: authKeys })
+	}
 	const wsMap: Map<WebSocket, { isAlive: boolean }> = new Map()
 
 	const wss = new WebSocketServer({ server })
 	wss.on('connection', function (ws, req) {
-		ws.on('error', console.error)
+		const params = new URLSearchParams((req.url || '').replace(/^\//g, ''))
+		const authKey = params.get('key')
+		if (!authKey || !authKeys.includes(authKey)) {
+			timestampLog(
+				`Received websocket connection from ${req.headers.host} with invalid auth key (${authKey})`
+			)
+			ws.terminate()
+			return
+		}
+		timestampLog(`Received websocket connection from ${req.headers.host}`)
 
 		wsMap.set(ws, { isAlive: true })
 
-		// TODO: Verify host matches env var?
-		const query = qs.parse(req.url || '')
-		console.log('new ws connection', query.key, 'host:', req.headers.host)
+		ws.on('error', (err) => timestampLog('WebSocket error:', err))
 
 		ws.on('message', function (message) {
-			//
-			// Here we can now use session parameters.
-			//
-			console.log(`Received message "${message}"`)
+			timestampLog(`Websocket received message "${message}"`)
 		})
 
 		ws.on('pong', function onPong() {
 			const wsData = wsMap.get(this)
-			if (wsData) {
-				wsData.isAlive = true
-			} else {
-				console.log('wsData NOT found!')
-			}
+			if (wsData) wsData.isAlive = true
 		})
 
 		ws.on('close', function () {
+			timestampLog('Websocket connection closed')
 			wsMap.delete(ws)
 		})
 	})
@@ -42,10 +60,7 @@ export function initWebsocket(server: http.Server) {
 	const pingInterval = setInterval(() => {
 		wss.clients.forEach((ws) => {
 			const wsData = wsMap.get(ws)
-			if (!wsData) {
-				console.log('ws client not found in map!')
-				return
-			}
+			if (!wsData) return
 			if (wsData.isAlive === false) return ws.terminate()
 			wsData.isAlive = false
 			ws.ping()
@@ -57,22 +72,27 @@ export function initWebsocket(server: http.Server) {
 	})
 
 	GraceTrainEvents.on('start', (event) => {
-		// console.log('sending train start to ws clients')
-		sendMessage(wss, 'start train!')
+		console.log('sending train start event to ws clients')
+		sendMessage(wss, { type: 'start', data: event })
 	})
-	GraceTrainEvents.on('grace', (event) => {
-		// console.log('sending grace to ws clients')
-		sendMessage(wss, 'grace!')
+	GraceTrainEvents.on('add', (event) => {
+		console.log('sending train add event to ws clients')
+		sendMessage(wss, { type: 'add', data: event })
 	})
 	GraceTrainEvents.on('end', (event) => {
-		// console.log('sending train end to ws clients')
-		sendMessage(wss, 'train ended!')
+		console.log('sending train end event to ws clients')
+		sendMessage(wss, { type: 'end', data: event })
 	})
 }
 
-function sendMessage(wss: WebSocketServer, message: string) {
+type Message =
+	| { type: 'start'; data: TrainStartData }
+	| { type: 'add'; data: TrainAddData }
+	| { type: 'end'; data: TrainEndData }
+
+function sendMessage(wss: WebSocketServer, message: Message) {
 	wss.clients.forEach((client) => {
 		if (client.readyState !== WebSocket.OPEN) return
-		client.send(message)
+		client.send(JSON.stringify(message))
 	})
 }
