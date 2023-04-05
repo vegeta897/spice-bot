@@ -1,6 +1,6 @@
 import http from 'http'
 import { WebSocketServer, WebSocket } from 'ws'
-import { DEV_MODE, timestampLog } from '../../util.js'
+import { timestampLog } from '../../util.js'
 import {
 	createTrainStartEvent,
 	GraceTrainEvents,
@@ -13,10 +13,8 @@ import randomstring from 'randomstring'
 import { getCurrentTrain } from '../chat/graceStats.js'
 
 const version = 1
-const versionMessage = { type: 'version', data: { version } }
 
 export function initWebsocket(server: http.Server) {
-	if (!DEV_MODE) return
 	const authKeys = [...getData().streamOverlayAuthKeys]
 	if (authKeys.length === 0) {
 		authKeys.push(
@@ -48,23 +46,35 @@ export function initWebsocket(server: http.Server) {
 
 		wsMap.set(ws, { isAlive: true })
 
-		ws.send(JSON.stringify(versionMessage), (err) => {
-			if (err) console.log('Error sending websocket version message', err)
-			const trainInProgress = getCurrentTrain()
-			if (!trainInProgress) return
-			console.log('Sending grace train in progress')
-			ws.send(
-				JSON.stringify({
-					type: 'start',
-					data: createTrainStartEvent(trainInProgress),
-				})
-			)
-		})
+		ws.send(
+			JSON.stringify({
+				type: 'init',
+				data: { version, noTrains: !getCurrentTrain() },
+			}),
+			(err) => {
+				if (err) console.log('Error sending websocket init message', err)
+				sendStartedTrain(ws)
+			}
+		)
 
 		ws.on('error', (err) => timestampLog('Websocket error:', err))
 
-		ws.on('message', function (message) {
-			timestampLog(`Websocket received message "${message}"`)
+		ws.on('message', function (data) {
+			let message: IncomingMessage
+			try {
+				message = JSON.parse(data as unknown as string)
+			} catch (e) {
+				timestampLog('Websocket received non-JSON message:', data)
+				return
+			}
+			switch (message.type) {
+				case 'train-query':
+					sendStartedTrain(ws)
+					break
+				default:
+					console.log('Websocket received unrecognized message:', message)
+					break
+			}
 		})
 
 		ws.on('pong', function onPong() {
@@ -94,23 +104,25 @@ export function initWebsocket(server: http.Server) {
 
 	GraceTrainEvents.on('start', (event) => {
 		console.log('sending train start event to ws clients')
-		sendMessage(wss, { type: 'start', data: event })
+		sendMessage(wss, { type: 'train-start', data: event })
 	})
 	GraceTrainEvents.on('add', (event) => {
 		console.log('sending train add event to ws clients')
-		sendMessage(wss, { type: 'add', data: event })
+		sendMessage(wss, { type: 'train-add', data: event })
 	})
 	GraceTrainEvents.on('end', (event) => {
 		console.log('sending train end event to ws clients')
-		sendMessage(wss, { type: 'end', data: event })
+		sendMessage(wss, { type: 'train-end', data: event })
 	})
 }
 
 type Message =
-	| { type: 'start'; data: TrainStartData }
-	| { type: 'add'; data: TrainAddData }
-	| { type: 'end'; data: TrainEndData }
-	| { type: 'version'; data: { version: number } }
+	| { type: 'init'; data: { version: number; noTrains: boolean } }
+	| { type: 'train-start'; data: TrainStartData }
+	| { type: 'train-add'; data: TrainAddData }
+	| { type: 'train-end'; data: TrainEndData }
+
+type IncomingMessage = { type: 'train-query'; data: { id: string } }
 
 function sendMessage(wss: WebSocketServer, message: Message) {
 	wss.clients.forEach((client) => {
@@ -119,4 +131,16 @@ function sendMessage(wss: WebSocketServer, message: Message) {
 			if (err) timestampLog('Error sending websocket message:', err)
 		})
 	})
+}
+
+function sendStartedTrain(ws: WebSocket) {
+	const trainInProgress = getCurrentTrain()
+	if (!trainInProgress || trainInProgress.endUsername) return
+	console.log('Sending grace train in progress')
+	ws.send(
+		JSON.stringify({
+			type: 'train-start',
+			data: createTrainStartEvent(trainInProgress),
+		})
+	)
 }
