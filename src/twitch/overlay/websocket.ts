@@ -44,9 +44,10 @@ export function initWebsocket(server: http.Server) {
 			})
 			return
 		}
-		timestampLog(`Received websocket connection from ${req.headers.host}`)
-
 		wsMap.set(ws, { isAlive: true })
+		timestampLog(
+			`Received websocket connection from ${req.headers.host} (${wsMap.size})`
+		)
 
 		ws.send(
 			JSON.stringify({
@@ -89,8 +90,8 @@ export function initWebsocket(server: http.Server) {
 		})
 
 		ws.on('close', function () {
-			timestampLog('Websocket connection closed')
 			wsMap.delete(ws)
+			timestampLog(`Websocket connection closed (${wsMap.size})`)
 		})
 	})
 
