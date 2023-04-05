@@ -1,7 +1,7 @@
 import http from 'http'
 import { WebSocketServer, WebSocket } from 'ws'
 import { DEV_MODE, timestampLog } from '../../util.js'
-import { GraceTrainEvents } from '../chat/grace.js'
+import { GraceTrainEvents } from '../chat/graceEvents.js'
 import qs from 'node:querystring'
 
 export function initWebsocket(server: http.Server) {

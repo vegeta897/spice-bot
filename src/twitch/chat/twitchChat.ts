@@ -111,10 +111,11 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 	})
 
 	chatClient.onSubGift((channel, user, subInfo, msg) => {
-		if (toUserName(channel) !== process.env.TWITCH_STREAMER_USERNAME) return
 		if (user !== process.env.TWITCH_BOT_USERNAME) return
 		const gifter = subInfo.gifterDisplayName || 'anonymous'
-		timestampLog(`Bot received a gift sub from ${gifter}`)
+		timestampLog(`Bot received a gift sub to ${channel} from ${gifter}`)
+		if (toUserName(channel) !== process.env.TWITCH_STREAMER_USERNAME) return
+		// TODO: Store sub expiry estimate in db so bot's sub status can be cached
 		sendChatMessage(
 			`Thank you ${gifter} for the gift sub! <3 ${Emotes.POGGERS} ${Emotes.POGGERS}`
 		)

@@ -1,7 +1,20 @@
 import { getData, modifyData } from '../../db.js'
-import { type GraceType, type Grace } from './grace.js'
+import { sendTrainEndMessages } from './grace.js'
+import {
+	sendTrainAddEvent,
+	sendTrainEndEvent,
+	sendTrainStartEvent,
+} from './graceEvents.js'
+import { setFinalScore, updateGraceScore } from './graceScore.js'
+
+export type Grace = {
+	date: Date
+	user: { id: string; color: string }
+	type: 'redeem' | 'highlight' | 'normal'
+}
 
 export type GraceStats = {
+	id: number
 	endedCombosScore: number
 	runningTotalScore: number
 	currentComboBasePoints: number
@@ -10,13 +23,33 @@ export type GraceStats = {
 	finalScore: number
 	currentComboUsers: Set<string>
 	allUsers: Set<string>
+	includesNightbot: boolean
 	totalCombo: number
+	graces: Grace[]
 	lastGrace: Grace | null
 	endUsername: string | null
 }
 
-export function createGraceStats(): GraceStats {
+let graceStats: GraceStats | null = null
+
+export function addGrace({ date, user, type }: Grace) {
+	graceStats ||= createGraceStats()
+	if (graceStats.graces.length > 0) {
+		const lastGraceDate = graceStats.graces.at(-1)!.date
+		if (date.getTime() - lastGraceDate.getTime() > TRAIN_TIMEOUT) clearStats()
+	}
+	graceStats.graces.push({ date, user, type })
+	updateGraceScore(graceStats, { date, user, type })
+	if (graceStats.graces.length === MIN_TRAIN_LENGTH) {
+		sendTrainStartEvent(graceStats)
+	} else if (graceStats.graces.length > MIN_TRAIN_LENGTH) {
+		sendTrainAddEvent(graceStats)
+	}
+}
+
+function createGraceStats(): GraceStats {
 	return {
+		id: Date.now(),
 		endedCombosScore: 0,
 		runningTotalScore: 0,
 		currentComboBasePoints: 0,
@@ -25,42 +58,36 @@ export function createGraceStats(): GraceStats {
 		finalScore: 0,
 		currentComboUsers: new Set(),
 		allUsers: new Set(),
+		includesNightbot: false,
 		totalCombo: 0,
+		graces: [],
 		lastGrace: null,
 		endUsername: null,
 	}
 }
 
-const POINTS: Record<GraceType, number> = {
-	redeem: 10,
-	highlight: 5,
-	normal: 1,
-}
-const NightbotUserID = '19264788'
+const MIN_TRAIN_LENGTH = 5
+const TRAIN_TIMEOUT = 10 * 60 * 1000 // 10 minutes
 
-export function updateGraceScore(stats: GraceStats, grace: Grace) {
-	stats.totalCombo++
-	stats.allUsers.add(grace.user.id)
-	if (stats.lastGrace && stats.lastGrace.type !== grace.type) {
-		stats.endedCombosScore += stats.currentComboScore
-		stats.currentComboBasePoints = 0
-		stats.currentComboScore = 0
-		stats.currentComboSize = 0
-		stats.currentComboUsers.clear()
+let endingTrain = false
+
+export async function endGraceTrain(endUsername: string) {
+	if (!graceStats || endingTrain) return
+	if (
+		graceStats.graces.length < MIN_TRAIN_LENGTH ||
+		graceStats.allUsers.size < 2
+	) {
+		clearStats()
+		return
 	}
-	stats.currentComboUsers.add(grace.user.id)
-	let points = POINTS[grace.type]
-	if (grace.user.id === NightbotUserID) points = 10000 // Nightbot bonus!
-	stats.currentComboBasePoints += points
-	stats.currentComboSize++
-	stats.currentComboScore = getComboScore(stats)
-	stats.runningTotalScore = stats.endedCombosScore + stats.currentComboScore
-	updateFinalScore(stats)
-	stats.lastGrace = grace
-}
-
-export function formatPoints(points: number) {
-	return points.toLocaleString('en-US')
+	endingTrain = true
+	setFinalScore(graceStats)
+	graceStats.endUsername = endUsername
+	sendTrainEndEvent(graceStats)
+	await sendTrainEndMessages(graceStats)
+	saveRecord(graceStats)
+	clearStats()
+	endingTrain = false
 }
 
 export function getBestRecord() {
@@ -73,7 +100,7 @@ export function getBestRecord() {
 	)
 }
 
-export function saveRecord(stats: GraceStats) {
+function saveRecord(stats: GraceStats) {
 	const thisRecord = {
 		score: stats.finalScore,
 		length: stats.totalCombo,
@@ -85,19 +112,8 @@ export function saveRecord(stats: GraceStats) {
 	modifyData({ graceTrainRecords: records.slice(0, 5) })
 }
 
-function getComboScore(stats: GraceStats) {
-	const userCount = stats.currentComboUsers.size
-	return Math.ceil(
-		stats.currentComboBasePoints *
-			(1 + (stats.currentComboSize - 1) / 2) *
-			(1 + (userCount - 1) / 5)
-	)
-}
-
-function updateFinalScore(stats: GraceStats) {
-	const userCountBonus =
-		stats.runningTotalScore * ((stats.allUsers.size - 1) / 10)
-	stats.finalScore = Math.ceil(stats.runningTotalScore + userCountBonus)
+export function clearStats() {
+	graceStats = null
 }
 
 export type GraceTrainRecord = {

@@ -1,0 +1,50 @@
+import { type Grace, type GraceStats } from './graceStats.js'
+
+const POINTS: Record<Grace['type'], number> = {
+	redeem: 10,
+	highlight: 5,
+	normal: 1,
+}
+const NightbotUserID = '19264788'
+
+export function updateGraceScore(stats: GraceStats, grace: Grace) {
+	stats.totalCombo++
+	stats.allUsers.add(grace.user.id)
+	if (stats.lastGrace && stats.lastGrace.type !== grace.type) {
+		stats.endedCombosScore += stats.currentComboScore
+		stats.currentComboBasePoints = 0
+		stats.currentComboScore = 0
+		stats.currentComboSize = 0
+		stats.currentComboUsers.clear()
+	}
+	stats.currentComboUsers.add(grace.user.id)
+	let points = POINTS[grace.type]
+	if (grace.user.id === NightbotUserID) {
+		points = 10000 // Nightbot bonus!
+		stats.includesNightbot = true
+	}
+	stats.currentComboBasePoints += points
+	stats.currentComboSize++
+	stats.currentComboScore = getComboScore(stats)
+	stats.runningTotalScore = stats.endedCombosScore + stats.currentComboScore
+	stats.lastGrace = grace
+}
+
+function getComboScore(stats: GraceStats) {
+	const userCount = stats.currentComboUsers.size
+	return Math.ceil(
+		stats.currentComboBasePoints *
+			(1 + (stats.currentComboSize - 1) / 2) *
+			(1 + (userCount - 1) / 5)
+	)
+}
+
+export function setFinalScore(stats: GraceStats) {
+	const userCountBonus =
+		stats.runningTotalScore * ((stats.allUsers.size - 1) / 10)
+	stats.finalScore = Math.ceil(stats.runningTotalScore + userCountBonus)
+}
+
+export function formatPoints(points: number) {
+	return points.toLocaleString('en-US')
+}
