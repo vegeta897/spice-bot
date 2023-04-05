@@ -199,5 +199,9 @@ export async function botIsFollowingStreamer() {
 }
 
 export async function sendWhisper(toUserID: string, text: string) {
-	await apiClient.whispers.sendWhisper(helixUsers.bot, toUserID, text)
+	try {
+		await apiClient.whispers.sendWhisper(helixUsers.bot, toUserID, text)
+	} catch (e) {
+		timestampLog('Error sending whisper', e)
+	}
 }
