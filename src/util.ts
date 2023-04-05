@@ -37,6 +37,15 @@ export const compareArrays = (first: unknown[], second: unknown[]) => {
 	}
 }
 
+const randomIntRange = (minOrMax: number, max?: number) => {
+	const min = max === undefined ? 0 : minOrMax
+	const range = max === undefined ? minOrMax : max - minOrMax
+	return Math.floor(min + Math.random() * range)
+}
+
+export const randomElement = <T>(arr: T[]): T =>
+	arr[randomIntRange(0, arr.length - 1)]
+
 // https://stackoverflow.com/a/59700012/2612679
 export type DeepReadonly<T> = T extends Function // eslint-disable-line @typescript-eslint/ban-types
 	? T

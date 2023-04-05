@@ -26,7 +26,7 @@ export const Emotes = {
 export async function initEmotes(options: { apiClient: ApiClient }) {
 	apiClient = options.apiClient
 	fetchChannelEmotes()
-	setInterval(() => fetchChannelEmotes(), 24 * 60 * 60 * 1000) // Refresh daily
+	setInterval(() => fetchChannelEmotes(), 12 * 60 * 60 * 1000) // Refresh twice daily
 	AuthEvents.on('auth', async (event) => {
 		if (event.accountType !== 'streamer') return
 		await sleep(1000) // Make sure streamer was added to auth provider
@@ -55,4 +55,8 @@ export async function getUsableEmotes() {
 			(botIsFollowing && emote.tier === null) ||
 			(botSub && botSub.tier >= (emote.tier || 0))
 	)
+}
+
+export async function canUseEmote(emoteName: string) {
+	return getEmoteByName(emoteName, await getUsableEmotes())
 }

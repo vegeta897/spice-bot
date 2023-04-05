@@ -1,7 +1,7 @@
 import http from 'http'
 import { WebSocketServer, WebSocket } from 'ws'
 import { DEV_MODE, timestampLog } from '../../util.js'
-import { GraceEvents } from '../chat/grace.js'
+import { GraceTrainEvents } from '../chat/grace.js'
 import qs from 'node:querystring'
 
 export function initWebsocket(server: http.Server) {
@@ -14,9 +14,9 @@ export function initWebsocket(server: http.Server) {
 
 		wsMap.set(ws, { isAlive: true })
 
-		console.log('host:', req.headers.host) // TODO: Verify host matches env var?
+		// TODO: Verify host matches env var?
 		const query = qs.parse(req.url || '')
-		console.log('new ws connection', query.key)
+		console.log('new ws connection', query.key, 'host:', req.headers.host)
 
 		ws.on('message', function (message) {
 			//
@@ -56,12 +56,23 @@ export function initWebsocket(server: http.Server) {
 		clearInterval(pingInterval)
 	})
 
-	GraceEvents.on('grace', (event) => {
-		if (!DEV_MODE) return
+	GraceTrainEvents.on('start', (event) => {
+		// console.log('sending train start to ws clients')
+		sendMessage(wss, 'start train!')
+	})
+	GraceTrainEvents.on('grace', (event) => {
 		// console.log('sending grace to ws clients')
-		wss.clients.forEach((client) => {
-			if (client.readyState !== WebSocket.OPEN) return
-			client.send('grace!')
-		})
+		sendMessage(wss, 'grace!')
+	})
+	GraceTrainEvents.on('end', (event) => {
+		// console.log('sending train end to ws clients')
+		sendMessage(wss, 'train ended!')
+	})
+}
+
+function sendMessage(wss: WebSocketServer, message: string) {
+	wss.clients.forEach((client) => {
+		if (client.readyState !== WebSocket.OPEN) return
+		client.send(message)
 	})
 }

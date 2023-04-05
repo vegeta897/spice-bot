@@ -22,6 +22,7 @@ import { getCensoredJSON } from '../db.js'
 import 'highlight.js'
 import hljs from 'highlight.js/lib/core'
 import { type PrivateMessage } from '@twurple/chat'
+import { updateUserColor } from './chat/userColors.js'
 
 const SCOPES: Record<AccountType, string[]> = {
 	bot: [
@@ -187,9 +188,11 @@ export function initTwitchOAuthServer(app: Express) {
 			return res.sendStatus(400)
 		if (command) {
 			timestampLog(`Testing !${command} command`)
+			const userID = `${testUserID++}`
 			ChatEvents.emit('message', {
 				username: process.env.TWITCH_ADMIN_USERNAME,
-				userID: `${testUserID++}`,
+				userID,
+				userColor: updateUserColor(userID, null),
 				text: `!${command}`,
 				date: new Date(),
 				msg: {} as PrivateMessage,

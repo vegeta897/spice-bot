@@ -10,6 +10,7 @@ import { Emotes } from './emotes.js'
 import { initTally } from './tally.js'
 import { initWhereBot } from './whereBot.js'
 import { initThanks } from './thanks.js'
+import { updateUserColor } from './userColors.js'
 
 // Idea: Detect incrementing numbers in ryan's messages for death tracker
 //       Then we can provide a command to check the count
@@ -17,6 +18,7 @@ import { initThanks } from './thanks.js'
 export type TwitchMessageEvent = {
 	username: string
 	userID: string
+	userColor: string
 	text: string
 	date: Date
 	msg: PrivateMessage
@@ -79,9 +81,14 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 		if (user === process.env.TWITCH_BOT_USERNAME) return
 		const broadcaster = msg.userInfo.isBroadcaster ? '[STREAMER] ' : ''
 		const mod = msg.userInfo.isMod ? '[MOD] ' : ''
+		const userColor = updateUserColor(
+			msg.userInfo.userId,
+			msg.userInfo.color || null
+		)
 		ChatEvents.emit('message', {
 			username: user,
 			userID: msg.userInfo.userId,
+			userColor,
 			text,
 			date: msg.date,
 			msg,
