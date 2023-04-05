@@ -73,8 +73,8 @@ function parsePositionCommand(event: TwitchMessageEvent) {
 	if (!event.mod) return false
 	const text = event.text.toLowerCase()
 	if (!text.startsWith('!')) return false
-	if (/^!(move )?overlay (top|upper)/.test(text)) return 'top'
-	if (/^!(move )?overlay (bottom|lower)/.test(text)) return 'bottom'
+	if (/^!(move )?(train|overlay) (top|upper)/.test(text)) return 'top'
+	if (/^!(move )?(train|overlay) (bottom|lower)/.test(text)) return 'bottom'
 	if (/^!move ?(train|overlay)/.test(text)) return true
 	if (/^!train ?move/.test(text)) return true
 	if (/^!overlay ?move/.test(text)) return true
