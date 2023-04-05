@@ -33,10 +33,14 @@ export type GraceStats = {
 let graceStats: GraceStats | null = null
 
 export function addGrace({ date, user, type }: Grace) {
-	graceStats ||= createGraceStats()
-	if (graceStats.graces.length > 0) {
+	if (graceStats && graceStats.graces.length > 0) {
 		const lastGraceDate = graceStats.graces.at(-1)!.date
 		if (date.getTime() - lastGraceDate.getTime() > TRAIN_TIMEOUT) clearStats()
+	}
+	graceStats ||= createGraceStats()
+	if (graceStats.graces.length > 0) {
+		// Don't add repeated user
+		if (graceStats.graces.at(-1)?.user.id === user.id) return
 	}
 	graceStats.graces.push({ date, user, type })
 	updateGraceScore(graceStats, { date, user, type })
