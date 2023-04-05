@@ -112,7 +112,9 @@ function saveRecord(stats: GraceStats) {
 	modifyData({ graceTrainRecords: records.slice(0, 5) })
 }
 
-export const getCurrentTrain = () => graceStats
+export const getCurrentTrain = () => {
+	if (graceStats && graceStats.totalCombo >= MIN_TRAIN_LENGTH) return graceStats
+}
 
 export function clearStats() {
 	graceStats = null
