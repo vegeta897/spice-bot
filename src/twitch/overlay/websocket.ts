@@ -33,14 +33,19 @@ export function initWebsocket(server: http.Server) {
 			timestampLog(
 				`Received websocket connection from ${req.headers.host} with invalid auth key (${authKey})`
 			)
-			ws.terminate()
+			ws.send('invalid-key', (err) => {
+				if (err) console.log(err)
+				ws.terminate()
+			})
 			return
 		}
 		timestampLog(`Received websocket connection from ${req.headers.host}`)
 
 		wsMap.set(ws, { isAlive: true })
 
-		ws.on('error', (err) => timestampLog('WebSocket error:', err))
+		// TODO: Send start event if train in progress
+
+		ws.on('error', (err) => timestampLog('Websocket error:', err))
 
 		ws.on('message', function (message) {
 			timestampLog(`Websocket received message "${message}"`)
@@ -93,6 +98,8 @@ type Message =
 function sendMessage(wss: WebSocketServer, message: Message) {
 	wss.clients.forEach((client) => {
 		if (client.readyState !== WebSocket.OPEN) return
-		client.send(JSON.stringify(message))
+		client.send(JSON.stringify(message), (err) => {
+			if (err) timestampLog('Error sending websocket message:', err)
+		})
 	})
 }
