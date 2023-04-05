@@ -112,6 +112,8 @@ function saveRecord(stats: GraceStats) {
 	modifyData({ graceTrainRecords: records.slice(0, 5) })
 }
 
+export const getCurrentTrain = () => graceStats
+
 export function clearStats() {
 	graceStats = null
 }

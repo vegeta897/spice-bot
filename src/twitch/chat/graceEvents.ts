@@ -13,27 +13,29 @@ export const GraceTrainEvents = new Emittery<{
 }>()
 
 export function sendTrainStartEvent(graceStats: GraceStats) {
-	GraceTrainEvents.emit('start', {
-		...getBaseEvent(graceStats),
-		colors: graceStats.graces.map((g) => g.user.color),
-	})
+	GraceTrainEvents.emit('start', createTrainStartEvent(graceStats))
 }
 
 export function sendTrainAddEvent(graceStats: GraceStats) {
 	GraceTrainEvents.emit('add', {
-		...getBaseEvent(graceStats),
+		...createBaseEvent(graceStats),
 		color: graceStats.graces.at(-1)!.user.color,
 	})
 }
 
 export function sendTrainEndEvent(graceStats: GraceStats) {
 	GraceTrainEvents.emit('end', {
-		...getBaseEvent(graceStats),
+		...createBaseEvent(graceStats),
 		username: graceStats.endUsername!,
 	})
 }
 
-const getBaseEvent = (graceStats: GraceStats): TrainEventBaseData => ({
+export const createTrainStartEvent = (graceStats: GraceStats) => ({
+	...createBaseEvent(graceStats),
+	colors: graceStats.graces.map((g) => g.user.color),
+})
+
+const createBaseEvent = (graceStats: GraceStats): TrainEventBaseData => ({
 	id: graceStats.id,
 	combo: graceStats.totalCombo,
 	score: graceStats.finalScore || graceStats.runningTotalScore,

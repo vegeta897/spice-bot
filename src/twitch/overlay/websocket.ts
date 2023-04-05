@@ -2,6 +2,7 @@ import http from 'http'
 import { WebSocketServer, WebSocket } from 'ws'
 import { DEV_MODE, timestampLog } from '../../util.js'
 import {
+	createTrainStartEvent,
 	GraceTrainEvents,
 	TrainAddData,
 	TrainEndData,
@@ -9,6 +10,10 @@ import {
 } from '../chat/graceEvents.js'
 import { getData, modifyData } from '../../db.js'
 import randomstring from 'randomstring'
+import { getCurrentTrain } from '../chat/graceStats.js'
+
+const version = 1
+const versionMessage = { type: 'version', data: { version } }
 
 export function initWebsocket(server: http.Server) {
 	if (!DEV_MODE) return
@@ -43,7 +48,18 @@ export function initWebsocket(server: http.Server) {
 
 		wsMap.set(ws, { isAlive: true })
 
-		// TODO: Send start event if train in progress
+		ws.send(JSON.stringify(versionMessage), (err) => {
+			if (err) console.log('Error sending websocket version message', err)
+			const trainInProgress = getCurrentTrain()
+			if (!trainInProgress) return
+			console.log('Sending grace train in progress')
+			ws.send(
+				JSON.stringify({
+					type: 'start',
+					data: createTrainStartEvent(trainInProgress),
+				})
+			)
+		})
 
 		ws.on('error', (err) => timestampLog('Websocket error:', err))
 
@@ -94,6 +110,7 @@ type Message =
 	| { type: 'start'; data: TrainStartData }
 	| { type: 'add'; data: TrainAddData }
 	| { type: 'end'; data: TrainEndData }
+	| { type: 'version'; data: { version: number } }
 
 function sendMessage(wss: WebSocketServer, message: Message) {
 	wss.clients.forEach((client) => {
