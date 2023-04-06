@@ -1,6 +1,6 @@
 import http from 'http'
 import { WebSocketServer, WebSocket } from 'ws'
-import { timestampLog } from '../../util.js'
+import { DEV_MODE, timestampLog } from '../../util.js'
 import {
 	createTrainStartEvent,
 	GraceTrainEvents,
@@ -110,19 +110,19 @@ export function initWebsocket(server: http.Server) {
 	})
 
 	GraceTrainEvents.on('start', (event) => {
-		console.log('sending train start event to ws clients')
+		if (DEV_MODE) console.log('sending train start event to ws clients')
 		sendMessage(wss, { type: 'train-start', data: event })
 	})
 	GraceTrainEvents.on('add', (event) => {
-		console.log('sending train add event to ws clients')
+		if (DEV_MODE) console.log('sending train add event to ws clients')
 		sendMessage(wss, { type: 'train-add', data: event })
 	})
 	GraceTrainEvents.on('end', (event) => {
-		console.log('sending train end event to ws clients')
+		if (DEV_MODE) console.log('sending train end event to ws clients')
 		sendMessage(wss, { type: 'train-end', data: event })
 	})
 	GraceTrainEvents.on('overlay', (event) => {
-		console.log('sending overlay event to ws clients')
+		if (DEV_MODE) console.log('sending overlay event to ws clients')
 		sendMessage(wss, { type: 'overlay', data: event })
 	})
 }
