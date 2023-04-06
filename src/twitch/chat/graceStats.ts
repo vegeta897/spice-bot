@@ -33,6 +33,7 @@ export type GraceStats = {
 let graceStats: GraceStats | null = null
 
 export function addGrace({ date, user, type }: Grace) {
+	if (endingTrain) return
 	if (graceStats && graceStats.graces.length > 0) {
 		const lastGraceDate = graceStats.graces.at(-1)!.date
 		if (date.getTime() - lastGraceDate.getTime() > TRAIN_TIMEOUT) clearStats()
