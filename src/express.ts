@@ -53,15 +53,15 @@ export async function initExpressServer() {
 			join(dirname(fileURLToPath(import.meta.url)), '../src/public')
 		)
 	)
-	app.get('/overlay-setup', (req, res) => {
-		if (!DEV_MODE && !req.session.username) return res.redirect('/')
-		// TODO: Create & pass unique key if not already exists for account type
-		const overlayKey = '123abc'
-		res.render('overlay-setup', {
-			overlayKey,
-			hostname: process.env.EXPRESS_HOSTNAME,
-		})
-	})
+	// app.get('/overlay-setup', (req, res) => {
+	// 	if (!DEV_MODE && !req.session.username) return res.redirect('/')
+	// 	// TODO: Create & pass unique key if not already exists for account type
+	// 	const overlayKey = '123abc'
+	// 	res.render('overlay-setup', {
+	// 		overlayKey,
+	// 		hostname: process.env.EXPRESS_HOSTNAME,
+	// 	})
+	// })
 	return new Promise<{ expressApp: Express; server: http.Server }>(
 		(resolve) => {
 			server.listen(process.env.EXPRESS_PORT, () => {
