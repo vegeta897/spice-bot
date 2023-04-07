@@ -5,6 +5,7 @@ import {
 	type TextChannel,
 	type Guild,
 	type MessageCreateOptions,
+	type MessageEditOptions,
 } from 'discord.js'
 import { initPings } from './pings.js'
 import { timestampLog } from './util.js'
@@ -50,7 +51,7 @@ export function createTweetMessage(messageOptions: MessageCreateOptions) {
 async function editMessage(
 	channel: TextChannel,
 	messageID: string,
-	messageOptions: MessageCreateOptions
+	messageOptions: MessageEditOptions
 ) {
 	try {
 		const message = await channel.messages.fetch(messageID)
@@ -62,11 +63,11 @@ async function editMessage(
 
 export const editStreamMessage = async (
 	messageID: string,
-	messageOptions: MessageCreateOptions
+	messageOptions: MessageEditOptions
 ) => editMessage(twitchChannel, messageID, messageOptions)
 export const editTweetMessage = async (
 	messageID: string,
-	messageOptions: MessageCreateOptions
+	messageOptions: MessageEditOptions
 ) => editMessage(twitterChannel, messageID, messageOptions)
 
 async function deleteMessage(channel: TextChannel, messageID: string) {

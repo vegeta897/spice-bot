@@ -4,7 +4,7 @@ import {
 	type HelixStream,
 	type HelixVideo,
 } from '@twurple/api'
-import { type MessageCreateOptions } from 'discord.js'
+import { type BaseMessageOptions } from 'discord.js'
 import { modifyData } from '../db.js'
 import {
 	getMockInitialVideos,
@@ -230,7 +230,7 @@ async function checkVideos(stream: HelixStream | null = null) {
 }
 
 async function sendOrUpdateLiveMessage(streamRecord: StreamRecord) {
-	const messageOptions: MessageCreateOptions = {
+	const messageOptions: BaseMessageOptions = {
 		embeds: [getStreamStartEmbed(streamRecord)],
 	}
 	if (streamRecord.messageID) {
@@ -260,7 +260,7 @@ async function endStream(streamRecord: StreamRecord, video: HelixVideo) {
 		videoInfo: true,
 		thumbnailURL: video.getThumbnailUrl(360, 180),
 	}
-	const messageOptions: MessageCreateOptions = {
+	const messageOptions: BaseMessageOptions = {
 		embeds: [getStreamEndEmbed(updatedRecord, video)],
 	}
 	if (getTwitchPingRole()) {
