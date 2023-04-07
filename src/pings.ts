@@ -86,6 +86,7 @@ export async function initPings(bot: Client, server: Guild) {
 	}
 	bot.on('interactionCreate', async (interaction) => {
 		if (!interaction.isButton() || !interaction.member) return
+		if (interaction.guildId !== process.env.DISCORD_SERVER_ID) return
 		const member = await server.members.fetch(interaction.member.user.id)
 		const { customId } = interaction
 		const pingConfig = getPingConfig(customId)
