@@ -25,11 +25,8 @@ export function sendTrainAddEvent(graceStats: GraceStats) {
 	})
 }
 
-export function sendTrainEndEvent(graceStats: GraceStats) {
-	GraceTrainEvents.emit('end', {
-		...createBaseEvent(graceStats),
-		username: graceStats.endUsername!,
-	})
+export function sendTrainEndEvent(graceStats: GraceStats, username: string) {
+	GraceTrainEvents.emit('end', { ...createBaseEvent(graceStats), username })
 }
 
 export const createTrainStartEvent = (graceStats: GraceStats) => ({

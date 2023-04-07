@@ -147,7 +147,7 @@ function sendMessage(wss: WebSocketServer, message: Message) {
 
 function sendStartedTrain(ws: WebSocket) {
 	const trainInProgress = getCurrentTrain()
-	if (!trainInProgress || trainInProgress.endUsername) return
+	if (!trainInProgress) return
 	console.log('Sending grace train in progress')
 	ws.send(
 		JSON.stringify({

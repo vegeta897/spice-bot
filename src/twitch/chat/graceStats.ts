@@ -27,17 +27,11 @@ export type GraceStats = {
 	totalCombo: number
 	graces: Grace[]
 	lastGrace: Grace | null
-	endUsername: string | null
 }
 
 let graceStats: GraceStats | null = null
 
 export function addGrace({ date, user, type }: Grace) {
-	if (endingTrain) return
-	if (graceStats && graceStats.graces.length > 0) {
-		const lastGraceDate = graceStats.graces.at(-1)!.date
-		if (date.getTime() - lastGraceDate.getTime() > TRAIN_TIMEOUT) clearStats()
-	}
 	graceStats ||= createGraceStats()
 	if (graceStats.graces.length > 0) {
 		// Don't add repeated user
@@ -67,17 +61,13 @@ function createGraceStats(): GraceStats {
 		totalCombo: 0,
 		graces: [],
 		lastGrace: null,
-		endUsername: null,
 	}
 }
 
 const MIN_TRAIN_LENGTH = 5
-const TRAIN_TIMEOUT = 10 * 60 * 1000 // 10 minutes
 
-let endingTrain = false
-
-export async function endGraceTrain(endUsername: string) {
-	if (!graceStats || endingTrain) return
+export function endGraceTrain(endUsername: string) {
+	if (!graceStats) return
 	if (
 		graceStats.graces.length < MIN_TRAIN_LENGTH ||
 		graceStats.allUsers.size < 2
@@ -85,25 +75,21 @@ export async function endGraceTrain(endUsername: string) {
 		clearStats()
 		return
 	}
-	endingTrain = true
 	setFinalScore(graceStats)
-	graceStats.endUsername = endUsername
-	sendTrainEndEvent(graceStats)
-	await sendTrainEndMessages(graceStats)
+	sendTrainEndEvent(graceStats, endUsername)
+	sendTrainEndMessages({
+		...graceStats,
+		trainLength: graceStats.graces.length,
+		userCount: graceStats.allUsers.size,
+		endUsername,
+		bestRecord: getBestRecord(),
+	})
 	saveRecord(graceStats)
 	clearStats()
-	endingTrain = false
 }
 
-export function getBestRecord() {
-	return (
-		getData().graceTrainRecords[0] || {
-			score: 0,
-			length: 0,
-			users: 0,
-		}
-	)
-}
+const getBestRecord = () =>
+	getData().graceTrainRecords[0] || { score: 0, length: 0, users: 0 }
 
 function saveRecord(stats: GraceStats) {
 	const thisRecord = {

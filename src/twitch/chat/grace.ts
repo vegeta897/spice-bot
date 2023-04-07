@@ -3,8 +3,6 @@ import { Emotes, canUseEmote } from './emotes.js'
 import { GraceTrainEvents, OverlayData } from './graceEvents.js'
 import { formatPoints } from './graceScore.js'
 import {
-	getBestRecord,
-	type GraceStats,
 	type GraceTrainRecord,
 	addGrace,
 	clearStats,
@@ -90,12 +88,24 @@ function isGraceText(text: string) {
 	)
 }
 
-export async function sendTrainEndMessages(graceStats: GraceStats) {
-	const bestRecord = getBestRecord()
+export async function sendTrainEndMessages({
+	trainLength,
+	endUsername,
+	userCount,
+	includesNightbot,
+	finalScore,
+	bestRecord,
+}: {
+	trainLength: number
+	endUsername: string
+	userCount: number
+	includesNightbot: boolean
+	finalScore: number
+	bestRecord: GraceTrainRecord
+}) {
 	const newRecords: Partial<GraceTrainRecord> = {}
 	const canPrayBee = await canUseEmote(Emotes.PRAYBEE)
-	const trainLength = graceStats.graces.length
-	let message = `Grace train ended by ${graceStats.endUsername}! That was ${trainLength} graces`
+	let message = `Grace train ended by ${endUsername}! That was ${trainLength} graces`
 	if (trainLength > bestRecord.length) {
 		message += `, a NEW RECORD for total length!`
 		if (canPrayBee) {
@@ -108,22 +118,22 @@ export async function sendTrainEndMessages(graceStats: GraceStats) {
 		message += '!'
 	}
 	sendChatMessage(message)
-	message = `${graceStats.allUsers.size} people contributed`
-	if (graceStats.includesNightbot) {
+	message = `${userCount} people contributed`
+	if (includesNightbot) {
 		message += `, including NIGHTBOT!? 🤖`
-	} else if (graceStats.allUsers.size > bestRecord.users) {
+	} else if (userCount > bestRecord.users) {
 		message += `, the most yet!`
-		newRecords.users = graceStats.allUsers.size
+		newRecords.users = userCount
 	} else {
 		message += '!'
 	}
 	sendChatMessage(message)
-	message = `GRACE SCORE: ${formatPoints(graceStats.finalScore)} points`
-	if (graceStats.finalScore > bestRecord.score) {
+	message = `GRACE SCORE: ${formatPoints(finalScore)} points`
+	if (finalScore > bestRecord.score) {
 		message += `, a NEW RECORD for best score!`
 		if (newRecords.length && canPrayBee) message += ` ${Emotes.PRAYBEE}`
-		newRecords.score = graceStats.finalScore
-	} else if (graceStats.finalScore === bestRecord.score) {
+		newRecords.score = finalScore
+	} else if (finalScore === bestRecord.score) {
 		message += `, tying the record for best score!`
 	} else {
 		message += '!'
