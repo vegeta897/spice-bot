@@ -3,7 +3,7 @@ import { scrollPageToBottom } from 'puppeteer-autoscroll-down'
 import { deleteTweetRecord, getTweetRecords } from './tweetRecord.js'
 import { deleteTweetMessage } from '../discord.js'
 import { checkTweetPingButtons, postTweet } from './twitter.js'
-import { sortByProp, timestampLog } from '../util.js'
+import { DEV_MODE, sortByProp, timestampLog } from '../util.js'
 
 // Make this a separate module on NPM?
 
@@ -22,10 +22,11 @@ type ScrapedTweet = {
 	isThread: boolean
 	isRetweet: boolean
 	isPinned: boolean
+	// TODO: Add timeline position number so new retweets can be detected
 }
 
 export async function initTwitterScraper() {
-	const browser = await puppeteer.launch()
+	const browser = await puppeteer.launch(/*{ headless: !DEV_MODE }*/)
 	page = await browser.newPage()
 	await setPageRequestInterceptions(page)
 	await page.setViewport({ width: 1600, height: 3000 })
@@ -36,19 +37,25 @@ export async function initTwitterScraper() {
 
 async function checkForTweets() {
 	if (checkingForTweets) {
-		console.log(
+		timestampLog(
 			`Tried to check tweets while previous check (${(
 				SCRAPE_INTERVAL / 1000
 			).toFixed(0)} sec ago) was still running`
 		)
 		return
 	}
+	if (DEV_MODE) timestampLog('checking for tweets')
 	checkingForTweets = true
-	await page.goto(`https://twitter.com/${USERNAME}`)
+	try {
+		await page.goto(`https://twitter.com/${USERNAME}`)
+	} catch (e) {
+		timestampLog(`Error navigating to twitter.com/${USERNAME}`, e)
+		return
+	}
 	try {
 		await page.waitForSelector('article')
 	} catch (e) {
-		console.log(
+		timestampLog(
 			`No <article> element found! Does ${USERNAME} have any tweets, or are they protected?`
 		)
 		return
@@ -100,24 +107,24 @@ const scrapeTweets = async (
 	afterTweetID?: string
 ): Promise<ScrapedTweet[]> => {
 	const tweets: ScrapedTweet[] = []
-	let oldestTweetID = ''
-	let lastOldestTweetID = ''
+	let oldestTweet: ScrapedTweet | null = null
+	let prevOldestTweetID = ''
 	do {
-		lastOldestTweetID = oldestTweetID
 		const scrapedTweets = await scrapePage(page)
 		for (const scrapedTweet of scrapedTweets) {
 			if (tweets.find((t) => t.tweetID === scrapedTweet.tweetID)) continue
 			if (
 				!scrapedTweet.isPinned &&
-				(!oldestTweetID || scrapedTweet.tweetID < oldestTweetID)
+				!scrapedTweet.isRetweet &&
+				(!oldestTweet || scrapedTweet.tweetID < oldestTweet.tweetID)
 			) {
-				oldestTweetID = scrapedTweet.tweetID
+				oldestTweet = scrapedTweet
 			}
 			tweets.push(scrapedTweet)
 		}
 		// Break if no more tweets can be found
-		if (lastOldestTweetID === oldestTweetID) break
-		if (afterTweetID && oldestTweetID > afterTweetID) {
+		if (prevOldestTweetID === oldestTweet?.tweetID) break
+		if (afterTweetID && oldestTweet && oldestTweet.tweetID > afterTweetID) {
 			// Scroll to load more tweets
 			try {
 				// @ts-ignore
@@ -128,7 +135,10 @@ const scrapeTweets = async (
 				break
 			}
 		}
-	} while (afterTweetID && (!oldestTweetID || oldestTweetID > afterTweetID))
+		// Break if we found at least one tweet, and no afterTweetID requirement
+		if (!afterTweetID && oldestTweet) break
+		prevOldestTweetID = oldestTweet?.tweetID || ''
+	} while (afterTweetID && (!oldestTweet || oldestTweet.tweetID > afterTweetID))
 	return tweets
 }
 
