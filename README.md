@@ -41,30 +41,30 @@ If you do not need the Twitter scraper, run `npm install --omit=optional`
 
 Rename or copy `.env.example` to `.env` and fill it out. All variables are required unless marked optional.
 
-| Variable                     | Description                                                                           |
-| ---------------------------- | ------------------------------------------------------------------------------------- |
-| `TWITCH_STREAMER_USERNAME`   | The Twitch username to watch for streams                                              |
-| `TWITCH_BOT_USERNAME`        | The Twitch username for your chat bot                                                 |
-| `TWITCH_ADMIN_USERNAME`      | Your own Twitch username as the bot admin bot                                         |
-| `TWITCH_CLIENT_ID`           | The client ID of your Twitch App                                                      |
-| `TWITCH_CLIENT_SECRET`       | The client secret of your Twitch App                                                  |
-| `TWITCH_BANNER_URL`          | _(optional)_ An image URL to use in stream notification embeds                        |
-| `TWITTER_USERNAME`           | The Twitter username to watch for tweets                                              |
-| `TWITTER_SCRAPE_MODE`        | If "true", the Twitter API will be substituted for page scraping                      |
-| `TWITTER_TOKEN`              | The bearer token for your Twitter app                                                 |
-| `TWITTER_INCLUDE_RETWEETS`   | If set to "true", retweets will be posted (quote retweets are always be posted)       |
-| `TWITTER_INCLUDE_REPLIES`    | If set to "true", tweet replies will be posted (self-replies are always posted)       |
-| `DISCORD_BOT_TOKEN`          | The token of your Discord bot                                                         |
-| `DISCORD_SERVER_ID`          | The Discord server ID to post to                                                      |
-| `DISCORD_TWITCH_CHANNEL_ID`  | The Discord channel ID to post Twitch streams to                                      |
-| `DISCORD_TWITTER_CHANNEL_ID` | The Discord channel ID to post tweets to (this can be the same as the Twitch channel) |
-| `NICKNAME`                   | _(optional)_ A nickname for the streamer, used in stream notifications                |
-| `EXPRESS_HOSTNAME`           | The URL that points to the Express server                                             |
-| `EXPRESS_PORT`               | The port used by the Express server                                                   |
+| Variable                     | Description                                                                                                |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `TWITCH_STREAMER_USERNAME`   | The Twitch username to watch for streams. Leave this blank to disable the entire Twitch portion of the bot |
+| `TWITCH_BOT_USERNAME`        | The Twitch username for your chat bot                                                                      |
+| `TWITCH_ADMIN_USERNAME`      | Your own Twitch username as the bot admin bot                                                              |
+| `TWITCH_CLIENT_ID`           | The client ID of your Twitch App                                                                           |
+| `TWITCH_CLIENT_SECRET`       | The client secret of your Twitch App                                                                       |
+| `TWITCH_BANNER_URL`          | _(optional)_ An image URL to use in stream notification embeds                                             |
+| `TWITTER_USERNAME`           | The Twitter username to watch for tweets                                                                   |
+| `TWITTER_SCRAPE_MODE`        | If "true", the Twitter API will be substituted for page scraping                                           |
+| `TWITTER_TOKEN`              | The bearer token for your Twitter app                                                                      |
+| `TWITTER_INCLUDE_RETWEETS`   | If set to "true", retweets will be posted (quote retweets are always be posted)                            |
+| `TWITTER_INCLUDE_REPLIES`    | If set to "true", tweet replies will be posted (self-replies are always posted)                            |
+| `DISCORD_BOT_TOKEN`          | The token of your Discord bot                                                                              |
+| `DISCORD_SERVER_ID`          | The Discord server ID to post to                                                                           |
+| `DISCORD_TWITCH_CHANNEL_ID`  | The Discord channel ID to post Twitch streams to                                                           |
+| `DISCORD_TWITTER_CHANNEL_ID` | The Discord channel ID to post tweets to (this can be the same as the Twitch channel)                      |
+| `NICKNAME`                   | _(optional)_ A nickname for the streamer, used in stream notifications                                     |
+| `EXPRESS_HOSTNAME`           | The URL that points to the Express server                                                                  |
+| `EXPRESS_PORT`               | The port used by the Express server                                                                        |
 
 ### Setup
 
-Spice Bot needs a reverse proxy set up to work. In **nginx**, your config should include something like this:
+Spice Bot needs a reverse proxy set up for the Twitch functions to work. In **nginx**, your config should include something like this:
 
 ```nginx
 server {
@@ -105,4 +105,4 @@ Add me on Discord if you have any questions or comments: `vegeta897#7777`
 
 Spice Bot was originally created for the official [Abby Russell](https://www.abbyfrombrooklyn.com/) Discord server. Shout-out to the sweeties!
 
-Future development will be dictated by the needs of the server I'm using it on, and anything I'm interesteed in pursuing. This may include scope expansions that seem pretty irrelevant or specialized. I don't feel like spending time and effort making it modular, so it's all happening in this repo. Not like anyone is really going to use this bot, this readme is just for me!
+Future development will be dictated by the needs of the server I'm using it on, and anything I'm interesteed in pursuing. This may include scope expansions that seem pretty irrelevant or specialized. I don't feel like spending time and effort making it modular, so it's all happening in this repo. ~~Not like anyone is really going to use this bot, this readme is just for me!~~ I stand corrected, the Twitter scraper has proved valuable.
