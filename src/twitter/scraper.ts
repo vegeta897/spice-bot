@@ -12,6 +12,7 @@ const INCLUDE_RETWEETS = process.env.TWITTER_INCLUDE_RETWEETS === 'true'
 const SCRAPE_INTERVAL = 30 * 1000 // 30 seconds
 
 let page: puppeteer.Page
+let checkingForTweets = false
 
 type ScrapedTweet = {
 	tweetID: string
@@ -34,6 +35,15 @@ export async function initTwitterScraper() {
 }
 
 async function checkForTweets() {
+	if (checkingForTweets) {
+		console.log(
+			`Tried to check tweets while previous check (${(
+				SCRAPE_INTERVAL / 1000
+			).toFixed(0)} sec ago) was still running`
+		)
+		return
+	}
+	checkingForTweets = true
 	await page.goto(`https://twitter.com/${USERNAME}`)
 	try {
 		await page.waitForSelector('article')
@@ -61,6 +71,9 @@ async function checkForTweets() {
 				continue
 		} else {
 			// Don't post any tweet older than the newest recorded tweet
+
+			// TODO: This won't work right with retweets since they don't have current IDs or timestamps!
+
 			if (tweetID <= newestRecordedTweet.tweet_id) continue
 		}
 		await postTweet(tweetID)
@@ -79,6 +92,7 @@ async function checkForTweets() {
 		await deleteTweetMessage(tweetRecord.message_id)
 	}
 	checkTweetPingButtons()
+	checkingForTweets = false
 }
 
 const scrapeTweets = async (
