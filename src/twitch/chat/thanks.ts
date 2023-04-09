@@ -7,13 +7,12 @@ export function initThanks() {
 		const now = Date.now()
 		if (now - lastThanksTime < COOLDOWN) return
 		lastThanksTime = now
-		const repliedToBot =
-			event.msg.tags.get('reply-parent-user-id') === botUser.id
+		const isReplyToBot = event.msg.parentMessageUserId === botUser.id
 		if (isThanks(event.text)) {
-			if (repliedToBot || /spice[ -]?bot/gi.test(event.text)) {
+			if (isReplyToBot || /spice[ -]?bot/gi.test(event.text)) {
 				sendChatMessage("You're welcome!", event.msg.id)
 			}
-		} else if (repliedToBot && /good (spice)?[ -]?bot/.test(event.text)) {
+		} else if (isReplyToBot && /good (spice)?[ -]?bot/.test(event.text)) {
 			sendChatMessage('Happy to help!', event.msg.id)
 		}
 	})
