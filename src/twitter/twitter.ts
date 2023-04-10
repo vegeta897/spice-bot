@@ -136,10 +136,14 @@ async function checkRecentTweets() {
 	}
 }
 
-export async function postTweet(tweetID: string) {
-	timestampLog(`Posting tweet ID ${tweetID}`)
+export async function postTweet(
+	tweetID: string,
+	options?: { retweet?: { tweetID: string } }
+) {
+	const realTweetID = options?.retweet?.tweetID || tweetID
+	timestampLog(`Posting tweet ID ${realTweetID}`)
 	const messageOptions: MessageCreateOptions = {
-		content: `https://twitter.com/${USERNAME}/status/${tweetID}`,
+		content: `https://twitter.com/${USERNAME}/status/${realTweetID}`,
 	}
 	const twitterPingRole = getTwitterPingRole()
 	if (twitterPingRole) {
@@ -167,6 +171,7 @@ export async function postTweet(tweetID: string) {
 		messageID: message.id,
 		tweetID,
 		pingButtons: !!twitterPingRole,
+		retweetOf: options?.retweet?.tweetID,
 	})
 }
 

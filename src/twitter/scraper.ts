@@ -1,9 +1,14 @@
 import puppeteer from 'puppeteer'
 import { scrollPageToBottom } from 'puppeteer-autoscroll-down'
-import { deleteTweetRecord, getTweetRecords } from './tweetRecord.js'
+import {
+	deleteTweetRecord,
+	getTweetRecords,
+	tweetIDIsAfter,
+	tweetIDIsBefore,
+} from './tweetRecord.js'
 import { deleteTweetMessage } from '../discord.js'
 import { checkTweetPingButtons, postTweet } from './twitter.js'
-import { DEV_MODE, sortByProp, timestampLog } from '../util.js'
+import { DEV_MODE, timestampLog } from '../util.js'
 
 // Make this a separate module on NPM?
 
@@ -14,33 +19,22 @@ const SCRAPE_INTERVAL = 30 * 1000 // 30 seconds
 let page: puppeteer.Page
 let checkingForTweets = false
 
-type ScrapedTweet = {
-	tweetID: string
-	timestamp: string
-	content?: string
-	username: string
-	isThread: boolean
-	isRetweet: boolean
-	isPinned: boolean
-	// TODO: Add timeline position number so new retweets can be detected
-}
-
 export async function initTwitterScraper() {
-	const browser = await puppeteer.launch(/*{ headless: !DEV_MODE }*/)
+	const browser = await puppeteer.launch()
 	page = await browser.newPage()
 	await setPageRequestInterceptions(page)
 	await page.setViewport({ width: 1600, height: 3000 })
+	console.log('Tweet scraper connected')
 	checkForTweets()
 	setInterval(checkForTweets, SCRAPE_INTERVAL)
-	console.log('Tweet scraper connected')
 }
 
 async function checkForTweets() {
-	if (checkingForTweets) {
+	if (checkingForTweets && DEV_MODE) {
 		timestampLog(
 			`Tried to check tweets while previous check (${(
 				SCRAPE_INTERVAL / 1000
-			).toFixed(0)} sec ago) was still running`
+			).toFixed(0)}s ago) was still running`
 		)
 		return
 	}
@@ -56,42 +50,43 @@ async function checkForTweets() {
 		await page.waitForSelector('article')
 	} catch (e) {
 		timestampLog(
-			`No <article> element found! Does ${USERNAME} have any tweets, or are they protected?`
+			`No <article> element found! Does ${USERNAME} have no tweets, or are they protected?`
 		)
 		return
 	}
 	const recordedTweets = getTweetRecords()
 	const newestRecordedTweet = recordedTweets.at(-1)
+	const oldestRecordedTweet = recordedTweets[0]
 
-	const scrapedTweets = sortByProp(
-		await scrapeTweets(page, newestRecordedTweet?.tweet_id),
-		'tweetID'
-	)
+	const scrapedTweets = await scrapeTweets(page, oldestRecordedTweet?.tweet_id)
 	if (scrapedTweets.length === 0) return
-	const oldestScrapedTweet = scrapedTweets[0]
+	scrapedTweets.reverse() // Sort oldest to newest
+	if (INCLUDE_RETWEETS) createNewRetweetIDs(scrapedTweets)
 
 	// Post recent unrecorded tweets
-	for (const { tweetID, timestamp } of scrapedTweets) {
+	for (const { tweetID, timestamp, retweet } of scrapedTweets) {
 		if (!newestRecordedTweet) {
 			// If there are no recorded tweets, only post brand new tweets
-			if (new Date(timestamp).getTime() < Date.now() - SCRAPE_INTERVAL * 4)
+			if (new Date(timestamp).getTime() < Date.now() - SCRAPE_INTERVAL * 3)
 				continue
 		} else {
 			// Don't post any tweet older than the newest recorded tweet
-
-			// TODO: This won't work right with retweets since they don't have current IDs or timestamps!
-
-			if (tweetID <= newestRecordedTweet.tweet_id) continue
+			if (!tweetIDIsAfter(tweetID, newestRecordedTweet.tweet_id)) continue
 		}
-		await postTweet(tweetID)
+		await postTweet(tweetID, { retweet })
 	}
 
 	// Check for deleted tweets
 	for (const tweetRecord of recordedTweets) {
 		// Ignore tweets outside of scrape range
-		if (tweetRecord.tweet_id < oldestScrapedTweet.tweetID) continue
-		if (scrapedTweets.find((st) => st.tweetID === tweetRecord.tweet_id))
+		if (tweetIDIsBefore(tweetRecord.tweet_id, scrapedTweets[0].tweetID))
 			continue
+		const scraped = scrapedTweets.find(
+			(st) =>
+				st.tweetID === tweetRecord.tweet_id ||
+				(st.retweet && st.retweet.tweetID === tweetRecord.retweetOf)
+		)
+		if (scraped) continue
 		timestampLog(
 			`Deleting message ID ${tweetRecord.message_id} for tweet ID ${tweetRecord.tweet_id}`
 		)
@@ -102,52 +97,103 @@ async function checkForTweets() {
 	checkingForTweets = false
 }
 
+// How unknown retweet IDs are handled:
+// Scrape the timeline until first non-retweet before or equal to cutoffTweetID is reached
+// This cutoff ID can be synthetic since we're just using it to compare IDs
+// Once we have a full picture of the timeline, assign synthetic IDs to retweets
+// Synthetic IDs are based on the next oldest non-retweet ID
+// The tweet ID that was retweeted is saved in the tweet record
+
 const scrapeTweets = async (
 	page: puppeteer.Page,
-	afterTweetID?: string
+	cutoffTweetID?: string
 ): Promise<ScrapedTweet[]> => {
 	const tweets: ScrapedTweet[] = []
-	let oldestTweet: ScrapedTweet | null = null
-	let prevOldestTweetID = ''
+	let highestTimelineIndex = -1
+	let prevHighestTimelineIndex = -1
+	let staleScrollAttempts = 0
+	let oldestNonRetweet: ScrapedTweet | null = null
+	const timelineIndexMap: Map<string, number> = new Map()
 	do {
-		const scrapedTweets = await scrapePage(page)
-		for (const scrapedTweet of scrapedTweets) {
-			if (tweets.find((t) => t.tweetID === scrapedTweet.tweetID)) continue
-			if (
-				!scrapedTweet.isPinned &&
-				!scrapedTweet.isRetweet &&
-				(!oldestTweet || scrapedTweet.tweetID < oldestTweet.tweetID)
-			) {
-				oldestTweet = scrapedTweet
+		const { scrapedTweets, timelineIndexOffset } = await scrapePage(page, [
+			...timelineIndexMap.entries(),
+		])
+		if (timelineIndexOffset === 0 && timelineIndexMap.size > 0) {
+			// Lost track of index, abort
+			break
+		}
+		for (let i = 0; i < scrapedTweets.length; i++) {
+			const scrapedTweet = scrapedTweets[i]
+			const adjustedIndex = timelineIndexOffset + scrapedTweet.timelineIndex
+			if (adjustedIndex <= highestTimelineIndex) continue
+			if (!scrapedTweet.retweet && !scrapedTweet.isPinned) {
+				timelineIndexMap.set(scrapedTweet.tweetID, adjustedIndex)
 			}
+			if (
+				!scrapedTweet.retweet &&
+				!scrapedTweet.isPinned &&
+				(!oldestNonRetweet ||
+					tweetIDIsBefore(scrapedTweet.tweetID, oldestNonRetweet.tweetID))
+			) {
+				oldestNonRetweet = scrapedTweet
+			}
+			// Don't include pinned tweet if older than cutoff ID
+			if (
+				cutoffTweetID &&
+				scrapedTweet.isPinned &&
+				!tweetIDIsAfter(scrapedTweet.tweetID, cutoffTweetID)
+			)
+				continue
+			highestTimelineIndex = adjustedIndex
 			tweets.push(scrapedTweet)
 		}
-		// Break if no more tweets can be found
-		if (prevOldestTweetID === oldestTweet?.tweetID) break
-		if (afterTweetID && oldestTweet && oldestTweet.tweetID > afterTweetID) {
+		if (highestTimelineIndex > prevHighestTimelineIndex) {
+			staleScrollAttempts = 0
+		} else if (staleScrollAttempts === 4) {
+			break
+		}
+		if (
+			cutoffTweetID &&
+			oldestNonRetweet &&
+			tweetIDIsAfter(oldestNonRetweet.tweetID, cutoffTweetID)
+		) {
 			// Scroll to load more tweets
 			try {
 				// @ts-ignore
-				await scrollPageToBottom(page, { size: 500, delay: 50 })
-				await page.waitForResponse((response) => response.status() === 200)
-			} catch (e) {
-				timestampLog('Error scrolling for more tweets', e)
-				break
-			}
+				await scrollPageToBottom(page, { size: 500, delay: 100, stepsLimit: 6 })
+			} catch (_) {}
+			staleScrollAttempts++
 		}
-		// Break if we found at least one tweet, and no afterTweetID requirement
-		if (!afterTweetID && oldestTweet) break
-		prevOldestTweetID = oldestTweet?.tweetID || ''
-	} while (afterTweetID && (!oldestTweet || oldestTweet.tweetID > afterTweetID))
+		prevHighestTimelineIndex = highestTimelineIndex
+	} while (
+		cutoffTweetID &&
+		(!oldestNonRetweet ||
+			!tweetIDIsBefore(oldestNonRetweet.tweetID, cutoffTweetID))
+	)
 	return tweets
 }
 
-const scrapePage = (page: puppeteer.Page) =>
+// Tweets expected to be sorted oldest to newest
+function createNewRetweetIDs(tweets: ScrapedTweet[]) {
+	let previousTweetID = '0'.repeat(19)
+	for (let i = 0; i < tweets.length; i++) {
+		const tweet = tweets[i]
+		if (tweet.retweet) tweet.tweetID = previousTweetID + '+r'
+		previousTweetID = tweet.tweetID
+	}
+}
+
+const scrapePage = (
+	page: puppeteer.Page,
+	timelineIndexes: [string, number][]
+) =>
 	page.$$eval(
 		'article',
-		(articleElements, includeRetweets) => {
-			return articleElements
-				.map((articleElement) => {
+		(articleElements, includeRetweets, timelineIndexes) => {
+			const timelineIndexesMap = new Map(timelineIndexes)
+			let timelineIndexOffset = 0
+			const scrapedTweets = articleElements
+				.map((articleElement, i) => {
 					const timeEl = articleElement.querySelector('time')
 					if (!timeEl) return false // Probably a deleted tweet
 					const [, username, , tweetID] = timeEl
@@ -165,24 +211,50 @@ const scrapePage = (page: puppeteer.Page) =>
 					const socialContext = articleElement.querySelector(
 						'[data-testid="socialContext"]'
 					)
-					return {
+					const isRetweet =
+						socialContext?.textContent?.endsWith('Retweeted') ?? false
+					if (
+						!isRetweet &&
+						timelineIndexesMap.size > 0 &&
+						timelineIndexOffset === 0
+					) {
+						const existingIndex = timelineIndexesMap.get(tweetID)
+						if (existingIndex) timelineIndexOffset = existingIndex - i
+					}
+					const isPinned = socialContext?.textContent === 'Pinned Tweet'
+					const tweet: ScrapedTweet = {
 						timestamp: timeEl.dateTime,
-						content: articleElement.querySelector('[data-testid="tweetText"]')
-							?.textContent,
+						content:
+							articleElement.querySelector('[data-testid="tweetText"]')
+								?.textContent || undefined,
 						username,
 						tweetID,
 						isThread,
-						isRetweet:
-							socialContext?.textContent?.endsWith('Retweeted') ?? false,
-						isPinned: socialContext?.textContent === 'Pinned Tweet',
+						isPinned,
+						timelineIndex: i,
 					}
+					if (isRetweet) tweet.retweet = { username, tweetID }
+					return tweet
 				})
 				.filter(
-					(tweetData) => tweetData && (includeRetweets || !tweetData.isRetweet)
+					(tweetData) => tweetData && (includeRetweets || !tweetData.retweet)
 				) as ScrapedTweet[]
+			return { scrapedTweets, timelineIndexOffset }
 		},
-		INCLUDE_RETWEETS
+		INCLUDE_RETWEETS,
+		timelineIndexes
 	)
+
+type ScrapedTweet = {
+	tweetID: string
+	timestamp: string
+	content?: string
+	username: string
+	isThread: boolean
+	isPinned: boolean
+	retweet?: { username: string; tweetID: string }
+	timelineIndex: number
+}
 
 // Ignore requests for unnecessary resources like media and fonts
 async function setPageRequestInterceptions(page: puppeteer.Page) {

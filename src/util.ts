@@ -23,8 +23,19 @@ export const formatDuration = (seconds: number) =>
 	)
 
 // Sort an array of objects by the specified prop key
-export const sortByProp = <T>(arr: T[], prop: keyof T, reverse = false) =>
-	arr.sort((a, b) => (a[prop] > b[prop] ? 1 : -1) * (reverse ? -1 : 1))
+export const sortByProp = <T, K extends keyof T>(
+	arr: T[],
+	prop: K,
+	options: { reverse?: boolean; propValueTransform?: (v: T[K]) => any } = {}
+) => {
+	const reverse = options.reverse || false
+	const propValueTransform = options.propValueTransform || ((v) => v)
+	return arr.sort(
+		(a, b) =>
+			(propValueTransform(a[prop]) > propValueTransform(b[prop]) ? 1 : -1) *
+			(reverse ? -1 : 1)
+	)
+}
 
 export const compareArrays = (first: unknown[], second: unknown[]) => {
 	const extra = first.filter((el) => !second.includes(el))

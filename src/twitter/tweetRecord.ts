@@ -6,6 +6,7 @@ export type TweetRecord = {
 	recorded_time: number
 	message_id: string
 	pingButtons?: 'posted' | 'cleaned'
+	retweetOf?: string
 }
 
 export const getTweetRecords = () =>
@@ -15,10 +16,12 @@ export function recordTweet({
 	messageID,
 	tweetID,
 	pingButtons,
+	retweetOf,
 }: {
 	messageID: string
 	tweetID: string
 	pingButtons?: boolean
+	retweetOf?: string
 }) {
 	const tweetRecord: TweetRecord = {
 		tweet_id: tweetID,
@@ -26,6 +29,7 @@ export function recordTweet({
 		recorded_time: Date.now(),
 	}
 	if (pingButtons) tweetRecord.pingButtons = 'posted'
+	if (retweetOf) tweetRecord.retweetOf = retweetOf
 	const tweets = [...getData().tweets, tweetRecord]
 	// Sorting by tweet_id as a string is safe because all tweets from 2019 onward are 19 digits
 	// Tweet IDs won't gain another digit until the year 2086
@@ -53,3 +57,9 @@ export function deleteTweetRecord(tweetRecord: TweetRecord) {
 		),
 	})
 }
+
+export const padTweetID = (tweetID: string) => tweetID.padStart(19, '0')
+export const tweetIDIsBefore = (a: string, b: string) =>
+	padTweetID(a) < padTweetID(b)
+export const tweetIDIsAfter = (a: string, b: string) =>
+	padTweetID(a) > padTweetID(b)
