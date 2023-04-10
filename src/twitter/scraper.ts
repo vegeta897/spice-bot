@@ -18,6 +18,7 @@ const SCRAPE_INTERVAL = 30 * 1000 // 30 seconds
 
 let page: puppeteer.Page
 let checkingForTweets = false
+let tempLatestTweetID: string | null = null
 
 export async function initTwitterScraper() {
 	const browser = await puppeteer.launch()
@@ -58,10 +59,14 @@ async function checkForTweets() {
 	const newestRecordedTweet = recordedTweets.at(-1)
 	const oldestRecordedTweet = recordedTweets[0]
 
-	const scrapedTweets = await scrapeTweets(page, oldestRecordedTweet?.tweet_id)
+	const scrapedTweets = await scrapeTweets(
+		page,
+		tempLatestTweetID || oldestRecordedTweet?.tweet_id
+	)
 	if (scrapedTweets.length === 0) return
 	scrapedTweets.reverse() // Sort oldest to newest
 	if (INCLUDE_RETWEETS) createNewRetweetIDs(scrapedTweets)
+	tempLatestTweetID = scrapedTweets.at(-1)!.tweetID
 
 	// Post recent unrecorded tweets
 	for (const { tweetID, timestamp, retweet } of scrapedTweets) {
