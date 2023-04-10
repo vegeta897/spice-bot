@@ -66,6 +66,7 @@ async function checkForTweets() {
 	if (scrapedTweets.length === 0) return
 	scrapedTweets.reverse() // Sort oldest to newest
 	if (INCLUDE_RETWEETS) createNewRetweetIDs(scrapedTweets)
+	const prevTempLatestTweetID = tempLatestTweetID
 	tempLatestTweetID = scrapedTweets.at(-1)!.tweetID
 
 	// Post recent unrecorded tweets
@@ -76,7 +77,13 @@ async function checkForTweets() {
 				continue
 		} else {
 			// Don't post any tweet older than the newest recorded tweet
-			if (!tweetIDIsAfter(tweetID, newestRecordedTweet.tweet_id)) continue
+			if (
+				!tweetIDIsAfter(
+					tweetID,
+					prevTempLatestTweetID || newestRecordedTweet.tweet_id
+				)
+			)
+				continue
 		}
 		await postTweet(tweetID, { retweet })
 	}
