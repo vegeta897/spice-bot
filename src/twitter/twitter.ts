@@ -121,8 +121,9 @@ async function checkRecentTweets() {
 	// Get tweets since last recorded tweet
 	// Up to 10 tweets are fetched by default, which should be enough
 	// Excluding replies does not exclude self-replies, unlike the stream API
+	const latestTweetID = recordedTweets.at(-1)!.tweet_id.split('+')[0]
 	const timeline = await client.readOnly.v2.userTimeline(user.id, {
-		since_id: recordedTweets.at(-1)!.tweet_id,
+		since_id: latestTweetID,
 		exclude: timelineExclude,
 	})
 	if (timeline.meta.result_count === 0) return
@@ -181,7 +182,7 @@ async function checkDeletedTweets() {
 	let fetchedTweets: TweetV2LookupResult
 	try {
 		fetchedTweets = await client.readOnly.v2.tweets(
-			recordedTweets.map((t) => t.tweet_id)
+			recordedTweets.map((t) => t.tweet_id.split('+')[0])
 		)
 	} catch (e) {
 		timestampLog('Error fetching tweets', e)
