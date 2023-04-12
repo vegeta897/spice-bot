@@ -195,7 +195,7 @@ export function initTwitchOAuthServer(app: Express) {
 				userColor: updateUserColor(userID, null),
 				text: `!${command}`,
 				date: new Date(),
-				msg: {} as PrivateMessage,
+				msg: { userInfo: { displayName: 'Somebody' } } as PrivateMessage,
 				mod: true,
 			})
 		}
