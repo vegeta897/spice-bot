@@ -54,7 +54,7 @@ export function initWebsocket(server: http.Server) {
 				type: 'init',
 				data: {
 					version,
-					noTrains: !getCurrentTrain(),
+					noTrains: !getCurrentTrain(), // TODO: Change this to train ID + combo so client can request info if necessary
 					position: getOverlayPosition(),
 				},
 			}),
