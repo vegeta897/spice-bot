@@ -22,11 +22,13 @@ export type GraceStats = {
 	currentComboSize: number
 	currentComboUsers: Set<string>
 	allUsers: Set<string>
-	includesNightbot: boolean
+	specialUsers: Set<SpecialUser>
 	totalCombo: number
 	graces: Grace[]
 	lastGrace: Grace | null
 }
+
+export type SpecialUser = 'nightbot' | 'spicebot'
 
 let graceStats: GraceStats | null = null
 
@@ -55,7 +57,7 @@ function createGraceStats(): GraceStats {
 		currentComboSize: 0,
 		currentComboUsers: new Set(),
 		allUsers: new Set(),
-		includesNightbot: false,
+		specialUsers: new Set(),
 		totalCombo: 0,
 		graces: [],
 		lastGrace: null,

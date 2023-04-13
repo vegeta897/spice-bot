@@ -199,6 +199,7 @@ export function initTwitchOAuthServer(app: Express) {
 				date: new Date(),
 				msg: { userInfo: { displayName: 'Somebody' } } as PrivateMessage,
 				mod: true,
+				self: false,
 			})
 		}
 		if (event) {

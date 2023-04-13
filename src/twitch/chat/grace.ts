@@ -1,3 +1,4 @@
+import { randomElement } from '../../util.js'
 import { TwitchEvents } from '../eventSub.js'
 import { Emotes, canUseEmote } from './emotes.js'
 import { GraceTrainEvents, OverlayData } from './graceEvents.js'
@@ -7,6 +8,8 @@ import {
 	addGrace,
 	clearStats,
 	endGraceTrain,
+	getCurrentTrain,
+	GraceStats,
 } from './graceStats.js'
 import {
 	botInChat,
@@ -92,20 +95,22 @@ export async function sendTrainEndMessages({
 	trainLength,
 	endUsername,
 	userCount,
-	includesNightbot,
+	specialUsers,
 	totalScore,
 	bestRecord,
-}: {
+}: Pick<GraceStats, 'specialUsers' | 'totalScore'> & {
 	trainLength: number
-	endUsername: string
 	userCount: number
-	includesNightbot: boolean
-	totalScore: number
+	endUsername: string
 	bestRecord: GraceTrainRecord
 }) {
 	const newRecords: Partial<GraceTrainRecord> = {}
 	const canPrayBee = await canUseEmote(Emotes.PRAYBEE)
-	let message = `Grace train ended by ${endUsername}! That was ${trainLength} graces`
+	let message =
+		endUsername.toLowerCase() === process.env.TWITCH_BOT_USERNAME
+			? `${randomElement(['OOPS', 'OH NO', 'WOW'])}! I ended the grace train!`
+			: `Grace train ended by ${endUsername}!`
+	message += ` That was ${trainLength} graces`
 	if (trainLength > bestRecord.length) {
 		message += `, a NEW RECORD for total length!`
 		if (canPrayBee) {
@@ -119,8 +124,10 @@ export async function sendTrainEndMessages({
 	}
 	sendChatMessage(message)
 	message = `${userCount} people contributed`
-	if (includesNightbot) {
+	if (specialUsers.has('nightbot')) {
 		message += `, including NIGHTBOT!? 🤖`
+	} else if (specialUsers.has('spicebot')) {
+		message += `, including me, Spice Bot! 🌶️`
 	} else if (userCount > bestRecord.users) {
 		message += `, the most yet!`
 		newRecords.users = userCount
@@ -139,4 +146,12 @@ export async function sendTrainEndMessages({
 		message += '!'
 	}
 	sendChatMessage(message)
+}
+
+export const makeTextGraceTrainSafe = (text: string) => {
+	if (!getCurrentTrain() || isGraceText(text)) return text
+	return `${text} (${randomElement(['', 'also ', 'and, '])}${randomElement([
+		'grace',
+		'GRACE',
+	])})`
 }

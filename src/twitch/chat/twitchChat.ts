@@ -4,7 +4,7 @@ import { ParsedMessageEmotePart } from '@twurple/common'
 import { AuthEvents, getAccountScopes, sendWhisper } from '../twitchApi.js'
 import { CHAT_TEST_MODE, DEV_MODE, timestampLog } from '../../util.js'
 import Emittery from 'emittery'
-import { initGrace } from './grace.js'
+import { initGrace, makeTextGraceTrainSafe } from './grace.js'
 import { initRecap } from './recap.js'
 import { Emotes } from './emotes.js'
 import { initTally } from './tally.js'
@@ -23,6 +23,7 @@ export type TwitchMessageEvent = {
 	date: Date
 	msg: PrivateMessage
 	mod: boolean
+	self: boolean
 }
 
 export const ChatEvents = new Emittery<{
@@ -78,7 +79,7 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 
 	chatClient.onMessage((channel, user, text, msg) => {
 		if (toUserName(channel) !== process.env.TWITCH_STREAMER_USERNAME) return
-		if (user === process.env.TWITCH_BOT_USERNAME) return
+		// if (user === process.env.TWITCH_BOT_USERNAME) return
 		const broadcaster = msg.userInfo.isBroadcaster ? '[STREAMER] ' : ''
 		const mod = msg.userInfo.isMod ? '[MOD] ' : ''
 		const userColor = updateUserColor(
@@ -93,6 +94,7 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 			date: msg.date,
 			msg,
 			mod: msg.userInfo.isMod || msg.userInfo.isBroadcaster,
+			self: user === process.env.TWITCH_BOT_USERNAME,
 		})
 		const redemption = msg.isRedemption ? ' (REDEEM)' : ''
 		const highlight = msg.isHighlight ? ' (HIGHLIGHT)' : ''
@@ -117,7 +119,9 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 		if (toUserName(channel) !== process.env.TWITCH_STREAMER_USERNAME) return
 		// TODO: Store sub expiry estimate in db so bot's sub status can be cached
 		sendChatMessage(
-			`Thank you ${gifter} for the gift sub! <3 ${Emotes.POGGERS} ${Emotes.POGGERS}`
+			makeTextGraceTrainSafe(
+				`Thank you ${gifter} for the gift sub! <3 ${Emotes.POGGERS} ${Emotes.POGGERS}`
+			)
 		)
 	})
 

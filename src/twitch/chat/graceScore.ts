@@ -1,3 +1,4 @@
+import { getUserByAccountType } from '../twitchApi.js'
 import { type Grace, type GraceStats } from './graceStats.js'
 
 const POINTS: Record<Grace['type'], number> = {
@@ -21,7 +22,10 @@ export function updateGraceScore(stats: GraceStats, grace: Grace) {
 	let points = POINTS[grace.type]
 	if (grace.user.id === NightbotUserID) {
 		points = 10000 // Nightbot bonus!
-		stats.includesNightbot = true
+		stats.specialUsers.add('nightbot')
+	} else if (grace.user.id === getUserByAccountType('bot').id) {
+		points = 100 // Spice bot bonus!
+		stats.specialUsers.add('spicebot')
 	}
 	stats.currentComboBasePoints += points
 	stats.currentComboSize++

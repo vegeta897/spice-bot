@@ -2,10 +2,12 @@ import { type PrivateMessage } from '@twurple/chat'
 import { TwitchEvents } from '../eventSub.js'
 import { getBotSub } from '../twitchApi.js'
 import { Emotes } from './emotes.js'
+import { makeTextGraceTrainSafe } from './grace.js'
 import { ChatEvents, sendChatMessage } from './twitchChat.js'
 
 export function initWhereBot() {
 	ChatEvents.on('message', (event) => {
+		if (event.self) return
 		if (/where('?|( i))s?( (our|that|dat))? spice[ -]?bot/gi.test(event.text)) {
 			handleWhereBotPrompt(event.msg)
 			return
@@ -28,10 +30,12 @@ async function handleWhereBotPrompt(msg: PrivateMessage) {
 	if (!reply) return // No more replies to give
 	whereBotNextReplyIndex++
 	if (typeof reply === 'string') {
-		sendChatMessage(reply)
+		sendChatMessage(makeTextGraceTrainSafe(reply))
 		return
 	}
-	const sendMessageArgs: Parameters<typeof sendChatMessage> = [reply.text]
+	const sendMessageArgs: Parameters<typeof sendChatMessage> = [
+		makeTextGraceTrainSafe(reply.text),
+	]
 	if (reply.emotes) {
 		const botSub = await getBotSub()
 		for (const [find, replace] of reply.emotes) {
