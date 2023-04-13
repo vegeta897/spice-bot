@@ -15,7 +15,7 @@ import {
 } from './twitchApi.js'
 import { createExpressErrorHandler, sessionStore } from '../express.js'
 import randomstring from 'randomstring'
-import { ChatEvents } from './chat/twitchChat.js'
+import { ChatEvents, sendChatMessage } from './chat/twitchChat.js'
 import { getEventSubs } from './eventSub.js'
 import { getTwitchToken } from './streamRecord.js'
 import { getCensoredJSON } from '../db.js'
@@ -23,6 +23,7 @@ import 'highlight.js'
 import hljs from 'highlight.js/lib/core'
 import { type PrivateMessage } from '@twurple/chat'
 import { updateUserColor } from './chat/userColors.js'
+import multer from 'multer'
 
 const SCOPES: Record<AccountType, string[]> = {
 	bot: [
@@ -175,14 +176,15 @@ export function initTwitchOAuthServer(app: Express) {
 		})
 	})
 	let testUserID = 1000
-	app.post('/test', async (req, res) => {
+	const upload = multer()
+	app.post('/test', upload.none(), async (req, res) => {
 		if (
 			!DEV_MODE &&
 			req.session.username !== process.env.TWITCH_ADMIN_USERNAME
 		) {
 			return res.sendStatus(401)
 		}
-		const { command, event, log } = req.query
+		const { command, event, log, chat } = req.query
 		if (log === 'event-subs') console.log(await getEventSubs())
 		if ((command || event) && !DEV_MODE && !CHAT_TEST_MODE)
 			return res.sendStatus(400)
@@ -211,6 +213,13 @@ export function initTwitchOAuthServer(app: Express) {
 					rewardText: '',
 				})
 			// TODO: Add stream online/offline, tweets, etc
+		}
+		if (chat) {
+			const message = req.body.message
+			if (!message) return res.redirect('admin')
+			timestampLog(`Sending chat message "${message}"`)
+			sendChatMessage(message)
+			return res.redirect('admin')
 		}
 		res.sendStatus(200)
 	})

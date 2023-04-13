@@ -53,6 +53,12 @@
       <a class="button button-small" href="#" onclick="fetch('test?log=<%= log %>',{method:'POST'})">Log <%= log %></a>
       <% } %>
     </p>
+    <% if(bot.authed) { %>
+    <h3>Chat</h3>
+    <form action="test?chat=send" method="post" enctype="multipart/form-data">
+      <input name="message" type="text" required><input type="submit" value="Send" class="button button-small">
+    </form>
+    <% } %>
     <details>
       <summary>View full database</summary>
       <pre><%- db %></pre>
