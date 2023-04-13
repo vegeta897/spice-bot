@@ -37,5 +37,5 @@ export const createTrainStartEvent = (graceStats: GraceStats) => ({
 const createBaseEvent = (graceStats: GraceStats): TrainEventBaseData => ({
 	id: graceStats.id,
 	combo: graceStats.totalCombo,
-	score: graceStats.finalScore || graceStats.runningTotalScore,
+	score: graceStats.totalScore,
 })

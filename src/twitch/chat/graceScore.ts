@@ -26,7 +26,7 @@ export function updateGraceScore(stats: GraceStats, grace: Grace) {
 	stats.currentComboBasePoints += points
 	stats.currentComboSize++
 	stats.currentComboScore = getComboScore(stats)
-	stats.runningTotalScore = stats.endedCombosScore + stats.currentComboScore
+	stats.totalScore = getTotalScore(stats)
 	stats.lastGrace = grace
 }
 
@@ -39,10 +39,10 @@ function getComboScore(stats: GraceStats) {
 	)
 }
 
-export function setFinalScore(stats: GraceStats) {
-	const userCountBonus =
-		stats.runningTotalScore * ((stats.allUsers.size - 1) / 10)
-	stats.finalScore = Math.ceil(stats.runningTotalScore + userCountBonus)
+function getTotalScore(stats: GraceStats) {
+	const totalComboScore = stats.endedCombosScore + stats.currentComboScore
+	const userCountBonus = totalComboScore * ((stats.allUsers.size - 1) / 10)
+	return Math.ceil(totalComboScore + userCountBonus)
 }
 
 export function formatPoints(points: number) {

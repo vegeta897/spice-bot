@@ -5,7 +5,7 @@ import {
 	sendTrainEndEvent,
 	sendTrainStartEvent,
 } from './graceEvents.js'
-import { setFinalScore, updateGraceScore } from './graceScore.js'
+import { updateGraceScore } from './graceScore.js'
 
 export type Grace = {
 	date: Date
@@ -16,11 +16,10 @@ export type Grace = {
 export type GraceStats = {
 	id: number
 	endedCombosScore: number
-	runningTotalScore: number
+	totalScore: number
 	currentComboBasePoints: number
 	currentComboScore: number
 	currentComboSize: number
-	finalScore: number
 	currentComboUsers: Set<string>
 	allUsers: Set<string>
 	includesNightbot: boolean
@@ -50,11 +49,10 @@ function createGraceStats(): GraceStats {
 	return {
 		id: Date.now(),
 		endedCombosScore: 0,
-		runningTotalScore: 0,
+		totalScore: 0,
 		currentComboBasePoints: 0,
 		currentComboScore: 0,
 		currentComboSize: 0,
-		finalScore: 0,
 		currentComboUsers: new Set(),
 		allUsers: new Set(),
 		includesNightbot: false,
@@ -75,7 +73,6 @@ export function endGraceTrain(endUsername: string) {
 		clearStats()
 		return
 	}
-	setFinalScore(graceStats)
 	sendTrainEndEvent(graceStats, endUsername)
 	sendTrainEndMessages({
 		...graceStats,
@@ -93,7 +90,7 @@ const getBestRecord = () =>
 
 function saveRecord(stats: GraceStats) {
 	const thisRecord = {
-		score: stats.finalScore,
+		score: stats.totalScore,
 		length: stats.totalCombo,
 		users: stats.allUsers.size,
 		date: Date.now(),

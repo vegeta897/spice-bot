@@ -93,14 +93,14 @@ export async function sendTrainEndMessages({
 	endUsername,
 	userCount,
 	includesNightbot,
-	finalScore,
+	totalScore,
 	bestRecord,
 }: {
 	trainLength: number
 	endUsername: string
 	userCount: number
 	includesNightbot: boolean
-	finalScore: number
+	totalScore: number
 	bestRecord: GraceTrainRecord
 }) {
 	const newRecords: Partial<GraceTrainRecord> = {}
@@ -128,12 +128,12 @@ export async function sendTrainEndMessages({
 		message += '!'
 	}
 	sendChatMessage(message)
-	message = `GRACE SCORE: ${formatPoints(finalScore)} points`
-	if (finalScore > bestRecord.score) {
+	message = `GRACE SCORE: ${formatPoints(totalScore)} points`
+	if (totalScore > bestRecord.score) {
 		message += `, a NEW RECORD for best score!`
 		if (newRecords.length && canPrayBee) message += ` ${Emotes.PRAYBEE}`
-		newRecords.score = finalScore
-	} else if (finalScore === bestRecord.score) {
+		newRecords.score = totalScore
+	} else if (totalScore === bestRecord.score) {
 		message += `, tying the record for best score!`
 	} else {
 		message += '!'
