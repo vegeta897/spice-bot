@@ -21,6 +21,7 @@
 		"@twurple/api": "^6.1.1",
 		"@twurple/auth": "^6.1.1",
 		"@twurple/chat": "^6.1.1",
+		"@twurple/common": "^6.1.1",
 		"@twurple/eventsub-http": "^6.1.1",
 		"@twurple/eventsub-ngrok": "^6.1.1",
 		"discord.js": "^14.9.0",

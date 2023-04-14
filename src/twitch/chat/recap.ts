@@ -4,6 +4,7 @@ import { ChatEvents, sendChatMessage } from './twitchChat.js'
 import { TwitchEvents } from '../eventSub.js'
 import { getData, modifyData } from '../../db.js'
 import { DEV_MODE } from '../../util.js'
+import { parseChatMessage } from '@twurple/common'
 
 let emoteCounts: Map<string, number>
 let redeemCounts: Map<string, number>
@@ -18,7 +19,7 @@ export function initRecap() {
 			return
 		}
 		if (event.text.startsWith('!')) return // Ignore other commands
-		event.msg.parseEmotes().forEach((msgPart) => {
+		parseChatMessage(event.text, event.msg.emoteOffsets).forEach((msgPart) => {
 			if (msgPart.type !== 'emote') return
 			// Only count channel emotes
 			if (getEmoteByName(msgPart.name)) {

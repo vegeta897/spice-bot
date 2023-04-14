@@ -1,6 +1,6 @@
 import { type RefreshingAuthProvider } from '@twurple/auth'
 import { ChatClient, toUserName, PrivateMessage } from '@twurple/chat'
-import { ParsedMessageEmotePart } from '@twurple/common'
+import { parseChatMessage, ParsedMessageEmotePart } from '@twurple/common'
 import { AuthEvents, getAccountScopes, sendWhisper } from '../twitchApi.js'
 import { CHAT_TEST_MODE, DEV_MODE, timestampLog } from '../../util.js'
 import Emittery from 'emittery'
@@ -99,17 +99,18 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 		const redemption = msg.isRedemption ? ' (REDEEM)' : ''
 		const highlight = msg.isHighlight ? ' (HIGHLIGHT)' : ''
 		const cheer = msg.isCheer ? ' (CHEER)' : ''
-		const emotes = msg
-			.parseEmotes()
-			.filter((part) => part.type === 'emote') as ParsedMessageEmotePart[]
-		const emoteList =
-			emotes.length > 0
-				? ` <EMOTES: ${emotes.map((e) => e.name).join(', ')}>`
-				: ''
-		if (DEV_MODE)
+		if (DEV_MODE) {
+			const emotes = parseChatMessage(text, msg.emoteOffsets).filter(
+				(part) => part.type === 'emote'
+			) as ParsedMessageEmotePart[]
+			const emoteList =
+				emotes.length > 0
+					? ` <EMOTES: ${emotes.map((e) => e.name).join(', ')}>`
+					: ''
 			timestampLog(
 				`${broadcaster}${mod}${user}: ${text}${redemption}${highlight}${cheer}${emoteList}`
 			)
+		}
 	})
 
 	chatClient.onSubGift((channel, user, subInfo, msg) => {
