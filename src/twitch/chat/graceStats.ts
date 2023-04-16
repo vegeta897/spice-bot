@@ -1,4 +1,5 @@
 import { getData, modifyData } from '../../db.js'
+import { timestampLog } from '../../util.js'
 import { sendTrainEndMessages } from './grace.js'
 import {
 	sendTrainAddEvent,
@@ -84,6 +85,7 @@ export function endGraceTrain(endUsername: string) {
 		bestRecord: getBestRecord(),
 	})
 	saveRecord(graceStats)
+	timestampLog(`Ended grace train (${graceStats.graces.length}x)`)
 	clearStats()
 }
 
