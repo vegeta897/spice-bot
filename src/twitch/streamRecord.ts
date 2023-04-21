@@ -6,6 +6,7 @@ import { type AccountType } from './twitchApi.js'
 export type StreamRecord = {
 	streamID: string
 	startTime: number
+	endTime?: number
 	messageID?: string
 	streamStatus: 'live' | 'ended'
 	streamInfo?: boolean

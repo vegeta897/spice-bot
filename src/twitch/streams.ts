@@ -233,6 +233,8 @@ async function sendOrUpdateLiveMessage(streamRecord: StreamRecord) {
 	const messageOptions: BaseMessageOptions = {
 		embeds: [getStreamStartEmbed(streamRecord)],
 	}
+	// TODO: Merge restarted streams into a single message
+	// Add parentStreamID property to StreamRecord
 	if (streamRecord.messageID) {
 		await editStreamMessage(streamRecord.messageID, messageOptions)
 		return streamRecord.messageID
@@ -240,7 +242,17 @@ async function sendOrUpdateLiveMessage(streamRecord: StreamRecord) {
 		cleanPingButtons(streamRecord.streamID)
 		const twitchPingRole = getTwitchPingRole()
 		if (twitchPingRole) {
-			messageOptions.content = twitchPingRole.toString()
+			let restarting = false
+			// Check end time of last stream to see if this is a restart
+			const lastStream = getStreamRecords()
+				.filter((sr) => sr.streamID !== streamRecord.streamID)
+				.at(-1)
+			if (lastStream) {
+				const lastStreamEndTime = lastStream.endTime || lastStream.startTime
+				if (Date.now() - lastStreamEndTime < 30 * 60 * 1000) restarting = true
+			}
+			// Don't ping if the stream was restarted
+			if (!restarting) messageOptions.content = twitchPingRole.toString()
 			messageOptions.components = getTwitchPingButtons()
 			streamRecord.pingButtons = 'posted'
 		}
@@ -259,6 +271,7 @@ async function endStream(streamRecord: StreamRecord, video: HelixVideo) {
 		streamStatus: 'ended',
 		videoInfo: true,
 		thumbnailURL: video.getThumbnailUrl(360, 180),
+		endTime: streamRecord.startTime + video.durationInSeconds * 1000,
 	}
 	const messageOptions: BaseMessageOptions = {
 		embeds: [getStreamEndEmbed(updatedRecord, video)],
