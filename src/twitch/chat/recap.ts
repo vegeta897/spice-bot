@@ -32,7 +32,9 @@ export function initRecap() {
 		redeemCounts.set(event.title, (redeemCounts.get(event.title) || 0) + 1)
 		modifyData({ redeemCounts: [...redeemCounts.entries()] })
 	})
-	TwitchEvents.on('streamOnline', () => clearCounts())
+	TwitchEvents.on('streamOnline', ({ downtime }) => {
+		if (downtime > 10 * 60 * 1000) clearCounts()
+	})
 }
 
 function clearCounts() {

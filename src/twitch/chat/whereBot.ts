@@ -13,7 +13,9 @@ export function initWhereBot() {
 			return
 		}
 	})
-	TwitchEvents.on('streamOnline', () => reset())
+	TwitchEvents.on('streamOnline', ({ downtime }) => {
+		if (downtime > 5 * 60 * 1000) reset()
+	})
 }
 
 async function handleWhereBotPrompt(msg: PrivateMessage) {

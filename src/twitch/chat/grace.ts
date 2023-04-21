@@ -31,11 +31,13 @@ export function initGrace() {
 			type: 'redeem',
 		})
 	})
-	TwitchEvents.on('streamOnline', () => {
-		overlayPosition = 'bottom'
-		clearStats()
+	TwitchEvents.on('streamOnline', ({ downtime }) => {
+		if (downtime > 5 * 60 * 1000) {
+			overlayPosition = 'bottom'
+			clearStats()
+		}
 	})
-	TwitchEvents.on('streamOffline', () => endGraceTrain('Abby'))
+	// TwitchEvents.on('streamOffline', () => endGraceTrain('Abby'))
 }
 
 let overlayPosition: OverlayData['position'] = 'bottom'

@@ -22,8 +22,8 @@ export function initTally() {
 			}
 		}
 	})
-	TwitchEvents.on('streamOnline', () => {
-		recentMessages.length = 0
+	TwitchEvents.on('streamOnline', ({ downtime }) => {
+		if (downtime > 5 * 60 * 1000) recentMessages.length = 0
 	})
 }
 

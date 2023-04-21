@@ -29,7 +29,7 @@ const scopedEventSubs: Map<
 > = new Map()
 
 export const TwitchEvents = new Emittery<{
-	streamOnline: { id: string; displayName: string }
+	streamOnline: { id: string; displayName: string; downtime: number }
 	streamOffline: { displayName: string }
 }>()
 
@@ -94,9 +94,20 @@ async function initGlobalEventSubs(listener: EventSubListener) {
 	listener.onStreamOnline(streamerUser, async (event) => {
 		if (DEV_MODE) event = getMockStreamOnlineEvent(streamerUser.id)
 		if (event.broadcasterId !== streamerUser.id) return // Just to be safe
+		let downtime = Infinity
+		// TODO: Move this to a method in streamRecord.ts
+		const latestStream = getStreamRecords()
+			.filter((sr) => sr.streamID !== event.id)
+			.at(-1)
+		if (latestStream) {
+			downtime =
+				event.startDate.getTime() -
+				(latestStream.endTime || latestStream.startTime)
+		}
 		TwitchEvents.emit('streamOnline', {
 			id: event.id,
 			displayName: event.broadcasterDisplayName,
+			downtime,
 		})
 	})
 	listener.onStreamOffline(streamerUser, async (event) => {
