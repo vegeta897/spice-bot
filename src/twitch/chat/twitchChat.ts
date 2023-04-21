@@ -65,6 +65,7 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 	chatClient = new ChatClient({
 		authProvider,
 		channels: [process.env.TWITCH_STREAMER_USERNAME],
+		rejoinChannelsOnReconnect: true,
 	})
 	chatClient.connect()
 
