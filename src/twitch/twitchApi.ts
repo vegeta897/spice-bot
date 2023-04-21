@@ -85,6 +85,23 @@ export async function createAuthAndApiClient() {
 	setInterval(() => {
 		accountTypes.forEach((accountType) => verifyToken(accountType))
 	}, 60 * 60 * 1000) // Verify tokens hourly
+	if (DEV_MODE)
+		apiClient.onRequest(({ httpStatus, options, resolvedUserId }) => {
+			const userType = resolvedUserId && getAccountTypeForId(resolvedUserId)
+			let log = ''
+			if (userType) log += `${userType} account `
+			const { method, query = [], scopes = [], url } = options
+			if (method) log += `sent ${method} request `
+			log += `to URL ${url} `
+			const queryParams = Object.entries(query)
+			if (queryParams.length > 0)
+				log += `with param(s) ${queryParams.map(
+					([name, value]) => `${name}=${value}`
+				)} `
+			if (scopes.length > 0) log += ` using scope(s) ${scopes.join(',')} `
+			log += `(${httpStatus})`
+			timestampLog(log)
+		})
 	return { authProvider, apiClient }
 }
 
