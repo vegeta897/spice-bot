@@ -23,7 +23,7 @@ let tempLatestTweetID: string | null = null
 export async function initTwitterScraper() {
 	const browser = await puppeteer.launch()
 	page = await browser.newPage()
-	await setPageRequestInterceptions(page)
+	// await setPageRequestInterceptions(page)
 	await page.setViewport({ width: 1600, height: 3000 })
 	console.log('Tweet scraper connected')
 	checkForTweets()
@@ -39,12 +39,13 @@ async function checkForTweets() {
 		)
 		return
 	}
-	if (DEV_MODE) timestampLog('checking for tweets')
+	// if (DEV_MODE) timestampLog('checking for tweets')
 	checkingForTweets = true
 	try {
 		await page.goto(`https://twitter.com/${USERNAME}`)
 	} catch (e) {
 		timestampLog(`Error navigating to twitter.com/${USERNAME}`, e)
+		checkingForTweets = false
 		return
 	}
 	try {
@@ -53,6 +54,7 @@ async function checkForTweets() {
 		timestampLog(
 			`No <article> element found! Does ${USERNAME} have no tweets, or are they protected?`
 		)
+		checkingForTweets = false
 		return
 	}
 	const recordedTweets = getTweetRecords()
@@ -63,7 +65,10 @@ async function checkForTweets() {
 		page,
 		tempLatestTweetID || oldestRecordedTweet?.tweet_id
 	)
-	if (scrapedTweets.length === 0) return
+	if (scrapedTweets.length === 0) {
+		checkingForTweets = false
+		return
+	}
 	scrapedTweets.reverse() // Sort oldest to newest
 	if (INCLUDE_RETWEETS) createNewRetweetIDs(scrapedTweets)
 	const prevTempLatestTweetID = tempLatestTweetID
@@ -269,6 +274,7 @@ type ScrapedTweet = {
 }
 
 // Ignore requests for unnecessary resources like media and fonts
+// This causes a memory leak so we're not doing it anymore
 async function setPageRequestInterceptions(page: puppeteer.Page) {
 	await page.setRequestInterception(true)
 	page.on('request', (interceptedRequest) => {
