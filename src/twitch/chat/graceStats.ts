@@ -10,7 +10,7 @@ import { updateGraceScore } from './graceScore.js'
 
 export type Grace = {
 	date: Date
-	user: { id: string; color: string }
+	user: { id: string; name: string; color: string }
 	type: 'redeem' | 'highlight' | 'normal'
 }
 
@@ -22,7 +22,7 @@ export type GraceStats = {
 	currentComboScore: number
 	currentComboSize: number
 	currentComboUsers: Set<string>
-	allUsers: Set<string>
+	allUsers: Map<string, { name: string; count: number }>
 	specialUsers: Set<SpecialUser>
 	totalCombo: number
 	graces: Grace[]
@@ -40,6 +40,13 @@ export function addGrace({ date, user, type }: Grace) {
 		if (graceStats.graces.at(-1)?.user.id === user.id) return
 	}
 	graceStats.graces.push({ date, user, type })
+	const allUsersEntry = graceStats.allUsers.get(user.id)
+	if (!allUsersEntry) {
+		graceStats.allUsers.set(user.id, { name: user.name, count: 1 })
+	} else {
+		allUsersEntry.count++
+		allUsersEntry.name = user.name // They might change their name mid-train!
+	}
 	updateGraceScore(graceStats, { date, user, type })
 	if (graceStats.graces.length === MIN_TRAIN_LENGTH) {
 		sendTrainStartEvent(graceStats)
@@ -57,7 +64,7 @@ function createGraceStats(): GraceStats {
 		currentComboScore: 0,
 		currentComboSize: 0,
 		currentComboUsers: new Set(),
-		allUsers: new Set(),
+		allUsers: new Map(),
 		specialUsers: new Set(),
 		totalCombo: 0,
 		graces: [],
@@ -77,10 +84,17 @@ export function endGraceTrain(endUsername: string) {
 		return
 	}
 	sendTrainEndEvent(graceStats, endUsername)
+	let topGracer: null | [string, number] = null
+	if (graceStats.graces.length >= 20 && graceStats.allUsers.size > 4) {
+		const [first, second] = [...graceStats.allUsers.values()].sort(
+			(a, b) => b.count - a.count
+		)
+		if (first.count > second.count) topGracer = [first.name, first.count]
+	}
 	sendTrainEndMessages({
 		...graceStats,
 		trainLength: graceStats.graces.length,
-		userCount: graceStats.allUsers.size,
+		topGracer,
 		endUsername,
 		bestRecord: getBestRecord(),
 	})

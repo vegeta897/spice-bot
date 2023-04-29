@@ -27,7 +27,11 @@ export function initGrace() {
 		if (!botInChat()) return
 		addGrace({
 			date: event.date,
-			user: { id: event.userID, color: getUserColor(event.userID) },
+			user: {
+				id: event.userID,
+				name: event.username,
+				color: getUserColor(event.userID),
+			},
 			type: 'redeem',
 		})
 	})
@@ -63,7 +67,11 @@ function onMessage(event: TwitchMessageEvent) {
 	if (isGraceText(event.text)) {
 		addGrace({
 			date: event.date,
-			user: { id: event.userID, color: event.userColor },
+			user: {
+				id: event.userID,
+				name: event.msg.userInfo.displayName,
+				color: event.userColor,
+			},
 			type: event.msg.isHighlight ? 'highlight' : 'normal',
 		})
 		return
@@ -96,13 +104,14 @@ function isGraceText(text: string) {
 export async function sendTrainEndMessages({
 	trainLength,
 	endUsername,
-	userCount,
+	allUsers,
 	specialUsers,
+	topGracer,
 	totalScore,
 	bestRecord,
-}: Pick<GraceStats, 'specialUsers' | 'totalScore'> & {
+}: GraceStats & {
 	trainLength: number
-	userCount: number
+	topGracer: [string, number] | null
 	endUsername: string
 	bestRecord: GraceTrainRecord
 }) {
@@ -125,18 +134,24 @@ export async function sendTrainEndMessages({
 		message += '!'
 	}
 	sendChatMessage(message)
-	message = `${userCount} people contributed`
+	message = `${allUsers.size} people contributed`
 	if (specialUsers.has('nightbot')) {
-		message += `, including NIGHTBOT!? 🤖`
+		message += `, including NIGHTBOT! 🤖`
+		sendChatMessage(message)
 	} else if (specialUsers.has('spicebot')) {
 		message += `, including me, Spice Bot! 🌶️`
-	} else if (userCount > bestRecord.users) {
+		sendChatMessage(message)
+	} else if (allUsers.size > bestRecord.users) {
 		message += `, the most yet!`
-		newRecords.users = userCount
+		newRecords.users = allUsers.size
+		sendChatMessage(message)
 	} else {
-		message += '!'
+		// Don't send message if nothing notable about the contributors
 	}
-	sendChatMessage(message)
+	if (topGracer) {
+		message = `${topGracer[0]} added ${topGracer[1]} graces!`
+		sendChatMessage(message)
+	}
 	message = `GRACE SCORE: ${formatPoints(totalScore)} points`
 	if (totalScore > bestRecord.score) {
 		message += `, a NEW RECORD for best score!`

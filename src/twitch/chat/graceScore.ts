@@ -10,7 +10,6 @@ const NightbotUserID = '19264788'
 
 export function updateGraceScore(stats: GraceStats, grace: Grace) {
 	stats.totalCombo++
-	stats.allUsers.add(grace.user.id)
 	if (stats.lastGrace && stats.lastGrace.type !== grace.type) {
 		stats.endedCombosScore += stats.currentComboScore
 		stats.currentComboBasePoints = 0
