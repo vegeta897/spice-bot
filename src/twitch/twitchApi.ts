@@ -182,6 +182,7 @@ export async function botIsMod() {
 }
 
 export async function getBotSub() {
+	if (DEV_MODE) return { tier: 1000 }
 	// Maybe replace this with a db value, updated with eventsub?
 	// Then it can be cached and not require an API call every time
 	// TODO: At the very least we can set a 30 day cache expiration when bot is gifted a sub
@@ -203,6 +204,7 @@ function getAccountTypeForId(id: string) {
 }
 
 export async function botIsFollowingStreamer() {
+	if (DEV_MODE) return true
 	try {
 		const botFollows = await apiClient.channels.getFollowedChannels(
 			helixUsers.bot,
