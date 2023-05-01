@@ -1,15 +1,15 @@
 import { randomElement } from '../../util.js'
 import { TwitchEvents } from '../eventSub.js'
 import { Emotes, canUseEmote } from './emotes.js'
-import { GraceTrainEvents, OverlayData } from './graceEvents.js'
+import { TrainEvents, OverlayData } from './trains.js'
 import { formatPoints } from './graceScore.js'
 import {
+	type GraceStats,
 	type GraceTrainRecord,
-	addGrace,
-	clearStats,
-	endGraceTrain,
-	getCurrentTrain,
-	GraceStats,
+	onGrace,
+	clearGraceStats,
+	onNonGrace,
+	getCurrentGraceTrain,
 } from './graceStats.js'
 import {
 	botInChat,
@@ -18,6 +18,7 @@ import {
 	type TwitchMessageEvent,
 } from './twitchChat.js'
 import { getUserColor } from './userColors.js'
+import { getCurrentHypeTrain } from './hype.js'
 
 export const GRACE = 'GRACE'
 
@@ -25,7 +26,7 @@ export function initGrace() {
 	ChatEvents.on('message', onMessage)
 	ChatEvents.on('redemption', (event) => {
 		if (!botInChat()) return
-		addGrace({
+		onGrace({
 			date: event.date,
 			user: {
 				id: event.userID,
@@ -38,7 +39,7 @@ export function initGrace() {
 	TwitchEvents.on('streamOnline', ({ downtime }) => {
 		if (downtime > 5 * 60 * 1000) {
 			overlayPosition = 'bottom'
-			clearStats()
+			clearGraceStats()
 		}
 	})
 	// TwitchEvents.on('streamOffline', () => endGraceTrain('Abby'))
@@ -60,12 +61,12 @@ function onMessage(event: TwitchMessageEvent) {
 		} else {
 			overlayPosition = overlayPosition === 'top' ? 'bottom' : 'top'
 		}
-		GraceTrainEvents.emit('overlay', { position: overlayPosition })
+		TrainEvents.emit('overlay', { position: overlayPosition })
 		sendChatMessage(`OK, moving overlay to the ${overlayPosition}`)
 		return
 	}
 	if (isGraceText(event.text)) {
-		addGrace({
+		onGrace({
 			date: event.date,
 			user: {
 				id: event.userID,
@@ -76,8 +77,7 @@ function onMessage(event: TwitchMessageEvent) {
 		})
 		return
 	}
-	// A non-grace message ends the train
-	endGraceTrain(event.msg.userInfo.displayName)
+	onNonGrace(event.msg.userInfo.displayName)
 }
 
 function parsePositionCommand(event: TwitchMessageEvent) {
@@ -166,7 +166,8 @@ export async function sendTrainEndMessages({
 }
 
 export const makeTextGraceTrainSafe = (text: string) => {
-	if (!getCurrentTrain() || isGraceText(text)) return text
+	if (!getCurrentGraceTrain() || getCurrentHypeTrain() || isGraceText(text))
+		return text
 	return `${text} (${randomElement(['', 'also ', 'and, '])}${randomElement([
 		'grace',
 		'GRACE',

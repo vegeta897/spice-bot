@@ -1,11 +1,7 @@
 import { getData, modifyData } from '../../db.js'
 import { timestampLog } from '../../util.js'
 import { sendTrainEndMessages } from './grace.js'
-import {
-	sendTrainAddEvent,
-	sendTrainEndEvent,
-	sendTrainStartEvent,
-} from './graceEvents.js'
+import { startGraceTrain, addToGraceTrain, endGraceTrain } from './trains.js'
 import { updateGraceScore } from './graceScore.js'
 
 export type Grace = {
@@ -15,16 +11,15 @@ export type Grace = {
 }
 
 export type GraceStats = {
-	id: number
-	endedCombosScore: number
+	totalCombo: number
 	totalScore: number
 	currentComboBasePoints: number
 	currentComboScore: number
 	currentComboSize: number
 	currentComboUsers: Set<string>
+	endedCombosScore: number
 	allUsers: Map<string, { name: string; count: number }>
 	specialUsers: Set<SpecialUser>
-	totalCombo: number
 	graces: Grace[]
 	lastGrace: Grace | null
 }
@@ -33,7 +28,7 @@ export type SpecialUser = 'nightbot' | 'spicebot'
 
 let graceStats: GraceStats | null = null
 
-export function addGrace({ date, user, type }: Grace) {
+export function onGrace({ date, user, type }: Grace) {
 	graceStats ||= createGraceStats()
 	if (graceStats.graces.length > 0) {
 		// Don't add repeated user
@@ -49,24 +44,27 @@ export function addGrace({ date, user, type }: Grace) {
 	}
 	updateGraceScore(graceStats, { date, user, type })
 	if (graceStats.graces.length === MIN_TRAIN_LENGTH) {
-		sendTrainStartEvent(graceStats)
+		startGraceTrain(getGraceTrainStartData(graceStats))
 	} else if (graceStats.graces.length > MIN_TRAIN_LENGTH) {
-		sendTrainAddEvent(graceStats)
+		addToGraceTrain({
+			combo: graceStats.totalCombo,
+			score: graceStats.totalScore,
+			color: user.color,
+		})
 	}
 }
 
 function createGraceStats(): GraceStats {
 	return {
-		id: Date.now(),
-		endedCombosScore: 0,
+		totalCombo: 0,
 		totalScore: 0,
 		currentComboBasePoints: 0,
 		currentComboScore: 0,
 		currentComboSize: 0,
 		currentComboUsers: new Set(),
+		endedCombosScore: 0,
 		allUsers: new Map(),
 		specialUsers: new Set(),
-		totalCombo: 0,
 		graces: [],
 		lastGrace: null,
 	}
@@ -74,16 +72,20 @@ function createGraceStats(): GraceStats {
 
 const MIN_TRAIN_LENGTH = 5
 
-export function endGraceTrain(endUsername: string) {
+export function onNonGrace(endUsername: string) {
 	if (!graceStats) return
 	if (
 		graceStats.graces.length < MIN_TRAIN_LENGTH ||
 		graceStats.allUsers.size < 2
 	) {
-		clearStats()
+		clearGraceStats()
 		return
 	}
-	sendTrainEndEvent(graceStats, endUsername)
+	endGraceTrain({
+		combo: graceStats.totalCombo,
+		score: graceStats.totalScore,
+		username: endUsername,
+	})
 	let topGracer: null | [string, number] = null
 	if (graceStats.graces.length >= 20 && graceStats.allUsers.size > 4) {
 		const [first, second] = [...graceStats.allUsers.values()].sort(
@@ -100,7 +102,7 @@ export function endGraceTrain(endUsername: string) {
 	})
 	saveRecord(graceStats)
 	timestampLog(`Ended grace train (${graceStats.graces.length}x)`)
-	clearStats()
+	clearGraceStats()
 }
 
 const getBestRecord = () =>
@@ -118,11 +120,18 @@ function saveRecord(stats: GraceStats) {
 	modifyData({ graceTrainRecords: records.slice(0, 5) })
 }
 
-export const getCurrentTrain = () => {
-	if (graceStats && graceStats.totalCombo >= MIN_TRAIN_LENGTH) return graceStats
+const getGraceTrainStartData = (stats: GraceStats) => ({
+	combo: stats.totalCombo,
+	score: stats.totalScore,
+	colors: stats.graces.map((g) => g.user.color),
+})
+
+export const getCurrentGraceTrain = () => {
+	if (graceStats && graceStats.totalCombo >= MIN_TRAIN_LENGTH)
+		return getGraceTrainStartData(graceStats)
 }
 
-export function clearStats() {
+export function clearGraceStats() {
 	graceStats = null
 }
 
