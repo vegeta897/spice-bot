@@ -19,8 +19,11 @@ type DBData = {
 	twitchTokens: Record<AccountType, AccessToken | null>
 	streamOverlayAuthKeys: string[]
 	graceTrainRecords: GraceTrainRecord[]
-	emoteCounts: [string, number][]
-	redeemCounts: [string, number][]
+	streamRecap: {
+		emoteCounts: [string, number][]
+		redeemCounts: [string, number][]
+		graceTrainCount: number
+	}
 }
 
 const filename = DEV_MODE ? 'db-dev.json' : 'db.json'
@@ -39,8 +42,7 @@ export async function initDB() {
 		twitchTokens: { bot: null, streamer: null, admin: null },
 		streamOverlayAuthKeys: [],
 		graceTrainRecords: [],
-		emoteCounts: [],
-		redeemCounts: [],
+		streamRecap: { emoteCounts: [], redeemCounts: [], graceTrainCount: 0 },
 	}
 	await writeData() // Creates the initial db file if it doesn't exist
 	console.log('Database connected')

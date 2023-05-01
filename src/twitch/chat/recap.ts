@@ -5,13 +5,17 @@ import { TwitchEvents } from '../eventSub.js'
 import { getData, modifyData } from '../../db.js'
 import { DEV_MODE } from '../../util.js'
 import { parseChatMessage } from '@twurple/common'
+import { TrainEvents } from './trains.js'
 
 let emoteCounts: Map<string, number>
 let redeemCounts: Map<string, number>
+let graceTrainCount = 0
 
 export function initRecap() {
-	emoteCounts = new Map(getData().emoteCounts)
-	redeemCounts = new Map(getData().redeemCounts)
+	const recapData = getData().streamRecap
+	emoteCounts = new Map(recapData.emoteCounts)
+	redeemCounts = new Map(recapData.redeemCounts)
+	graceTrainCount = recapData.graceTrainCount
 	if (DEV_MODE) clearCounts()
 	ChatEvents.on('message', (event) => {
 		if (event.text.toLowerCase() === '!recap' && event.mod) {
@@ -26,22 +30,36 @@ export function initRecap() {
 				emoteCounts.set(msgPart.name, (emoteCounts.get(msgPart.name) || 0) + 1)
 			}
 		})
-		modifyData({ emoteCounts: [...emoteCounts.entries()] })
+		saveCounts()
 	})
 	ChatEvents.on('redemption', (event) => {
 		redeemCounts.set(event.title, (redeemCounts.get(event.title) || 0) + 1)
-		modifyData({ redeemCounts: [...redeemCounts.entries()] })
+		saveCounts()
+	})
+	TrainEvents.on('start', () => {
+		graceTrainCount++
+		saveCounts()
 	})
 	TwitchEvents.on('streamOnline', ({ downtime }) => {
 		if (downtime > 10 * 60 * 1000) clearCounts()
 	})
 }
 
+function saveCounts() {
+	modifyData({
+		streamRecap: {
+			emoteCounts: [...emoteCounts.entries()],
+			redeemCounts: [...redeemCounts.entries()],
+			graceTrainCount,
+		},
+	})
+}
+
 function clearCounts() {
 	emoteCounts.clear()
 	redeemCounts.clear()
-	modifyData({ emoteCounts: [] })
-	modifyData({ redeemCounts: [] })
+	graceTrainCount = 0
+	saveCounts()
 }
 
 let commandLastUsed = 0
@@ -53,6 +71,7 @@ export async function sendRecap() {
 	commandLastUsed = now
 	sendChatMessage(`STREAM RECAP!`)
 	const usableEmotes = await getUsableEmotes()
+	console.log(usableEmotes)
 	const canPoggers = getEmoteByName(Emotes.POGGERS, usableEmotes)
 	const [mostUsedEmoteName, mostUsedEmoteTimes] = [
 		...emoteCounts.entries(),
@@ -72,12 +91,16 @@ export async function sendRecap() {
 		sendChatMessage(pogSogRatioMessage)
 	}
 	const graces = redeemCounts.get(GRACE) || 0
-	if (graces > 0)
-		sendChatMessage(
-			`GRACE count: ${graces} ${
-				getEmoteByName(Emotes.PRAYBEE, usableEmotes) ? Emotes.PRAYBEE : ''
-			}`
-		)
+	if (graces > 0) {
+		let graceMessage = `GRACE count: ${graces} `
+		if (graceTrainCount > 0)
+			graceMessage += `(${graceTrainCount} train${
+				graceTrainCount > 1 ? 's!' : ''
+			}) `
+		if (getEmoteByName(Emotes.PRAYBEE, usableEmotes))
+			graceMessage += Emotes.PRAYBEE
+		sendChatMessage(graceMessage)
+	}
 	const hydroChecks = redeemCounts.get('Hydration Check!') || 0
 	if (hydroChecks > 0)
 		sendChatMessage(
