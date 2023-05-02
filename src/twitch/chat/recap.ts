@@ -93,10 +93,7 @@ export async function sendRecap() {
 	const graces = redeemCounts.get(GRACE) || 0
 	if (graces > 0) {
 		let graceMessage = `GRACE count: ${graces} `
-		if (graceTrainCount > 0)
-			graceMessage += `(${graceTrainCount} train${
-				graceTrainCount > 1 ? 's!' : ''
-			}) `
+		if (graceTrainCount > 1) graceMessage += `(${graceTrainCount} trains!) `
 		if (getEmoteByName(Emotes.PRAYBEE, usableEmotes))
 			graceMessage += Emotes.PRAYBEE
 		sendChatMessage(graceMessage)
