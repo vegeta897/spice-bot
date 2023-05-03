@@ -3,7 +3,7 @@ import { GRACE } from './grace.js'
 import { ChatEvents, sendChatMessage } from './twitchChat.js'
 import { TwitchEvents } from '../eventSub.js'
 import { getData, modifyData } from '../../db.js'
-import { DEV_MODE } from '../../util.js'
+import { DEV_MODE, timestampLog } from '../../util.js'
 import { parseChatMessage } from '@twurple/common'
 import { TrainEvents } from './trains.js'
 
@@ -69,9 +69,9 @@ export async function sendRecap() {
 	const now = Date.now()
 	if (now - commandLastUsed < COOLDOWN) return
 	commandLastUsed = now
+	timestampLog('Sending stream recap')
 	sendChatMessage(`STREAM RECAP!`)
 	const usableEmotes = await getUsableEmotes()
-	console.log(usableEmotes)
 	const canPoggers = getEmoteByName(Emotes.POGGERS, usableEmotes)
 	const [mostUsedEmoteName, mostUsedEmoteTimes] = [
 		...emoteCounts.entries(),
