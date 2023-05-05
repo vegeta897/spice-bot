@@ -23,13 +23,14 @@ export type HypeTrainData = HypeEventBaseData & {
 	contributions: HypeProgress[]
 }
 type HypeTrainAddData = HypeEventBaseData & { contribution?: HypeProgress }
+type HypeTrainEndData = Omit<HypeEventBaseData, 'progress' | 'goal'>
 
 export type TrainStartData = ID &
 	RequireAtLeastOne<{ grace: GraceTrainData; hype: HypeTrainData }>
 export type TrainAddData = ID &
 	RequireAtLeastOne<{ grace: GraceTrainAddData; hype: HypeTrainAddData }>
 export type TrainEndData = ID &
-	RequireAtLeastOne<{ grace: GraceTrainEndData; hype: HypeEventBaseData }>
+	RequireAtLeastOne<{ grace: GraceTrainEndData; hype: HypeTrainEndData }>
 export type OverlayData = { position: 'top' | 'bottom' }
 
 export const TrainEvents = new Emittery<{
@@ -69,7 +70,7 @@ export function addToHypeTrain(hype: HypeTrainAddData) {
 	TrainEvents.emit('add', { id: currentTrainID, hype })
 }
 
-export function endHypeTrain(hype: HypeEventBaseData) {
+export function endHypeTrain(hype: HypeTrainEndData) {
 	if (!currentTrainID) return
 	TrainEvents.emit('end', { id: currentTrainID, hype })
 	currentTrainID = null

@@ -24,6 +24,7 @@ import hljs from 'highlight.js/lib/core'
 import { type PrivateMessage } from '@twurple/chat'
 import { updateUserColor } from './chat/userColors.js'
 import multer from 'multer'
+import { testHypeEnd, testHypeProgress } from './chat/hype.js'
 
 const SCOPES: Record<AccountType, string[]> = {
 	bot: [
@@ -155,7 +156,7 @@ export function initTwitchOAuthServer(app: Express) {
 			},
 			chatTestMode: DEV_MODE || CHAT_TEST_MODE,
 			testCommands: ['recap', 'tally'],
-			testEvents: ['grace'],
+			testEvents: ['grace', 'hype-progress', 'hype-end'],
 			testLogs: ['event-subs'],
 			db: hljs.highlight(getCensoredJSON(), { language: 'json' }).value,
 		})
@@ -213,6 +214,8 @@ export function initTwitchOAuthServer(app: Express) {
 					status: '',
 					rewardText: '',
 				})
+			if (event === 'hype-progress') testHypeProgress()
+			if (event === 'hype-end') testHypeEnd()
 			// TODO: Add stream online/offline, tweets, etc
 		}
 		if (chat) {

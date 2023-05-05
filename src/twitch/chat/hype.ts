@@ -5,9 +5,15 @@ import type {
 	EventSubChannelHypeTrainProgressEvent,
 } from '@twurple/eventsub-base'
 import Emittery from 'emittery'
-import { DEV_MODE, timestampLog } from '../../util.js'
-import { HypeTrainData, addToHypeTrain, endHypeTrain } from './trains.js'
+import { DEV_MODE, randomIntRange, timestampLog } from '../../util.js'
+import {
+	HypeTrainData,
+	addToHypeTrain,
+	endHypeTrain,
+	startHypeTrain,
+} from './trains.js'
 import { getUserColor } from './userColors.js'
+import randomstring from 'randomstring'
 
 export const HypeEvents = new Emittery<{
 	begin: EventSubChannelHypeTrainBeginEvent
@@ -45,6 +51,7 @@ Top Contribs: ${listHypeContributions(event.topContributors)}`)
 		timestampLog('Ignoring hype train progress event for ended train')
 		return
 	}
+	const newTrain = !hypeStats
 	hypeStats ||= createHypeStats(event.id)
 	if (!eventStatsAreOutdated(event)) {
 		hypeStats.level = event.level
@@ -58,10 +65,12 @@ Top Contribs: ${listHypeContributions(event.topContributors)}`)
 	) {
 		const contribution = createHypeContribution(event.lastContribution)
 		hypeStats.contributions.push(contribution)
-		addToHypeTrain({ ...hypeStats, contribution })
+		if (newTrain) startHypeTrain(hypeStats)
+		else addToHypeTrain({ ...hypeStats, contribution })
 	} else {
 		// Do not include cheers less than 100 bits in the contributions
-		addToHypeTrain(hypeStats)
+		if (newTrain) startHypeTrain(hypeStats)
+		else addToHypeTrain(hypeStats)
 	}
 })
 
@@ -74,7 +83,7 @@ Top Contribs: ${listHypeContributions(event.topContributors)}`)
 	if (!hypeStats) return
 	hypeStats.level = event.level
 	hypeStats.total = event.total
-	endHypeTrain(hypeStats)
+	endHypeTrain({ level: hypeStats.level, total: hypeStats.total })
 	endedHypeTrainID = hypeStats.id
 	hypeStats = null
 })
@@ -89,7 +98,7 @@ function createHypeContribution(
 	const type = lastContribution.type === 'subscription' ? 'subs' : 'bits'
 	let amount = lastContribution.total
 	// In case subs are a # of subs instead of the bits equivalent
-	if (type === 'subs' && amount < 500) amount *= 500
+	if (type === 'subs' && amount >= 500) amount = Math.round(amount / 500)
 	const color = getUserColor(lastContribution.userId)
 	return { type, amount, color }
 }
@@ -112,6 +121,58 @@ const formatHypeContribution = ({
 }: EventSubChannelHypeTrainContribution) =>
 	`${userDisplayName}:${type}:${total}`
 
+let lastTestUserID = 1000
+export function testHypeProgress() {
+	const type = Math.random() < 0.7 ? 'subscription' : 'bits'
+	const total =
+		type === 'bits' ? randomIntRange(1, 20) * 100 : randomIntRange(1, 5) * 500
+	const lastContribution = {
+		type,
+		total,
+		userDisplayName: `TestUser${lastTestUserID}`,
+		userId: `${lastTestUserID++}`,
+	}
+	if (hypeStats) {
+		const overGoal =
+			hypeStats.progress + lastContribution.total - hypeStats.goal
+		HypeEvents.emit('progress', {
+			id: hypeStats.id,
+			level: hypeStats.level + (overGoal >= 0 ? 1 : 0),
+			goal: hypeStats.goal + (overGoal >= 0 ? 500 : 0),
+			total: hypeStats.total + lastContribution.total,
+			progress:
+				overGoal >= 0 ? overGoal : hypeStats.progress + lastContribution.total,
+			lastContribution,
+			topContributors: [lastContribution],
+		} as unknown as EventSubChannelHypeTrainProgressEvent)
+	} else {
+		HypeEvents.emit('progress', {
+			id: randomstring.generate(12),
+			level: 1,
+			goal: 1500,
+			total: lastContribution.total,
+			progress: 0,
+			lastContribution,
+			topContributors: [lastContribution],
+		} as unknown as EventSubChannelHypeTrainProgressEvent)
+	}
+}
+
+export function testHypeEnd() {
+	const lastContribution = {
+		total: 500,
+		type: 'bits',
+		userDisplayName: `TestUser${lastTestUserID}`,
+		userId: `${lastTestUserID}`,
+	}
+	HypeEvents.emit('end', {
+		id: hypeStats?.id || endedHypeTrainID!,
+		level: hypeStats?.level || 3,
+		total: hypeStats?.total || 4600,
+		lastContribution,
+		topContributors: [lastContribution],
+	} as unknown as EventSubChannelHypeTrainEndEvent)
+}
 /*
 
 Twitch API docs are not very clear about how subs work in hype trains
