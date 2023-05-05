@@ -8,7 +8,7 @@ import {
 	type GraceTrainRecord,
 	onGrace,
 	clearGraceStats,
-	onNonGrace,
+	breakGraceTrain,
 	getCurrentGraceTrain,
 } from './graceStats.js'
 import {
@@ -77,7 +77,7 @@ function onMessage(event: TwitchMessageEvent) {
 		})
 		return
 	}
-	onNonGrace(event.msg.userInfo.displayName)
+	breakGraceTrain(event.msg.userInfo.displayName)
 }
 
 function parsePositionCommand(event: TwitchMessageEvent) {
