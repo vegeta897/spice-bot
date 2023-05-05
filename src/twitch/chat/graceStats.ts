@@ -3,6 +3,7 @@ import { timestampLog } from '../../util.js'
 import { sendTrainEndMessages } from './grace.js'
 import { startGraceTrain, addToGraceTrain, endGraceTrain } from './trains.js'
 import { updateGraceScore } from './graceScore.js'
+import { getCurrentHypeTrain } from './hype.js'
 
 export type Grace = {
 	date: Date
@@ -22,6 +23,7 @@ export type GraceStats = {
 	specialUsers: Set<SpecialUser>
 	graces: Grace[]
 	lastGrace: Grace | null
+	hyped: boolean
 }
 
 export type SpecialUser = 'nightbot' | 'spicebot'
@@ -30,6 +32,7 @@ let graceStats: GraceStats | null = null
 
 export function onGrace({ date, user, type }: Grace) {
 	graceStats ||= createGraceStats()
+	if (getCurrentHypeTrain()) graceStats.hyped = true
 	if (graceStats.graces.length > 0) {
 		// Don't add repeated user
 		if (graceStats.graces.at(-1)?.user.id === user.id) return
@@ -43,9 +46,10 @@ export function onGrace({ date, user, type }: Grace) {
 		allUsersEntry.name = user.name // They might change their name mid-train!
 	}
 	updateGraceScore(graceStats, { date, user, type })
-	if (graceStats.graces.length === MIN_TRAIN_LENGTH) {
+	const minTrainLength = graceStats.hyped ? 1 : MIN_TRAIN_LENGTH
+	if (graceStats.graces.length === minTrainLength) {
 		startGraceTrain(getGraceTrainStartData(graceStats))
-	} else if (graceStats.graces.length > MIN_TRAIN_LENGTH) {
+	} else if (graceStats.graces.length > minTrainLength) {
 		addToGraceTrain({
 			combo: graceStats.totalCombo,
 			score: graceStats.totalScore,
@@ -67,12 +71,13 @@ function createGraceStats(): GraceStats {
 		specialUsers: new Set(),
 		graces: [],
 		lastGrace: null,
+		hyped: false,
 	}
 }
 
 const MIN_TRAIN_LENGTH = 5
 
-export function onNonGrace(endUsername: string) {
+export function breakGraceTrain(endUsername: string) {
 	if (!graceStats) return
 	if (
 		graceStats.graces.length < MIN_TRAIN_LENGTH ||
