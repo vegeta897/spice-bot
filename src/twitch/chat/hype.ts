@@ -3,6 +3,8 @@ export function getCurrentHypeTrain(): false {
 	return false
 }
 
+// TODO: Only add contribution property if bits >= 100
+
 /*
 
 Twitch API docs are not very clear about how subs work in hype trains
