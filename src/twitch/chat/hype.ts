@@ -1,9 +1,116 @@
-export function getCurrentHypeTrain(): false {
-	// TODO
-	return false
+import type {
+	EventSubChannelHypeTrainBeginEvent,
+	EventSubChannelHypeTrainContribution,
+	EventSubChannelHypeTrainEndEvent,
+	EventSubChannelHypeTrainProgressEvent,
+} from '@twurple/eventsub-base'
+import Emittery from 'emittery'
+import { DEV_MODE, timestampLog } from '../../util.js'
+import { HypeTrainData, addToHypeTrain, endHypeTrain } from './trains.js'
+import { getUserColor } from './userColors.js'
+
+export const HypeEvents = new Emittery<{
+	begin: EventSubChannelHypeTrainBeginEvent
+	progress: EventSubChannelHypeTrainProgressEvent
+	end: EventSubChannelHypeTrainEndEvent
+}>()
+
+type HypeStats = { id: string } & HypeTrainData
+
+let hypeStats: HypeStats | null = null
+let endedHypeTrainID: string | null = null
+
+HypeEvents.on('begin', (event) => {
+	timestampLog(
+		`Hype Train ID ${event.id} begin!
+Goal: ${event.goal}
+Level: ${event.level}
+Progress: ${event.progress}
+Total: ${event.total}
+Top Contribs: ${listHypeContributions(event.topContributors)}`
+	)
+	// Ignore this event, because the first progress event will start the train
+})
+
+HypeEvents.on('progress', (event) => {
+	timestampLog(`Hype Train ID ${event.id} progress
+Goal: ${event.goal}
+Level: ${event.level}
+Progress: ${event.progress}
+Total: ${event.total}
+Last Contrib: ${formatHypeContribution(event.lastContribution)}
+Top Contribs: ${listHypeContributions(event.topContributors)}`)
+	if (!DEV_MODE) return // TODO: Remove
+	if (event.id === endedHypeTrainID) {
+		timestampLog('Ignoring hype train progress event for ended train')
+		return
+	}
+	hypeStats ||= createHypeStats(event.id)
+	if (!eventStatsAreOutdated(event)) {
+		hypeStats.level = event.level
+		hypeStats.total = event.total
+		hypeStats.progress = event.progress
+		hypeStats.goal = event.goal
+	}
+	if (
+		event.lastContribution.type !== 'bits' ||
+		event.lastContribution.total >= 100
+	) {
+		const contribution = createHypeContribution(event.lastContribution)
+		hypeStats.contributions.push(contribution)
+		addToHypeTrain({ ...hypeStats, contribution })
+	} else {
+		// Do not include cheers less than 100 bits in the contributions
+		addToHypeTrain(hypeStats)
+	}
+})
+
+HypeEvents.on('end', (event) => {
+	timestampLog(`Hype Train ID ${event.id} end!
+Level: ${event.level}
+Total: ${event.total}
+Top Contribs: ${listHypeContributions(event.topContributors)}`)
+	if (!DEV_MODE) return // TODO: Remove
+	if (!hypeStats) return
+	hypeStats.level = event.level
+	hypeStats.total = event.total
+	endHypeTrain(hypeStats)
+	endedHypeTrainID = hypeStats.id
+	hypeStats = null
+})
+
+function createHypeStats(id: string) {
+	return { id, level: 0, total: 0, progress: 0, goal: 0, contributions: [] }
 }
 
-// TODO: Only add contribution property if bits >= 100
+function createHypeContribution(
+	lastContribution: EventSubChannelHypeTrainProgressEvent['lastContribution']
+): HypeTrainData['contributions'][number] {
+	const type = lastContribution.type === 'subscription' ? 'subs' : 'bits'
+	let amount = lastContribution.total
+	// In case subs are a # of subs instead of the bits equivalent
+	if (type === 'subs' && amount < 500) amount *= 500
+	const color = getUserColor(lastContribution.userId)
+	return { type, amount, color }
+}
+
+function eventStatsAreOutdated(event: EventSubChannelHypeTrainProgressEvent) {
+	if (!hypeStats) return false
+	return event.total < hypeStats.total
+}
+
+export const getCurrentHypeTrain = () => hypeStats
+
+const listHypeContributions = (
+	contributions: EventSubChannelHypeTrainContribution[]
+) => contributions.map(formatHypeContribution).join(', ')
+
+const formatHypeContribution = ({
+	userDisplayName,
+	type,
+	total,
+}: EventSubChannelHypeTrainContribution) =>
+	`${userDisplayName}:${type}:${total}`
 
 /*
 

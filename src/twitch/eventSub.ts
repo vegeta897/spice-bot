@@ -19,7 +19,7 @@ import { ChatEvents } from './chat/twitchChat.js'
 import Emittery from 'emittery'
 import { initStreams } from './streams.js'
 import { getStreamRecords } from './streamRecord.js'
-import { type EventSubChannelHypeTrainContribution } from '@twurple/eventsub-base'
+import { HypeEvents } from './chat/hype.js'
 
 type EventSubListener = EventSubHttpListener | EventSubMiddleware
 
@@ -178,50 +178,23 @@ async function initScopedEventSubs(listener: EventSubListener) {
 		scopedEventSubs.set(
 			'channelHypeTrainBeginSub',
 			listener.onChannelHypeTrainBegin(streamerUser, (event) => {
-				timestampLog(
-					`Hype Train ID ${event.id} begin!
-Goal: ${event.goal}
-Level: ${event.level}
-Progress: ${event.progress}
-Total: ${event.total}
-Top Contribs: ${listHypeContributions(event.topContributors)}`
-				)
+				HypeEvents.emit('begin', event)
 			})
 		)
 		scopedEventSubs.set(
 			'channelHypeTrainProgressSub',
 			listener.onChannelHypeTrainProgress(streamerUser, (event) => {
-				timestampLog(`Hype Train ID ${event.id} progress
-Goal: ${event.goal}
-Level: ${event.level}
-Progress: ${event.progress}
-Total: ${event.total}
-Last Contrib: ${formatHypeContribution(event.lastContribution)}
-Top Contribs: ${listHypeContributions(event.topContributors)}`)
+				HypeEvents.emit('progress', event)
 			})
 		)
 		scopedEventSubs.set(
 			'channelHypeTrainEndSub',
 			listener.onChannelHypeTrainEnd(streamerUser, (event) => {
-				timestampLog(`Hype Train ID ${event.id} end!
-Level: ${event.level}
-Total: ${event.total}
-Top Contribs: ${listHypeContributions(event.topContributors)}`)
+				HypeEvents.emit('end', event)
 			})
 		)
 	}
 }
-
-const listHypeContributions = (
-	contributions: EventSubChannelHypeTrainContribution[]
-) => contributions.map(formatHypeContribution).join(', ')
-
-const formatHypeContribution = ({
-	userDisplayName,
-	type,
-	total,
-}: EventSubChannelHypeTrainContribution) =>
-	`${userDisplayName}:${type}:${total}`
 
 export async function getEventSubs() {
 	const subs = await apiClient.eventSub.getSubscriptions()
