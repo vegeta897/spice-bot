@@ -46,7 +46,6 @@ Progress: ${event.progress}
 Total: ${event.total}
 Last Contrib: ${formatHypeContribution(event.lastContribution)}
 Top Contribs: ${listHypeContributions(event.topContributors)}`)
-	if (!DEV_MODE) return // TODO: Remove
 	if (event.id === endedHypeTrainID) {
 		timestampLog('Ignoring hype train progress event for ended train')
 		return
@@ -79,7 +78,6 @@ HypeEvents.on('end', (event) => {
 Level: ${event.level}
 Total: ${event.total}
 Top Contribs: ${listHypeContributions(event.topContributors)}`)
-	if (!DEV_MODE) return // TODO: Remove
 	if (!hypeStats) return
 	hypeStats.level = event.level
 	hypeStats.total = event.total
