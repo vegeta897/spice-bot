@@ -5,7 +5,7 @@ import type {
 	EventSubChannelHypeTrainProgressEvent,
 } from '@twurple/eventsub-base'
 import Emittery from 'emittery'
-import { DEV_MODE, randomIntRange, timestampLog } from '../../util.js'
+import { randomIntRange, timestampLog } from '../../util.js'
 import {
 	HypeTrainData,
 	addToHypeTrain,
@@ -95,7 +95,7 @@ function createHypeContribution(
 ): HypeTrainData['contributions'][number] {
 	const type = lastContribution.type === 'subscription' ? 'subs' : 'bits'
 	let amount = lastContribution.total
-	// In case subs are a # of subs instead of the bits equivalent
+	// Convert subs total to number of subs
 	if (type === 'subs' && amount >= 500) amount = Math.round(amount / 500)
 	const color = getUserColor(lastContribution.userId)
 	return { type, amount, color }
