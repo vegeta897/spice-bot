@@ -60,8 +60,8 @@ export function endGraceTrain(grace: GraceTrainEndData) {
 }
 
 export function startHypeTrain(hype: HypeTrainData) {
-	if (!currentTrainID) currentTrainID = Date.now()
-	else breakGraceTrain('HYPE TRAIN')
+	if (currentTrainID) breakGraceTrain('HYPE TRAIN')
+	currentTrainID = Date.now()
 	TrainEvents.emit('start', { id: currentTrainID, hype })
 }
 
@@ -72,6 +72,7 @@ export function addToHypeTrain(hype: HypeTrainAddData) {
 
 export function endHypeTrain(hype: HypeTrainEndData) {
 	if (!currentTrainID) return
+	breakGraceTrain('HYPE TRAIN')
 	TrainEvents.emit('end', { id: currentTrainID, hype })
 	currentTrainID = null
 }
