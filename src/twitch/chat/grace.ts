@@ -109,6 +109,7 @@ export async function sendTrainEndMessages({
 	topGracer,
 	totalScore,
 	bestRecord,
+	hyped,
 }: GraceStats & {
 	trainLength: number
 	topGracer: [string, number] | null
@@ -117,33 +118,41 @@ export async function sendTrainEndMessages({
 }) {
 	const newRecords: Partial<GraceTrainRecord> = {}
 	const canPrayBee = await canUseEmote(Emotes.PRAYBEE)
-	let message =
-		endUsername.toLowerCase() === process.env.TWITCH_BOT_USERNAME
-			? `${randomElement(['OOPS', 'OH NO', 'WOW'])}! I ended the grace train!`
-			: `Grace train ended by ${endUsername}!`
+	let message = ''
+	if (hyped) message += 'HYPED grace train has ended!'
+	else
+		message +=
+			endUsername.toLowerCase() === process.env.TWITCH_BOT_USERNAME
+				? `${randomElement(['OOPS', 'OH NO', 'WOW'])}! I ended the grace train!`
+				: `Grace train ended by ${endUsername}!`
 	message += ` That was ${trainLength} graces`
-	if (trainLength > bestRecord.length) {
-		message += `, a NEW RECORD for total length!`
+	if (bestRecord.length > 0 && trainLength > bestRecord.length) {
+		message +=
+			', a NEW RECORD for ' + (hyped ? 'hyped grace trains!' : 'total length!')
 		if (canPrayBee) {
-			message += ` ${Emotes.PRAYBEE}`.repeat(Math.ceil(trainLength / 10))
+			message += ` ${Emotes.PRAYBEE}`.repeat(
+				Math.ceil(trainLength / (hyped ? 50 : 20))
+			)
 		}
 		newRecords.length = trainLength
 	} else if (trainLength === bestRecord.length) {
-		message += `, tying the record for total length!`
+		message +=
+			', tying the record for ' +
+			(hyped ? 'hyped grace trains!' : 'total length!')
 	} else {
 		message += '!'
 	}
 	sendChatMessage(message)
 	message = `${allUsers.size} people contributed`
-	if (specialUsers.has('nightbot')) {
-		message += `, including NIGHTBOT! 🤖`
+	if (bestRecord.users > 0 && allUsers.size > bestRecord.users) {
+		message += ', the most yet!'
+		newRecords.users = allUsers.size
 		sendChatMessage(message)
 	} else if (specialUsers.has('spicebot')) {
 		message += `, including me, Spice Bot! 🌶️`
 		sendChatMessage(message)
-	} else if (allUsers.size > bestRecord.users) {
-		message += `, the most yet!`
-		newRecords.users = allUsers.size
+	} else if (specialUsers.has('nightbot')) {
+		message += `, including NIGHTBOT! 🤖`
 		sendChatMessage(message)
 	} else {
 		// Don't send message if nothing notable about the contributors
@@ -153,12 +162,12 @@ export async function sendTrainEndMessages({
 		sendChatMessage(message)
 	}
 	message = `GRACE SCORE: ${formatPoints(totalScore)} points`
-	if (totalScore > bestRecord.score) {
+	if (bestRecord.score > 0 && totalScore > bestRecord.score) {
 		message += `, a NEW RECORD for best score!`
 		if (newRecords.length && canPrayBee) message += ` ${Emotes.PRAYBEE}`
 		newRecords.score = totalScore
 	} else if (totalScore === bestRecord.score) {
-		message += `, tying the record for best score!`
+		message += `, tying the record for best ${hyped ? 'hyped ' : ''}score!`
 	} else {
 		message += '!'
 	}

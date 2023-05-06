@@ -4,6 +4,7 @@ import { sendTrainEndMessages } from './grace.js'
 import { startGraceTrain, addToGraceTrain, endGraceTrain } from './trains.js'
 import { updateGraceScore } from './graceScore.js'
 import { getCurrentHypeTrain } from './hype.js'
+import { sendChatMessage } from './twitchChat.js'
 
 export type Grace = {
 	date: Date
@@ -55,6 +56,9 @@ export function onGrace({ date, user, type }: Grace) {
 			score: graceStats.totalScore,
 			color: user.color,
 		})
+		if (graceStats.hyped && graceStats.graces.length === 8) {
+			sendChatMessage('Hyped grace trains are unbreakable, so keep gracing!')
+		}
 	}
 }
 
@@ -80,17 +84,19 @@ const MIN_TRAIN_LENGTH = 5
 export function breakGraceTrain(endUsername: string) {
 	if (!graceStats) return
 	if (
-		graceStats.graces.length < MIN_TRAIN_LENGTH ||
-		graceStats.allUsers.size < 2
+		!graceStats.hyped &&
+		(graceStats.graces.length < MIN_TRAIN_LENGTH ||
+			graceStats.allUsers.size < 2)
 	) {
 		clearGraceStats()
 		return
 	}
-	endGraceTrain({
-		combo: graceStats.totalCombo,
-		score: graceStats.totalScore,
-		username: endUsername,
-	})
+	if (!graceStats.hyped)
+		endGraceTrain({
+			combo: graceStats.totalCombo,
+			score: graceStats.totalScore,
+			username: endUsername,
+		})
 	let topGracer: null | [string, number] = null
 	if (graceStats.graces.length >= 20 && graceStats.allUsers.size > 4) {
 		const [first, second] = [...graceStats.allUsers.values()].sort(
@@ -103,15 +109,19 @@ export function breakGraceTrain(endUsername: string) {
 		trainLength: graceStats.graces.length,
 		topGracer,
 		endUsername,
-		bestRecord: getBestRecord(),
+		bestRecord: getBestRecord(graceStats.hyped),
 	})
 	saveRecord(graceStats)
 	timestampLog(`Ended grace train (${graceStats.graces.length}x)`)
 	clearGraceStats()
 }
 
-const getBestRecord = () =>
-	getData().graceTrainRecords[0] || { score: 0, length: 0, users: 0 }
+const getBestRecord = (hyped: boolean) =>
+	getData()[hyped ? 'hypedGraceTrainRecords' : 'graceTrainRecords'][0] || {
+		score: 0,
+		length: 0,
+		users: 0,
+	}
 
 function saveRecord(stats: GraceStats) {
 	const thisRecord = {
@@ -120,9 +130,10 @@ function saveRecord(stats: GraceStats) {
 		users: stats.allUsers.size,
 		date: Date.now(),
 	}
-	const records = [...getData().graceTrainRecords, thisRecord]
+	const dataProp = stats.hyped ? 'hypedGraceTrainRecords' : 'graceTrainRecords'
+	const records = [...getData()[dataProp], thisRecord]
 	records.sort((a, b) => (a.score < b.score ? 1 : -1))
-	modifyData({ graceTrainRecords: records.slice(0, 5) })
+	modifyData({ [dataProp]: records.slice(0, 5) })
 }
 
 const getGraceTrainStartData = (stats: GraceStats) => ({
