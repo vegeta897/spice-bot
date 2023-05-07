@@ -50,7 +50,10 @@ export function onGrace({ date, user, type }: Grace) {
 	updateGraceScore(graceStats, { date, user, type })
 	const minTrainLength = graceStats.hyped ? 1 : MIN_TRAIN_LENGTH
 	if (graceStats.graces.length === minTrainLength) {
-		if (shouldFrogAppear()) graceStats.frog = true
+		if (shouldFrogAppear()) {
+			graceStats.frog = true
+			frogAppearedThisStream = true
+		}
 		startGraceTrain(getGraceTrainStartData(graceStats))
 	} else if (graceStats.graces.length > minTrainLength) {
 		addToGraceTrain({
