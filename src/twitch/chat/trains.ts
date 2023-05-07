@@ -16,7 +16,7 @@ type HypeEventBaseData = {
 }
 type HypeProgress = { type: 'bits' | 'subs'; amount: number; color: string }
 
-type GraceTrainData = GraceEventBaseData & { colors: string[] }
+type GraceTrainData = GraceEventBaseData & { colors: string[]; frog?: boolean }
 type GraceTrainAddData = GraceEventBaseData & { color: string }
 type GraceTrainEndData = GraceEventBaseData & { username: string }
 export type HypeTrainData = HypeEventBaseData & {

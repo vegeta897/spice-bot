@@ -25,6 +25,7 @@ export type GraceStats = {
 	graces: Grace[]
 	lastGrace: Grace | null
 	hyped: boolean
+	frog: boolean
 }
 
 export type SpecialUser = 'nightbot' | 'spicebot'
@@ -49,6 +50,7 @@ export function onGrace({ date, user, type }: Grace) {
 	updateGraceScore(graceStats, { date, user, type })
 	const minTrainLength = graceStats.hyped ? 1 : MIN_TRAIN_LENGTH
 	if (graceStats.graces.length === minTrainLength) {
+		if (shouldFrogAppear()) graceStats.frog = true
 		startGraceTrain(getGraceTrainStartData(graceStats))
 	} else if (graceStats.graces.length > minTrainLength) {
 		addToGraceTrain({
@@ -76,6 +78,7 @@ function createGraceStats(): GraceStats {
 		graces: [],
 		lastGrace: null,
 		hyped: false,
+		frog: false,
 	}
 }
 
@@ -140,6 +143,7 @@ const getGraceTrainStartData = (stats: GraceStats) => ({
 	combo: stats.totalCombo,
 	score: stats.totalScore,
 	colors: stats.graces.map((g) => g.user.color),
+	frog: stats.frog,
 })
 
 export const getCurrentGraceTrain = () => {
@@ -149,6 +153,7 @@ export const getCurrentGraceTrain = () => {
 
 export function clearGraceStats() {
 	graceStats = null
+	frogAppearedThisStream = false
 }
 
 export type GraceTrainRecord = {
@@ -156,4 +161,10 @@ export type GraceTrainRecord = {
 	score: number
 	users: number
 	date: number
+}
+
+let frogAppearedThisStream = false
+function shouldFrogAppear() {
+	if (frogAppearedThisStream || graceStats?.hyped) return false
+	return Math.random() < 0.05
 }
