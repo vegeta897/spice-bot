@@ -10,6 +10,8 @@ import {
 	clearGraceStats,
 	breakGraceTrain,
 	getCurrentGraceTrain,
+	checkForFrogDetective,
+	resetFrogAppearance,
 } from './graceStats.js'
 import {
 	botInChat,
@@ -40,6 +42,7 @@ export function initGrace() {
 		if (downtime > 5 * 60 * 1000) {
 			overlayPosition = 'bottom'
 			clearGraceStats()
+			resetFrogAppearance()
 		}
 	})
 	// TwitchEvents.on('streamOffline', () => endGraceTrain('Abby'))
@@ -65,6 +68,7 @@ function onMessage(event: TwitchMessageEvent) {
 		sendChatMessage(`OK, moving overlay to the ${overlayPosition}`)
 		return
 	}
+	checkForFrogDetective(event.text)
 	if (isGraceText(event.text)) {
 		onGrace({
 			date: event.date,

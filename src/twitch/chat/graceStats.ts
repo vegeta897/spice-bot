@@ -156,7 +156,6 @@ export const getCurrentGraceTrain = () => {
 
 export function clearGraceStats() {
 	graceStats = null
-	frogAppearedThisStream = false
 }
 
 export type GraceTrainRecord = {
@@ -167,7 +166,25 @@ export type GraceTrainRecord = {
 }
 
 let frogAppearedThisStream = false
+let frogDetectiveMessages: number[] = []
+
 function shouldFrogAppear() {
 	if (frogAppearedThisStream || graceStats?.hyped) return false
-	return Math.random() < 0.05
+	const now = Date.now()
+	frogDetectiveMessages = frogDetectiveMessages.filter(
+		(t) => now - t < 10 * 60 * 1000
+	)
+	const frogFactor = frogDetectiveMessages.length
+	return Math.random() < 0.05 + frogFactor / 10
+}
+
+export function checkForFrogDetective(text: string) {
+	if (text.toLowerCase().includes('frog detective')) {
+		frogDetectiveMessages.push(Date.now())
+	}
+}
+
+export function resetFrogAppearance() {
+	frogAppearedThisStream = false
+	frogDetectiveMessages.length = 0
 }
