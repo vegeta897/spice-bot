@@ -150,7 +150,10 @@ const getGraceTrainStartData = (stats: GraceStats) => ({
 })
 
 export const getCurrentGraceTrain = () => {
-	if (graceStats && graceStats.totalCombo >= MIN_TRAIN_LENGTH)
+	if (
+		graceStats &&
+		(graceStats.hyped || graceStats.totalCombo >= MIN_TRAIN_LENGTH)
+	)
 		return getGraceTrainStartData(graceStats)
 }
 
@@ -174,11 +177,12 @@ function shouldFrogAppear() {
 	frogDetectiveMessages = frogDetectiveMessages.filter(
 		(t) => now - t < 10 * 60 * 1000
 	)
-	const frogFactor = frogDetectiveMessages.length
-	return Math.random() < 0.05 + frogFactor / 10
+	const frogFactor = frogDetectiveMessages.length / 10
+	return Math.random() < 0.05 + frogFactor
 }
 
 export function checkForFrogDetective(text: string) {
+	if (frogAppearedThisStream) return
 	if (text.toLowerCase().includes('frog detective')) {
 		frogDetectiveMessages.push(Date.now())
 	}
