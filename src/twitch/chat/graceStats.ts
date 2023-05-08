@@ -52,7 +52,8 @@ export function onGrace({ date, user, type }: Grace) {
 	if (graceStats.graces.length === minTrainLength) {
 		if (shouldFrogAppear()) {
 			graceStats.frog = true
-			frogAppearedThisStream = true
+			frogAppearancesThisStream++
+			frogDetectiveMessages.length = 0
 		}
 		startGraceTrain(getGraceTrainStartData(graceStats))
 	} else if (graceStats.graces.length > minTrainLength) {
@@ -168,27 +169,28 @@ export type GraceTrainRecord = {
 	date: number
 }
 
-let frogAppearedThisStream = false
+let frogAppearancesThisStream = 0
 let frogDetectiveMessages: number[] = []
 
 function shouldFrogAppear() {
-	if (frogAppearedThisStream || graceStats?.hyped) return false
+	if (graceStats?.hyped) return false
 	const now = Date.now()
 	frogDetectiveMessages = frogDetectiveMessages.filter(
 		(t) => now - t < 10 * 60 * 1000
 	)
-	const frogFactor = frogDetectiveMessages.length / 10
-	return Math.random() < 0.05 + frogFactor
+	const baseChance = frogAppearancesThisStream === 0 ? 0.05 : 0
+	const frogFactor =
+		frogDetectiveMessages.length / (10 * (frogAppearancesThisStream + 1))
+	return Math.random() < baseChance + frogFactor
 }
 
 export function checkForFrogDetective(text: string) {
-	if (frogAppearedThisStream) return
 	if (text.toLowerCase().includes('frog detective')) {
 		frogDetectiveMessages.push(Date.now())
 	}
 }
 
 export function resetFrogAppearance() {
-	frogAppearedThisStream = false
+	frogAppearancesThisStream = 0
 	frogDetectiveMessages.length = 0
 }
