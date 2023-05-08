@@ -52,7 +52,8 @@ Top Contribs: ${listHypeContributions(event.topContributors)}`)
 	}
 	const newTrain = !hypeStats
 	hypeStats ||= createHypeStats(event.id)
-	if (!eventStatsAreOutdated(event)) {
+	const statsUpdated = !eventStatsAreOutdated(event)
+	if (statsUpdated) {
 		hypeStats.level = event.level
 		hypeStats.total = event.total
 		hypeStats.progress = event.progress
@@ -66,7 +67,7 @@ Top Contribs: ${listHypeContributions(event.topContributors)}`)
 		hypeStats.contributions.push(contribution)
 		if (newTrain) startHypeTrain(hypeStats)
 		else addToHypeTrain({ ...hypeStats, contribution })
-	} else {
+	} else if (statsUpdated) {
 		// Do not include cheers less than 100 bits in the contributions
 		if (newTrain) startHypeTrain(hypeStats)
 		else addToHypeTrain(hypeStats)
@@ -123,7 +124,7 @@ let lastTestUserID = 1000
 export function testHypeProgress() {
 	const type = Math.random() < 0.7 ? 'subscription' : 'bits'
 	const total =
-		type === 'bits' ? randomIntRange(1, 20) * 100 : randomIntRange(1, 5) * 500
+		type === 'bits' ? randomIntRange(5, 30) * 10 : randomIntRange(1, 5) * 500
 	const lastContribution = {
 		type,
 		total,
