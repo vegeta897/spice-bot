@@ -165,9 +165,11 @@ export async function sendTrainEndMessages({
 		message = `${topGracer[0]} added ${topGracer[1]} graces!`
 		sendChatMessage(message)
 	}
-	message = `GRACE SCORE: ${formatPoints(totalScore)} points`
+	message = `${hyped ? 'HYPED ' : ''}GRACE SCORE: ${formatPoints(
+		totalScore
+	)} points`
 	if (bestRecord.score > 0 && totalScore > bestRecord.score) {
-		message += `, a NEW RECORD for best score!`
+		message += `, a NEW RECORD for best ${hyped ? 'hyped ' : ''}score!`
 		if (newRecords.length && canPrayBee) message += ` ${Emotes.PRAYBEE}`
 		newRecords.score = totalScore
 	} else if (totalScore === bestRecord.score) {
