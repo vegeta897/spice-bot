@@ -10,6 +10,7 @@ export function updateUserColor(userID: string, color: string | null) {
 }
 
 export function getUserColor(userID: string) {
+	// There is an endpoint for getting user color, but this would add latency
 	return userColors.get(userID) || updateUserColor(userID, null)
 }
 
