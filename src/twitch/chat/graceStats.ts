@@ -119,7 +119,11 @@ export function breakGraceTrain(endUsername: string) {
 		bestRecord: getBestRecord(graceStats.hyped),
 	})
 	saveRecord(graceStats)
-	timestampLog(`Ended grace train (${graceStats.graces.length}x)`)
+	timestampLog(
+		`Ended ${graceStats.hyped ? ' HYPED' : ''}grace train (${
+			graceStats.graces.length
+		}x)${graceStats.frog ? ' 🐸' : ''}`
+	)
 	clearGraceStats()
 }
 
