@@ -58,7 +58,7 @@ export function initWebsocket(server: http.Server) {
 				},
 			}),
 			(err) => {
-				if (err) console.log('Error sending websocket init message', err)
+				if (err) timestampLog('Error sending websocket init message', err)
 			}
 		)
 
@@ -77,7 +77,7 @@ export function initWebsocket(server: http.Server) {
 					sendTrainIfExists(ws)
 					break
 				default:
-					console.log('Websocket received unrecognized message:', message)
+					timestampLog('Websocket received unrecognized message:', message)
 					break
 			}
 		})
@@ -152,6 +152,6 @@ function sendMessage(wss: WebSocketServer, message: Message) {
 function sendTrainIfExists(ws: WebSocket) {
 	const trainInProgress = getCurrentTrain()
 	if (!trainInProgress) return
-	console.log('Sending grace train in progress')
+	timestampLog('Sending grace train in progress')
 	ws.send(stringifyMessage({ type: 'train-start', data: trainInProgress }))
 }
