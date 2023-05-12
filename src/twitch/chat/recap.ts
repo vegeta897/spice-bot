@@ -6,7 +6,6 @@ import { getData, modifyData } from '../../db.js'
 import { DEV_MODE, timestampLog } from '../../util.js'
 import { parseChatMessage } from '@twurple/common'
 import { TrainEvents } from './trains.js'
-import { type PubSubClient } from '@twurple/pubsub'
 
 let emoteCounts: Map<string, number>
 let redeemCounts: Map<string, number>
@@ -65,7 +64,7 @@ function clearCounts() {
 }
 
 let commandLastUsed = 0
-const COOLDOWN = 20 * 1000
+const COOLDOWN = 5 * 60 * 1000
 
 export async function sendRecap() {
 	const now = Date.now()
