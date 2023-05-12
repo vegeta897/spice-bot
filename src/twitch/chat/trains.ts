@@ -1,5 +1,9 @@
 import Emittery from 'emittery'
-import { breakGraceTrain, getCurrentGraceTrain } from './graceStats.js'
+import {
+	breakGraceTrain,
+	getCurrentGraceTrain,
+	hypeGraceTrain,
+} from './graceStats.js'
 import { RequireAtLeastOne } from '../../util.js'
 import { getCurrentHypeTrain } from './hype.js'
 
@@ -60,9 +64,14 @@ export function endGraceTrain(grace: GraceTrainEndData) {
 }
 
 export function startHypeTrain(hype: HypeTrainData) {
-	if (currentTrainID) breakGraceTrain('HYPE TRAIN')
+	const startData: { hype: HypeTrainData; grace?: GraceTrainData } = { hype }
+	const currentGrace = getCurrentGraceTrain()
+	if (currentGrace) {
+		startData.grace = currentGrace
+		hypeGraceTrain()
+	}
 	currentTrainID = Date.now()
-	TrainEvents.emit('start', { id: currentTrainID, hype })
+	TrainEvents.emit('start', { id: currentTrainID, ...startData })
 }
 
 export function addToHypeTrain(hype: HypeTrainAddData) {

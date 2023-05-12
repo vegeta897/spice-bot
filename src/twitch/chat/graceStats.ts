@@ -123,6 +123,11 @@ export function breakGraceTrain(endUsername: string) {
 	clearGraceStats()
 }
 
+export function hypeGraceTrain() {
+	if (!graceStats) return
+	graceStats.hyped = true
+}
+
 const getBestRecord = (hyped: boolean) =>
 	getData()[hyped ? 'hypedGraceTrainRecords' : 'graceTrainRecords'][0] || {
 		score: 0,
