@@ -6,6 +6,7 @@ import { getData, modifyData } from '../../db.js'
 import { DEV_MODE, timestampLog } from '../../util.js'
 import { parseChatMessage } from '@twurple/common'
 import { TrainEvents } from './trains.js'
+import { type PubSubClient } from '@twurple/pubsub'
 
 let emoteCounts: Map<string, number>
 let redeemCounts: Map<string, number>
@@ -32,6 +33,7 @@ export function initRecap() {
 		})
 		saveCounts()
 	})
+	ChatEvents.on('raid', sendRecap)
 	ChatEvents.on('redemption', (event) => {
 		redeemCounts.set(event.title, (redeemCounts.get(event.title) || 0) + 1)
 		saveCounts()
@@ -63,7 +65,7 @@ function clearCounts() {
 }
 
 let commandLastUsed = 0
-const COOLDOWN = 10 * 1000
+const COOLDOWN = 20 * 1000
 
 export async function sendRecap() {
 	const now = Date.now()
@@ -71,15 +73,18 @@ export async function sendRecap() {
 	commandLastUsed = now
 	timestampLog('Sending stream recap')
 	sendChatMessage(`STREAM RECAP!`)
+	let recapMessagesSent = 0
 	const usableEmotes = await getUsableEmotes()
 	const canPoggers = getEmoteByName(Emotes.POGGERS, usableEmotes)
 	const [mostUsedEmoteName, mostUsedEmoteTimes] = [
 		...emoteCounts.entries(),
 	].reduce((prev, curr) => (curr[1] > prev[1] ? curr : prev), ['', 0])
-	if (mostUsedEmoteName)
+	if (mostUsedEmoteName) {
 		sendChatMessage(
 			`Most used emote: ${mostUsedEmoteName} x ${mostUsedEmoteTimes}`
 		)
+		recapMessagesSent++
+	}
 	const pogCount = emoteCounts.get(Emotes.POGGERS) || 0
 	const sogCount = emoteCounts.get(Emotes.SOGGERS) || 0
 	if (pogCount > 0 || sogCount > 0) {
@@ -89,6 +94,7 @@ export async function sendRecap() {
 			if (pogCount < sogCount) pogSogRatioMessage += ` ${Emotes.SOGGERS}`
 		}
 		sendChatMessage(pogSogRatioMessage)
+		recapMessagesSent++
 	}
 	const graces = redeemCounts.get(GRACE) || 0
 	if (graces > 0) {
@@ -97,9 +103,10 @@ export async function sendRecap() {
 		if (getEmoteByName(Emotes.PRAYBEE, usableEmotes))
 			graceMessage += Emotes.PRAYBEE
 		sendChatMessage(graceMessage)
+		recapMessagesSent++
 	}
 	const hydroChecks = redeemCounts.get('Hydration Check!') || 0
-	if (hydroChecks > 0)
+	if (hydroChecks > 0) {
 		sendChatMessage(
 			`Hydration checks: ${hydroChecks}${
 				getEmoteByName('ybbaaaJug', usableEmotes)
@@ -107,6 +114,14 @@ export async function sendRecap() {
 					: ''
 			}`
 		)
+		recapMessagesSent++
+	}
 	const stretchChecks = redeemCounts.get('Stretch Check') || 0
-	if (stretchChecks > 0) sendChatMessage(`Stretch checks: ${stretchChecks}`)
+	if (stretchChecks > 0) {
+		sendChatMessage(`Stretch checks: ${stretchChecks}`)
+		recapMessagesSent++
+	}
+	if (recapMessagesSent === 0) {
+		sendChatMessage("Everyone was a sweetie! That's it, that's the recap!")
+	}
 }

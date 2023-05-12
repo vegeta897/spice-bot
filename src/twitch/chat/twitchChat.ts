@@ -1,7 +1,12 @@
 import { type RefreshingAuthProvider } from '@twurple/auth'
 import { ChatClient, toUserName, PrivateMessage } from '@twurple/chat'
 import { parseChatMessage, ParsedMessageEmotePart } from '@twurple/common'
-import { AuthEvents, getAccountScopes, sendWhisper } from '../twitchApi.js'
+import {
+	AuthEvents,
+	getAccountScopes,
+	getUserByAccountType,
+	sendWhisper,
+} from '../twitchApi.js'
 import { CHAT_TEST_MODE, DEV_MODE, timestampLog } from '../../util.js'
 import Emittery from 'emittery'
 import { initGrace, makeTextGraceTrainSafe } from './grace.js'
@@ -11,6 +16,7 @@ import { initTally } from './tally.js'
 import { initWhereBot } from './whereBot.js'
 import { initThanks } from './thanks.js'
 import { updateUserColor } from './userColors.js'
+import { PubSubClient } from '@twurple/pubsub'
 
 // Idea: Detect incrementing numbers in ryan's messages for death tracker
 //       Then we can provide a command to check the count
@@ -36,6 +42,7 @@ export const ChatEvents = new Emittery<{
 		status: string
 		rewardText: string
 	}
+	raid: undefined
 }>()
 
 let chatClient: ChatClient
@@ -144,6 +151,15 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 			} with any problems or questions`
 		)
 	})
+	const pubSubClient = new PubSubClient({ authProvider })
+	pubSubClient.onModAction(
+		getUserByAccountType('bot'),
+		getUserByAccountType('streamer'),
+		(event) => {
+			if (!('action' in event)) return
+			if (event.action === 'raid') ChatEvents.emit('raid')
+		}
+	)
 }
 
 export function sendChatMessage(
