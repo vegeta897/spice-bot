@@ -64,5 +64,9 @@
 	"optionalDependencies": {
 		"puppeteer": "^19.8.5",
 		"puppeteer-autoscroll-down": "^1.1.2"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/vegeta897/spice-bot.git"
 	}
 }
