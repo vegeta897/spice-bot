@@ -13,7 +13,7 @@ import { getData, modifyData } from '../../db.js'
 import randomstring from 'randomstring'
 import { getOverlayPosition } from '../chat/grace.js'
 
-const version = 3
+const version = 4
 
 export function initWebsocket(server: http.Server) {
 	const authKeys = [...getData().streamOverlayAuthKeys]
