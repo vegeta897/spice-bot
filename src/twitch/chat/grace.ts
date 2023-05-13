@@ -12,6 +12,8 @@ import {
 	getCurrentGraceTrain,
 	checkForFrogDetective,
 	resetFrogAppearance,
+	resetGraceInChat,
+	setGraceInChat,
 } from './graceStats.js'
 import {
 	botInChat,
@@ -43,6 +45,7 @@ export function initGrace() {
 			overlayPosition = 'bottom'
 			clearGraceStats()
 			resetFrogAppearance()
+			resetGraceInChat()
 		}
 	})
 	// TwitchEvents.on('streamOffline', () => endGraceTrain('Abby'))
@@ -52,6 +55,7 @@ let overlayPosition: OverlayData['position'] = 'bottom'
 export const getOverlayPosition = () => overlayPosition
 
 function onMessage(event: TwitchMessageEvent) {
+	if (event.username.toLowerCase() === 'gracebruxner') setGraceInChat()
 	const positionCommand = parsePositionCommand(event)
 	if (positionCommand) {
 		// change overlay position

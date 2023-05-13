@@ -193,7 +193,8 @@ function shouldFrogAppear() {
 	const baseChance = frogAppearancesThisStream === 0 ? 0.05 : 0
 	const frogFactor =
 		frogDetectiveMessages.length / (10 * (frogAppearancesThisStream + 1))
-	return Math.random() < baseChance + frogFactor
+	const graceFactor = graceInChat && frogAppearancesThisStream === 0 ? 1 : 0
+	return Math.random() < baseChance + frogFactor + graceFactor
 }
 
 export function checkForFrogDetective(text: string) {
@@ -206,3 +207,7 @@ export function resetFrogAppearance() {
 	frogAppearancesThisStream = 0
 	frogDetectiveMessages.length = 0
 }
+
+let graceInChat = false
+export const setGraceInChat = () => (graceInChat = true)
+export const resetGraceInChat = () => (graceInChat = false)
