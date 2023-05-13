@@ -3,7 +3,7 @@ import { timestampLog } from '../../util.js'
 import { sendTrainEndMessages } from './grace.js'
 import { startGraceTrain, addToGraceTrain, endGraceTrain } from './trains.js'
 import { updateGraceScore } from './graceScore.js'
-import { getCurrentHypeTrain } from './hype.js'
+import { addGraceToHypeTrain, getCurrentHypeTrain } from './hype.js'
 import { sendChatMessage } from './twitchChat.js'
 
 export type Grace = {
@@ -34,7 +34,6 @@ let graceStats: GraceStats | null = null
 
 export function onGrace({ date, user, type }: Grace) {
 	graceStats ||= createGraceStats()
-	if (getCurrentHypeTrain()) graceStats.hyped = true
 	if (graceStats.graces.length > 0) {
 		// Don't add repeated user
 		if (graceStats.graces.at(-1)?.user.id === user.id) return
@@ -48,23 +47,27 @@ export function onGrace({ date, user, type }: Grace) {
 		allUsersEntry.name = user.name // They might change their name mid-train!
 	}
 	updateGraceScore(graceStats, { date, user, type })
-	const minTrainLength = graceStats.hyped ? 1 : MIN_TRAIN_LENGTH
-	if (graceStats.graces.length === minTrainLength) {
+	if (getCurrentHypeTrain()) {
+		graceStats.hyped = true
+		addGraceToHypeTrain(graceStats.graces.length)
+		if (graceStats.graces.length === 8) {
+			sendChatMessage('Hyped grace trains are unbreakable, so keep gracing!')
+		}
+		return
+	}
+	if (graceStats.graces.length === MIN_TRAIN_LENGTH) {
 		if (shouldFrogAppear()) {
 			graceStats.frog = true
 			frogAppearancesThisStream++
 			frogDetectiveMessages.length = 0
 		}
 		startGraceTrain(getGraceTrainStartData(graceStats))
-	} else if (graceStats.graces.length > minTrainLength) {
+	} else if (graceStats.graces.length > MIN_TRAIN_LENGTH) {
 		addToGraceTrain({
 			combo: graceStats.totalCombo,
 			score: graceStats.totalScore,
 			color: user.color,
 		})
-		if (graceStats.hyped && graceStats.graces.length === 8) {
-			sendChatMessage('Hyped grace trains are unbreakable, so keep gracing!')
-		}
 	}
 }
 

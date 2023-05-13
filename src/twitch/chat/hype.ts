@@ -7,7 +7,7 @@ import type {
 import Emittery from 'emittery'
 import { randomIntRange, timestampLog } from '../../util.js'
 import {
-	HypeTrainData,
+	HypeProgress,
 	addToHypeTrain,
 	endHypeTrain,
 	startHypeTrain,
@@ -21,7 +21,15 @@ export const HypeEvents = new Emittery<{
 	end: EventSubChannelHypeTrainEndEvent
 }>()
 
-type HypeStats = { id: string } & HypeTrainData
+type HypeStats = {
+	id: string
+	level: number
+	total: number
+	progress: number
+	goal: number
+	graces: number
+	contributions: HypeProgress[]
+}
 
 let hypeStats: HypeStats | null = null
 let endedHypeTrainID: string | null = null
@@ -52,7 +60,7 @@ Top Contribs: ${listHypeContributions(event.topContributors)}`)
 	}
 	const newTrain = !hypeStats
 	hypeStats ||= createHypeStats(event.id)
-	const statsUpdated = !eventStatsAreOutdated(event)
+	const statsUpdated = eventStatsAreNewer(event)
 	if (statsUpdated) {
 		hypeStats.level = event.level
 		hypeStats.total = event.total
@@ -65,12 +73,12 @@ Top Contribs: ${listHypeContributions(event.topContributors)}`)
 	) {
 		const contribution = createHypeContribution(event.lastContribution)
 		hypeStats.contributions.push(contribution)
-		if (newTrain) startHypeTrain(hypeStats)
-		else addToHypeTrain({ ...hypeStats, contribution })
+		if (newTrain) startHypeTrain(getHypeTrainStartData(hypeStats))
+		else addToHypeTrain({ ...getHypeTrainBaseData(hypeStats), contribution })
 	} else if (statsUpdated) {
 		// Do not include cheers less than 100 bits in the contributions
-		if (newTrain) startHypeTrain(hypeStats)
-		else addToHypeTrain(hypeStats)
+		if (newTrain) startHypeTrain(getHypeTrainStartData(hypeStats))
+		else addToHypeTrain(getHypeTrainBaseData(hypeStats))
 	}
 })
 
@@ -82,18 +90,30 @@ Top Contribs: ${listHypeContributions(event.topContributors)}`)
 	if (!hypeStats) return
 	hypeStats.level = event.level
 	hypeStats.total = event.total
-	endHypeTrain({ level: hypeStats.level, total: hypeStats.total })
+	endHypeTrain({
+		level: hypeStats.level,
+		total: hypeStats.total,
+		graces: hypeStats.graces,
+	})
 	endedHypeTrainID = hypeStats.id
 	hypeStats = null
 })
 
 function createHypeStats(id: string) {
-	return { id, level: 0, total: 0, progress: 0, goal: 0, contributions: [] }
+	return {
+		id,
+		level: 0,
+		total: 0,
+		progress: 0,
+		goal: 0,
+		graces: 0,
+		contributions: [],
+	}
 }
 
 function createHypeContribution(
 	lastContribution: EventSubChannelHypeTrainProgressEvent['lastContribution']
-): HypeTrainData['contributions'][number] {
+): HypeProgress {
 	const type = lastContribution.type === 'subscription' ? 'subs' : 'bits'
 	let amount = lastContribution.total
 	// Convert subs total to number of subs
@@ -102,12 +122,41 @@ function createHypeContribution(
 	return { type, amount, color }
 }
 
-function eventStatsAreOutdated(event: EventSubChannelHypeTrainProgressEvent) {
-	if (!hypeStats) return false
-	return event.total < hypeStats.total
+function eventStatsAreNewer(event: EventSubChannelHypeTrainProgressEvent) {
+	if (!hypeStats) return true
+	return event.total > hypeStats.total || event.level > hypeStats.level
 }
 
-export const getCurrentHypeTrain = () => hypeStats
+export const getCurrentHypeTrain = () => {
+	if (!hypeStats) return false
+	return getHypeTrainStartData(hypeStats)
+}
+
+function getHypeTrainBaseData(stats: HypeStats) {
+	return {
+		type: 'hype',
+		level: stats.level,
+		total: stats.total,
+		progress: stats.progress,
+		goal: stats.goal,
+		graces: stats.graces,
+	}
+}
+
+function getHypeTrainStartData(stats: HypeStats) {
+	return { ...getHypeTrainBaseData(stats), contributions: stats.contributions }
+}
+
+export function addGraceToHypeTrain(combo: number) {
+	if (!hypeStats) return
+	hypeStats.graces = combo
+	addToHypeTrain(getHypeTrainBaseData(hypeStats))
+}
+
+export function setHypeStatsGraces(combo: number) {
+	if (!hypeStats) return
+	hypeStats.graces = combo
+}
 
 const listHypeContributions = (
 	contributions: EventSubChannelHypeTrainContribution[]
