@@ -3,6 +3,7 @@ import { ChatClient, toUserName, PrivateMessage } from '@twurple/chat'
 import { parseChatMessage, ParsedMessageEmotePart } from '@twurple/common'
 import {
 	AuthEvents,
+	botIsMod,
 	getAccountScopes,
 	getUserByAccountType,
 	sendWhisper,
@@ -63,16 +64,20 @@ export async function initTwitchChat(authProvider: RefreshingAuthProvider) {
 }
 
 async function initChatClient(authProvider: RefreshingAuthProvider) {
-	if (chatClient) chatClient.quit()
 	const botScopes = await getAccountScopes('bot')
 	if (!hasRequiredScopes(botScopes)) {
 		console.log('WARNING: Chat bot is missing read/edit scopes!')
+		return
+	}
+	if (chatClient) {
+		chatClient.reconnect()
 		return
 	}
 	chatClient = new ChatClient({
 		authProvider,
 		channels: [process.env.TWITCH_STREAMER_USERNAME],
 		rejoinChannelsOnReconnect: true,
+		isAlwaysMod: await botIsMod(),
 	})
 	chatClient.connect()
 
@@ -151,6 +156,7 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 			} with any problems or questions`
 		)
 	})
+
 	const pubSubClient = new PubSubClient({ authProvider })
 	pubSubClient.onModAction(
 		getUserByAccountType('bot'),
@@ -172,7 +178,9 @@ export function sendChatMessage(
 		return
 	}
 	try {
-		chatClient.say(process.env.TWITCH_STREAMER_USERNAME, text, { replyTo })
+		return chatClient.say(process.env.TWITCH_STREAMER_USERNAME, text, {
+			replyTo,
+		})
 	} catch (e) {
 		timestampLog('Error sending chat message', e)
 	}
