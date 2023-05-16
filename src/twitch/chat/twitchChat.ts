@@ -95,7 +95,7 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 
 	chatClient.onAuthenticationSuccess(() => {
 		// Wait for this before performing any actions outside of onMessage
-		console.log('Twitch chat connected')
+		timestampLog('Twitch chat authenticated')
 	})
 
 	chatClient.onMessage((channel, user, text, msg) => {
