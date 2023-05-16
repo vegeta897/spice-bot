@@ -81,6 +81,14 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 	})
 	chatClient.connect()
 
+	chatClient.onDisconnect((manually, reason) => {
+		timestampLog(
+			`Chat disconnected${manually ? ' (manually)' : ''}: ${
+				reason || 'unknown reason'
+			}`
+		)
+	})
+
 	chatClient.onAuthenticationFailure((text, retryCount) => {
 		timestampLog(`Chat auth failed: ${text}. Retry #${retryCount}`)
 	})
