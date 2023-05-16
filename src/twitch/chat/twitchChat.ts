@@ -185,6 +185,9 @@ export function sendChatMessage(
 		timestampLog(`Sent: ${text}`)
 		return
 	}
+	if (!chatClient.irc.isConnected) {
+		timestampLog('Warning: trying to send chat message while IRC not connected')
+	}
 	try {
 		return chatClient.say(process.env.TWITCH_STREAMER_USERNAME, text, {
 			replyTo,
