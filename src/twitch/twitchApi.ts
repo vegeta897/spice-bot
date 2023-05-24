@@ -10,6 +10,7 @@ import {
 import Emittery from 'emittery'
 import { DEV_MODE, HOST_URL, timestampLog } from '../util.js'
 import { setTwitchToken, getTwitchToken } from './streamRecord.js'
+import { getData } from '../db.js'
 
 let authProvider: RefreshingAuthProvider
 let apiClient: ApiClient
@@ -183,9 +184,13 @@ export async function botIsMod() {
 
 export async function getBotSub() {
 	if (DEV_MODE) return { tier: 1000 }
+	const { twitchBotLastSubbed } = getData()
+	// Check if bot subbed in the last 30 days
+	if (Date.now() - twitchBotLastSubbed < 30 * 24 * 60 * 60 * 1000) {
+		return { tier: 1000 }
+	}
 	// Maybe replace this with a db value, updated with eventsub?
 	// Then it can be cached and not require an API call every time
-	// TODO: At the very least we can set a 30 day cache expiration when bot is gifted a sub
 	try {
 		return await apiClient.subscriptions.checkUserSubscription(
 			helixUsers.bot,

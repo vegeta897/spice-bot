@@ -25,6 +25,7 @@ type DBData = {
 		redeemCounts: [string, number][]
 		graceTrainCount: number
 	}
+	twitchBotLastSubbed: number
 }
 
 const filename = DEV_MODE ? 'db-dev.json' : 'db.json'
@@ -45,6 +46,7 @@ export async function initDB() {
 		graceTrainRecords: [],
 		hypedGraceTrainRecords: [],
 		streamRecap: { emoteCounts: [], redeemCounts: [], graceTrainCount: 0 },
+		twitchBotLastSubbed: 0,
 	}
 	await writeData() // Creates the initial db file if it doesn't exist
 	console.log('Database connected')

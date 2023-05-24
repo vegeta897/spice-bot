@@ -18,6 +18,7 @@ import { initWhereBot } from './whereBot.js'
 import { initThanks } from './thanks.js'
 import { updateUserColor } from './userColors.js'
 import { PubSubClient } from '@twurple/pubsub'
+import { modifyData } from '../../db.js'
 
 // Idea: Detect incrementing numbers in ryan's messages for death tracker
 //       Then we can provide a command to check the count
@@ -139,7 +140,7 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 		const gifter = subInfo.gifterDisplayName || 'anonymous'
 		timestampLog(`Bot received a gift sub to ${channel} from ${gifter}`)
 		if (toUserName(channel) !== process.env.TWITCH_STREAMER_USERNAME) return
-		// TODO: Store sub expiry estimate in db so bot's sub status can be cached
+		modifyData({ twitchBotLastSubbed: Date.now() })
 		sendChatMessage(
 			makeTextGraceTrainSafe(
 				`Thank you ${gifter} for the gift sub! <3 ${Emotes.POGGERS} ${Emotes.POGGERS}`
