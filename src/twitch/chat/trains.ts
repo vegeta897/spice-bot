@@ -69,7 +69,6 @@ export function endGraceTrain(grace: GraceTrainEndData['grace']) {
 export function startHypeTrain(hype: HypeTrainData['hype']) {
 	const startData: HypeTrainData = { hype }
 	const currentGrace = getCurrentGraceTrain()
-	console.log('currentGrace', currentGrace)
 	if (currentGrace) {
 		startData.hype.graces = currentGrace.combo
 		hypeGraceTrain()
