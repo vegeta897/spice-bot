@@ -93,19 +93,20 @@ const MIN_TRAIN_LENGTH = 5
 
 export function breakGraceTrain(endUsername: string) {
 	if (!graceStats) return
-	if (graceStats.hyped) return
 	if (
-		graceStats.graces.length < MIN_TRAIN_LENGTH ||
-		graceStats.allUsers.size < 2
+		!graceStats.hyped &&
+		(graceStats.graces.length < MIN_TRAIN_LENGTH ||
+			graceStats.allUsers.size < 2)
 	) {
 		clearGraceStats()
 		return
 	}
-	endGraceTrain({
-		combo: graceStats.totalCombo,
-		score: graceStats.totalScore,
-		username: endUsername,
-	})
+	if (!graceStats.hyped)
+		endGraceTrain({
+			combo: graceStats.totalCombo,
+			score: graceStats.totalScore,
+			username: endUsername,
+		})
 	let topGracer: null | [string, number] = null
 	if (graceStats.graces.length >= 20 && graceStats.allUsers.size > 4) {
 		const [first, second] = [...graceStats.allUsers.values()].sort(
@@ -122,7 +123,7 @@ export function breakGraceTrain(endUsername: string) {
 	})
 	saveRecord(graceStats)
 	timestampLog(
-		`Ended ${graceStats.hyped ? 'HYPED ' : ''}grace train (${
+		`Ended ${graceStats.hyped ? ' HYPED' : ''}grace train (${
 			graceStats.graces.length
 		}x)${graceStats.frog ? ' 🐸' : ''}`
 	)

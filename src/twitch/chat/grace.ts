@@ -85,7 +85,8 @@ function onMessage(event: TwitchMessageEvent) {
 		})
 		return
 	}
-	breakGraceTrain(event.msg.userInfo.displayName)
+	const hypeTrain = getCurrentHypeTrain()
+	if (!hypeTrain) breakGraceTrain(event.msg.userInfo.displayName)
 }
 
 function parsePositionCommand(event: TwitchMessageEvent) {
