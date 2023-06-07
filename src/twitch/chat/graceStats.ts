@@ -123,7 +123,7 @@ export function breakGraceTrain(endUsername: string) {
 	})
 	saveRecord(graceStats)
 	timestampLog(
-		`Ended ${graceStats.hyped ? ' HYPED' : ''}grace train (${
+		`Ended ${graceStats.hyped ? 'HYPED ' : ''}grace train (${
 			graceStats.graces.length
 		}x)${graceStats.frog ? ' 🐸' : ''}`
 	)
