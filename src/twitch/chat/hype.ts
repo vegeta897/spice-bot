@@ -5,7 +5,12 @@ import type {
 	EventSubChannelHypeTrainProgressEvent,
 } from '@twurple/eventsub-base'
 import Emittery from 'emittery'
-import { randomIntRange, timestampLog } from '../../util.js'
+import {
+	randomElement,
+	randomIntRange,
+	sleep,
+	timestampLog,
+} from '../../util.js'
 import {
 	HypeProgress,
 	addToHypeTrain,
@@ -21,6 +26,7 @@ export const HypeEvents = new Emittery<{
 	end: EventSubChannelHypeTrainEndEvent
 }>()
 
+type ContributionKey = `${'bits' | 'subs'}:${string}`
 type HypeStats = {
 	id: string
 	level: number
@@ -29,6 +35,9 @@ type HypeStats = {
 	goal: number
 	graces: number
 	contributions: HypeProgress[]
+	state: 'starting' | 'started'
+	initialContributions: Map<ContributionKey, number>
+	initialContributionTimeout?: NodeJS.Timeout
 }
 
 let hypeStats: HypeStats | null = null
@@ -66,19 +75,24 @@ Top Contribs: ${listHypeContributions(event.topContributors)}`)
 		hypeStats.total = event.total
 		hypeStats.progress = event.progress
 		hypeStats.goal = event.goal
+		if (!newTrain && hypeStats.state === 'starting') {
+			clearTimeout(hypeStats.initialContributionTimeout)
+			beginHypeTrain()
+		}
 	}
-	if (
-		event.lastContribution.type !== 'bits' ||
-		event.lastContribution.total >= 100
-	) {
+	if (hypeStats.state === 'starting') {
+		updateInitialContributions(event)
+		clearTimeout(hypeStats.initialContributionTimeout)
+		hypeStats.initialContributionTimeout = setTimeout(beginHypeTrain, 1000)
+		return
+	}
+	if (event.lastContribution.total >= 100) {
 		const contribution = createHypeContribution(event.lastContribution)
 		hypeStats.contributions.push(contribution)
-		if (newTrain) startHypeTrain(getHypeTrainStartData(hypeStats))
-		else addToHypeTrain({ ...getHypeTrainBaseData(hypeStats), contribution })
+		addToHypeTrain({ ...getHypeTrainBaseData(hypeStats), contribution })
 	} else if (statsUpdated) {
-		// Do not include cheers less than 100 bits in the contributions
-		if (newTrain) startHypeTrain(getHypeTrainStartData(hypeStats))
-		else addToHypeTrain(getHypeTrainBaseData(hypeStats))
+		// Update stats but don't include the contribution if less than 100 bits
+		addToHypeTrain(getHypeTrainBaseData(hypeStats))
 	}
 })
 
@@ -99,7 +113,7 @@ Top Contribs: ${listHypeContributions(event.topContributors)}`)
 	hypeStats = null
 })
 
-function createHypeStats(id: string) {
+function createHypeStats(id: string): HypeStats {
 	return {
 		id,
 		level: 0,
@@ -108,18 +122,59 @@ function createHypeStats(id: string) {
 		goal: 0,
 		graces: 0,
 		contributions: [],
+		state: 'starting',
+		initialContributions: new Map(),
 	}
 }
 
+function beginHypeTrain() {
+	if (!hypeStats || hypeStats.state !== 'starting') return
+	hypeStats.state = 'started'
+	for (const [key, contribution] of hypeStats.initialContributions) {
+		const [type, userId] = key.split(':')
+		hypeStats.contributions.push(
+			createHypeContribution({
+				type,
+				total: contribution,
+				userId,
+			} as EventSubChannelHypeTrainContribution)
+		)
+	}
+	startHypeTrain(getHypeTrainStartData(hypeStats))
+}
+
 function createHypeContribution(
-	lastContribution: EventSubChannelHypeTrainProgressEvent['lastContribution']
+	contribution: EventSubChannelHypeTrainContribution
 ): HypeProgress {
-	const type = lastContribution.type === 'subscription' ? 'subs' : 'bits'
-	let amount = lastContribution.total
+	const type = contribution.type === 'subscription' ? 'subs' : 'bits'
+	let amount = contribution.total
 	// Convert subs total to number of subs
 	if (type === 'subs' && amount >= 500) amount = Math.round(amount / 500)
-	const color = getUserColor(lastContribution.userId)
+	const color = getUserColor(contribution.userId)
 	return { type, amount, color }
+}
+
+const getContributionKey = (
+	contribution: EventSubChannelHypeTrainProgressEvent['lastContribution']
+): ContributionKey =>
+	`${contribution.type === 'subscription' ? 'subs' : 'bits'}:${
+		contribution.userId
+	}`
+
+function updateInitialContributions(
+	event: EventSubChannelHypeTrainProgressEvent
+) {
+	if (!hypeStats) return
+	for (const contribution of event.topContributors) {
+		const cKey = getContributionKey(contribution)
+		hypeStats.initialContributions.set(cKey, contribution.total)
+	}
+	// Add last contribution too, in case it's missing from top contributors
+	const cKey = getContributionKey(event.lastContribution)
+	const initialContribution = hypeStats.initialContributions.get(cKey) || 0
+	if (initialContribution < event.lastContribution.total) {
+		hypeStats.initialContributions.set(cKey, event.lastContribution.total)
+	}
 }
 
 function eventStatsAreNewer(event: EventSubChannelHypeTrainProgressEvent) {
@@ -170,17 +225,9 @@ const formatHypeContribution = ({
 	`${userDisplayName}:${type}:${total}`
 
 let lastTestUserID = 1000
-export function testHypeProgress() {
-	const type = Math.random() < 0.7 ? 'subscription' : 'bits'
-	const total =
-		type === 'bits' ? randomIntRange(5, 30) * 10 : randomIntRange(1, 5) * 500
-	const lastContribution = {
-		type,
-		total,
-		userDisplayName: `TestUser${lastTestUserID}`,
-		userId: `${lastTestUserID++}`,
-	}
+export async function testHypeProgress() {
 	if (hypeStats) {
+		const lastContribution = createTestHypeContribution()
 		const overGoal =
 			hypeStats.progress + lastContribution.total - hypeStats.goal
 		HypeEvents.emit('progress', {
@@ -192,18 +239,45 @@ export function testHypeProgress() {
 				overGoal >= 0 ? overGoal : hypeStats.progress + lastContribution.total,
 			lastContribution,
 			topContributors: [lastContribution],
-		} as unknown as EventSubChannelHypeTrainProgressEvent)
+		} as EventSubChannelHypeTrainProgressEvent)
 	} else {
-		HypeEvents.emit('progress', {
+		// Initial train progress events
+		const initialContributions: EventSubChannelHypeTrainContribution[] = []
+		for (let i = 0; i < 4; i++) {
+			const contribution = createTestHypeContribution()
+			initialContributions.push(contribution)
+		}
+		const baseEvent = {
 			id: randomstring.generate(12),
-			level: 1,
-			goal: 1500,
-			total: lastContribution.total,
+			level: 3,
+			goal: 2200,
+			total: initialContributions.map((c) => c.total).reduce((p, c) => p + c),
 			progress: 0,
-			lastContribution,
-			topContributors: [lastContribution],
-		} as unknown as EventSubChannelHypeTrainProgressEvent)
+			lastContribution: initialContributions.at(-1),
+		}
+		for (const initialContribution of initialContributions) {
+			HypeEvents.emit('progress', {
+				...baseEvent,
+				topContributors: [
+					randomElement(initialContributions),
+					randomElement(initialContributions),
+				],
+			} as EventSubChannelHypeTrainProgressEvent)
+			await sleep(randomIntRange(0, 5) * 100)
+		}
 	}
+}
+
+function createTestHypeContribution() {
+	const type = Math.random() < 0.7 ? 'subscription' : 'bits'
+	const total =
+		type === 'bits' ? randomIntRange(5, 30) * 10 : randomIntRange(1, 5) * 500
+	return {
+		type,
+		total,
+		userDisplayName: `TestUser${lastTestUserID}`,
+		userId: `${lastTestUserID++}`,
+	} as EventSubChannelHypeTrainContribution
 }
 
 export function testHypeEnd() {
@@ -251,5 +325,14 @@ This is old, but it looks like real-world data
 Based on lines 1-208 & 342-424, it does send one event per sub,
 with the same timestamp, and the train total includes the value of
 all the subs for that batch
+
+UPDATE: What I learned from seeing real hype data for the first time:
+
+- When a train begins, a batch of progress events are sent out, all within 1s
+- These events may be out of order, but they should all have the same total/progress
+- The last_contribution in these events is mostly worthless, as it may be just
+the same one contribution repeated in every event
+- The top_contributors can vary between these events, so we will keep track of
+everything in it during this period to build a list of initial contributions
 
 */
