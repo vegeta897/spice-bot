@@ -61,10 +61,18 @@ async function checkForTweets() {
 	const newestRecordedTweet = recordedTweets.at(-1)
 	const oldestRecordedTweet = recordedTweets[0]
 
-	const scrapedTweets = await scrapeTweets(
-		page,
-		tempLatestTweetID || oldestRecordedTweet?.tweet_id
-	)
+	let scrapedTweets: ScrapedTweet[]
+
+	try {
+		scrapedTweets = await scrapeTweets(
+			page,
+			tempLatestTweetID || oldestRecordedTweet?.tweet_id
+		)
+	} catch (e) {
+		timestampLog('Error scraping tweets:', e)
+		checkingForTweets = false
+		return
+	}
 	if (scrapedTweets.length === 0) {
 		checkingForTweets = false
 		return
