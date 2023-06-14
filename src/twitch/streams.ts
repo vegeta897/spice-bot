@@ -249,7 +249,9 @@ async function sendOrUpdateLiveMessage(streamRecord: StreamRecord) {
 				.at(-1)
 			if (lastStream) {
 				const lastStreamEndTime = lastStream.endTime || lastStream.startTime
-				if (Date.now() - lastStreamEndTime < 30 * 60 * 1000) restarting = true
+				const sinceLastStream = Date.now() - lastStreamEndTime
+				console.log(sinceLastStream / 1000 / 60, 'minutes since last stream')
+				if (sinceLastStream < 30 * 60 * 1000) restarting = true
 			}
 			// Don't ping if the stream was restarted
 			if (!restarting) messageOptions.content = twitchPingRole.toString()
