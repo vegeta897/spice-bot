@@ -245,27 +245,26 @@ async function sendOrUpdateLiveMessage(streamRecord: StreamRecord) {
 		if (twitchPingRole) {
 			let restarting = false
 			// Check end time of last stream to see if this is a restart
-			const streamRecords = getStreamRecords()
-			const otherLiveStreams = streamRecords.filter(
-				(sr) =>
-					sr.streamStatus === 'live' && sr.streamID !== streamRecord.streamID
+			const otherStreams = getStreamRecords().filter(
+				(sr) => sr.streamID !== streamRecord.streamID
 			)
-			const lastStream = streamRecords
-				.filter((sr) => sr.streamID !== streamRecord.streamID)
-				.at(-1)
-			if (lastStream) {
-				const lastStreamEndTime = lastStream.endTime || lastStream.startTime
-				const sinceLastStream = Date.now() - lastStreamEndTime
-				console.log(
-					`Last stream ID: ${lastStream.streamID} (${
-						lastStream.streamStatus
-					} ${(sinceLastStream / 1000 / 60).toFixed(2)} minutes ago)`
-				)
-				if (sinceLastStream < 30 * 60 * 1000) restarting = true
-			}
+			const otherLiveStreams = otherStreams.filter(
+				(sr) => sr.streamStatus === 'live'
+			)
 			if (otherLiveStreams.length > 0) {
 				console.log(`${otherLiveStreams.length} other live stream record found`)
 				restarting = true
+			} else {
+				const lastStream = otherStreams.at(-1)
+				if (lastStream) {
+					const sinceLastStream = Date.now() - lastStream.endTime!
+					console.log(
+						`Last stream ID: ${lastStream.streamID} (${
+							lastStream.streamStatus
+						} ${(sinceLastStream / 1000 / 60).toFixed(2)} minutes ago)`
+					)
+					if (sinceLastStream < 30 * 60 * 1000) restarting = true
+				}
 			}
 			// Don't ping if the stream was restarted
 			if (!restarting) messageOptions.content = twitchPingRole.toString()

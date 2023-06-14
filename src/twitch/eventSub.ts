@@ -97,13 +97,15 @@ async function initGlobalEventSubs(listener: EventSubListener) {
 		if (event.broadcasterId !== streamerUser.id) return // Just to be safe
 		let downtime = Infinity
 		// TODO: Move this to a method in streamRecord.ts
-		const latestStream = getStreamRecords()
-			.filter((sr) => sr.streamID !== event.id)
-			.at(-1)
-		if (latestStream) {
-			downtime =
-				event.startDate.getTime() -
-				(latestStream.endTime || latestStream.startTime)
+		const otherStreams = getStreamRecords().filter(
+			(sr) => sr.streamID !== event.id
+		)
+		if (otherStreams.filter((sr) => sr.streamStatus === 'live').length > 0) {
+			downtime = 0
+		} else {
+			const latestStream = otherStreams.at(-1)
+			if (latestStream)
+				downtime = event.startDate.getTime() - latestStream.endTime!
 		}
 		TwitchEvents.emit('streamOnline', {
 			id: event.id,
