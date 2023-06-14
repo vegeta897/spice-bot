@@ -250,7 +250,11 @@ async function sendOrUpdateLiveMessage(streamRecord: StreamRecord) {
 			if (lastStream) {
 				const lastStreamEndTime = lastStream.endTime || lastStream.startTime
 				const sinceLastStream = Date.now() - lastStreamEndTime
-				console.log(sinceLastStream / 1000 / 60, 'minutes since last stream')
+				console.log(
+					`Last stream ID: ${lastStream.streamID} (${
+						lastStream.streamStatus
+					} ${(sinceLastStream / 1000 / 60).toFixed(2)} minutes ago)`
+				)
 				if (sinceLastStream < 30 * 60 * 1000) restarting = true
 			}
 			// Don't ping if the stream was restarted
