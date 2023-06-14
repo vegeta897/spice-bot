@@ -83,6 +83,7 @@ export function initStreams(params: { apiClient: ApiClient }) {
 		streamRecord.games.push(streamInfo.gameName)
 		streamRecord.thumbnailURL = streamInfo.getThumbnailUrl(360, 180)
 		if (messageID) streamRecord.messageID = messageID
+		checkVideos(streamInfo) // To end other streams
 		sendOrUpdateLiveMessage(streamRecord)
 	})
 
@@ -244,7 +245,12 @@ async function sendOrUpdateLiveMessage(streamRecord: StreamRecord) {
 		if (twitchPingRole) {
 			let restarting = false
 			// Check end time of last stream to see if this is a restart
-			const lastStream = getStreamRecords()
+			const streamRecords = getStreamRecords()
+			const otherLiveStreams = streamRecords.filter(
+				(sr) =>
+					sr.streamStatus === 'live' && sr.streamID !== streamRecord.streamID
+			)
+			const lastStream = streamRecords
 				.filter((sr) => sr.streamID !== streamRecord.streamID)
 				.at(-1)
 			if (lastStream) {
@@ -256,6 +262,10 @@ async function sendOrUpdateLiveMessage(streamRecord: StreamRecord) {
 					} ${(sinceLastStream / 1000 / 60).toFixed(2)} minutes ago)`
 				)
 				if (sinceLastStream < 30 * 60 * 1000) restarting = true
+			}
+			if (otherLiveStreams.length > 0) {
+				console.log(`${otherLiveStreams.length} other live stream record found`)
+				restarting = true
 			}
 			// Don't ping if the stream was restarted
 			if (!restarting) messageOptions.content = twitchPingRole.toString()
