@@ -17,10 +17,8 @@ export const timestampLog = (message?: any, ...optionalParams: any[]) => {
 	console.log(timestamp(), message, ...optionalParams)
 }
 
-export const formatDuration = (seconds: number) =>
-	Duration.fromMillis(seconds * 1000).toFormat(
-		seconds >= 60 * 60 ? 'h:mm:ss' : 'm:ss'
-	)
+export const formatDuration = (ms: number) =>
+	Duration.fromMillis(ms).toFormat(ms >= 60 * 60 * 1000 ? 'h:mm:ss' : 'm:ss')
 
 // Sort an array of objects by the specified prop key
 export const sortByProp = <T, K extends keyof T>(

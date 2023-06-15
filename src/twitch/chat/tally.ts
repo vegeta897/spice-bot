@@ -1,5 +1,5 @@
 import { ChatEvents, sendChatMessage } from './twitchChat.js'
-import { TwitchEvents } from '../eventSub.js'
+import { StreamEvents } from '../eventSub.js'
 
 type Message = { text: string; date: Date; userID: string }
 const recentMessages: Message[] = []
@@ -22,7 +22,7 @@ export function initTally() {
 			}
 		}
 	})
-	TwitchEvents.on('streamOnline', ({ downtime }) => {
+	StreamEvents.on('streamOnline', ({ downtime }) => {
 		if (downtime > 5 * 60 * 1000) recentMessages.length = 0
 	})
 }

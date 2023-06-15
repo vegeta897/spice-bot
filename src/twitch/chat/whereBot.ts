@@ -1,5 +1,5 @@
 import { type PrivateMessage } from '@twurple/chat'
-import { TwitchEvents } from '../eventSub.js'
+import { StreamEvents } from '../eventSub.js'
 import { getBotSub } from '../twitchApi.js'
 import { Emotes } from './emotes.js'
 import { makeTextGraceTrainSafe } from './grace.js'
@@ -13,7 +13,7 @@ export function initWhereBot() {
 			return
 		}
 	})
-	TwitchEvents.on('streamOnline', ({ downtime }) => {
+	StreamEvents.on('streamOnline', ({ downtime }) => {
 		if (downtime > 5 * 60 * 1000) reset()
 	})
 }

@@ -1,7 +1,7 @@
 import { getEmoteByName, getUsableEmotes, Emotes } from './emotes.js'
 import { GRACE } from './grace.js'
 import { ChatEvents, sendChatMessage } from './twitchChat.js'
-import { TwitchEvents } from '../eventSub.js'
+import { StreamEvents } from '../eventSub.js'
 import { getData, modifyData } from '../../db.js'
 import { DEV_MODE, timestampLog } from '../../util.js'
 import { parseChatMessage } from '@twurple/common'
@@ -41,7 +41,7 @@ export function initRecap() {
 		graceTrainCount++
 		saveCounts()
 	})
-	TwitchEvents.on('streamOnline', ({ downtime }) => {
+	StreamEvents.on('streamOnline', ({ downtime }) => {
 		if (downtime > 10 * 60 * 1000) clearCounts()
 	})
 }

@@ -1,5 +1,5 @@
 import { randomElement } from '../../util.js'
-import { TwitchEvents } from '../eventSub.js'
+import { StreamEvents } from '../eventSub.js'
 import { Emotes, canUseEmote } from './emotes.js'
 import { TrainEvents, OverlayData } from './trains.js'
 import { formatPoints } from './graceScore.js'
@@ -40,7 +40,7 @@ export function initGrace() {
 			type: 'redeem',
 		})
 	})
-	TwitchEvents.on('streamOnline', ({ downtime }) => {
+	StreamEvents.on('streamOnline', ({ downtime }) => {
 		if (downtime > 5 * 60 * 1000) {
 			overlayPosition = 'bottom'
 			clearGraceStats()
@@ -48,7 +48,6 @@ export function initGrace() {
 			resetGraceInChat()
 		}
 	})
-	// TwitchEvents.on('streamOffline', () => endGraceTrain('Abby'))
 }
 
 let overlayPosition: OverlayData['position'] = 'bottom'

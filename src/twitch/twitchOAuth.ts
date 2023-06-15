@@ -156,7 +156,13 @@ export function initTwitchOAuthServer(app: Express) {
 			},
 			chatTestMode: DEV_MODE || CHAT_TEST_MODE,
 			testCommands: ['recap', 'tally'],
-			testEvents: ['grace', 'hype-progress', 'hype-end'],
+			testEvents: [
+				'stream-online',
+				'stream-offline',
+				'grace',
+				'hype-progress',
+				'hype-end',
+			],
 			testLogs: ['event-subs'],
 			db: hljs.highlight(getCensoredJSON(), { language: 'json' }).value,
 		})
@@ -205,6 +211,8 @@ export function initTwitchOAuthServer(app: Express) {
 		}
 		if (event) {
 			timestampLog(`Testing ${event} event`)
+			// if(event ==='stream-online') testStreamOnline()
+			// if(event ==='stream-offline') testStreamOffline()
 			if (event === 'grace')
 				ChatEvents.emit('redemption', {
 					username: process.env.TWITCH_ADMIN_USERNAME,
@@ -216,7 +224,7 @@ export function initTwitchOAuthServer(app: Express) {
 				})
 			if (event === 'hype-progress') testHypeProgress()
 			if (event === 'hype-end') testHypeEnd()
-			// TODO: Add stream online/offline, tweets, etc
+			// TODO: Add more stream events, tweets, etc
 		}
 		if (chat) {
 			const message = req.body.message
