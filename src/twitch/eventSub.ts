@@ -44,11 +44,6 @@ export async function initTwitchEventSub(params: {
 	let listener: EventSubListener
 	if (DEV_MODE) {
 		await apiClient.eventSub.deleteAllSubscriptions()
-		modifyData({
-			streams: getStreamRecords().filter(
-				(sr) => !sr.streamID.startsWith('test_')
-			),
-		})
 		listener = new EventSubHttpListener({
 			apiClient,
 			adapter: new NgrokAdapter(),
