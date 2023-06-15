@@ -16,7 +16,6 @@ import {
 import { Express } from 'express'
 import { ChatEvents } from './chat/twitchChat.js'
 import { initStreams, onNewStream, onStreamOffline } from './streams.js'
-import { getStreamRecords } from './streamRecord.js'
 import { HypeEvents } from './chat/hype.js'
 
 type EventSubListener = EventSubHttpListener | EventSubMiddleware
