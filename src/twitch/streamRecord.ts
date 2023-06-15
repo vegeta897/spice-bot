@@ -36,7 +36,10 @@ export function createStreamRecord(streamID: string, parentStreamID?: string) {
 	}
 	if (parentStreamID)
 		(streamRecord as ChildStreamRecord).parentStreamID = parentStreamID
-	const streams = sortByProp([...getData().streams, streamRecord], 'startTime')
+	const streams = sortByProp(
+		[...getStreamRecords(), streamRecord] as StreamRecord[],
+		'startTime'
+	)
 	if (parentStreamID) {
 		// No need to trim old streams if this is a child stream
 		modifyData({ streams })
@@ -44,9 +47,9 @@ export function createStreamRecord(streamID: string, parentStreamID?: string) {
 		const keepStreams: MaybeReadonly<StreamRecord>[] = []
 		let keptParentStreams = 0
 		for (let i = 0; i < streams.length; i++) {
-			const stream = streams[streams.length - i]
+			const stream = streams[streams.length - 1 - i]
 			keepStreams.unshift(stream)
-			if (!('parentStream' in stream)) keptParentStreams++
+			if (!('parentStreamID' in stream)) keptParentStreams++
 			if (keptParentStreams === 5) break
 		}
 		modifyData({ streams: keepStreams })
@@ -92,11 +95,9 @@ export const getStreamRecord = (streamID: string): StreamRecord | null => {
 }
 
 export const getChildStreams = (streamID: string): ChildStreamRecord[] =>
-	getData()
-		.streams.filter(
-			(sr) => 'parentStreamID' in sr && sr.parentStreamID === streamID
-		)
-		.map(cloneStreamRecord) as ChildStreamRecord[]
+	getStreamRecords().filter(
+		(sr) => 'parentStreamID' in sr && sr.parentStreamID === streamID
+	) as ChildStreamRecord[]
 
 export const getTwitchToken = (accountType: AccountType) =>
 	cloneTwitchToken(getData().twitchTokens[accountType]) as AccessToken

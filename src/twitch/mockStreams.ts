@@ -1,60 +1,55 @@
 import { type HelixVideo, type HelixStream } from '@twurple/api'
-import { type EventSubHttpListener } from '@twurple/eventsub-http'
+import { onNewStream, onStreamOffline } from './streams.js'
 
-const testStream = {
-	id: 'test_stream',
-	startDate: new Date(Date.now() - 3 * 60 * 1000),
-	title:
-		"This is a test stream! Stream titles can be fairly long, so let's test it!",
-	gameName: 'Nancy Drew: Secrets Can Kill',
-	getThumbnailUrl: (x: number, y: number) =>
-		'https://cdn.discordapp.com/attachments/209177876975583232/1066968149376901170/thumb1.png',
-} as HelixStream
+export function testStreamOnline(number: number) {
+	updateVideoDurations()
+	const streamID = `test_stream_${number}`
+	const title = `Title for ${streamID}`
+	const startDate = new Date()
+	const getThumbnailUrl = (x: number, y: number) =>
+		'https://cdn.discordapp.com/attachments/209177876975583232/1066968149376901170/thumb1.png'
+	currentStream = {
+		id: streamID,
+		title,
+		startDate,
+		gameName: `Game ID ${gameIncrement}`,
+		getThumbnailUrl,
+	} as HelixStream
+	videos.push({
+		streamId: streamID,
+		title,
+		creationDate: startDate,
+		getThumbnailUrl,
+		durationInSeconds: 0,
+		url: `https://www.twitch.tv/videos/${1000 + number}`,
+	} as HelixVideo)
+	onNewStream(streamID)
+}
 
-export const getMockStreamOnlineEvent = (twitchID: string) =>
-	({
-		broadcasterId: twitchID,
-		broadcasterDisplayName: 'ybbaaabby',
-		id: 'test_stream',
-		getStream: () => testStream,
-	} as unknown as Parameters<
-		Parameters<EventSubHttpListener['onStreamOnline']>[1]
-	>[0])
+let currentStream: HelixStream | null = null
+export const getMockStream = () => currentStream
 
-export const getMockStream = () =>
-	({
-		...testStream,
-		title:
-			'This is a test stream and the title, game, and thumbnail have been updated!',
-		gameName: 'The Legend of Zelda: Breath of the Wild',
-		getThumbnailUrl: (x: number, y: number) =>
-			'https://cdn.discordapp.com/attachments/209177876975583232/1066968149070712893/thumb2.png',
-	} as HelixStream)
+const videos: HelixVideo[] = []
+export const getMockVideos = () => ({ data: [...videos] })
 
-const testOldVod = {
-	streamId: 'test_old_vod',
-	title: 'This is a VOD for an old stream! How about that?',
-	url: 'https://www.twitch.tv/videos/100000001',
-	creationDate: new Date('2023-01-20'),
-	durationInSeconds: 3702,
-	getThumbnailUrl: (x: number, y: number) =>
-		'https://cdn.discordapp.com/attachments/209177876975583232/1066968149070712893/thumb2.png',
-} as HelixVideo
+export function testStreamOffline(keepOnline = false) {
+	updateVideoDurations()
+	if (!keepOnline) currentStream = null
+	onStreamOffline()
+}
 
-export const getMockInitialVideos = () => ({
-	data: [testOldVod] as HelixVideo[],
-})
+let gameIncrement = 1
+export function testChangeGame() {
+	gameIncrement++
+	// @ts-expect-error
+	currentStream.gameName = `Game ID ${gameIncrement}`
+}
 
-export const getMockVideosAfterStream = () => ({
-	data: [
-		{
-			streamId: testStream.id,
-			title: testStream.title,
-			url: 'https://www.twitch.tv/videos/100000002',
-			creationDate: testStream.startDate,
-			durationInSeconds: 9373,
-			getThumbnailUrl: testStream.getThumbnailUrl,
-		},
-		testOldVod,
-	] as HelixVideo[],
-})
+function updateVideoDurations() {
+	for (const video of videos) {
+		// @ts-expect-error
+		video.durationInSeconds = Math.round(
+			(Date.now() - video.creationDate.getTime()) / 1000
+		)
+	}
+}

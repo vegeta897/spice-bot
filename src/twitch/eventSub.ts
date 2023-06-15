@@ -6,7 +6,6 @@ import {
 import { DEV_MODE, timestampLog } from '../util.js'
 import { NgrokAdapter } from '@twurple/eventsub-ngrok'
 import { getData, modifyData } from '../db.js'
-import { getMockStreamOnlineEvent } from './mockStreams.js'
 import randomstring from 'randomstring'
 import {
 	AuthEvents,
@@ -16,8 +15,7 @@ import {
 } from './twitchApi.js'
 import { Express } from 'express'
 import { ChatEvents } from './chat/twitchChat.js'
-import Emittery from 'emittery'
-import { initStreams, onNewStream } from './streams.js'
+import { initStreams, onNewStream, onStreamOffline } from './streams.js'
 import { getStreamRecords } from './streamRecord.js'
 import { HypeEvents } from './chat/hype.js'
 
@@ -28,11 +26,6 @@ const scopedEventSubs: Map<
 	string,
 	ReturnType<EventSubListener['onChannelFollow']>
 > = new Map()
-
-export const StreamEvents = new Emittery<{
-	streamOnline: { id: String; downtime: number }
-	streamOffline: { displayName: string }
-}>()
 
 export async function initTwitchEventSub(params: {
 	apiClient: ApiClient
@@ -93,40 +86,13 @@ export async function initTwitchEventSub(params: {
 async function initGlobalEventSubs(listener: EventSubListener) {
 	const streamerUser = getUserByAccountType('streamer')
 	listener.onStreamOnline(streamerUser, async (event) => {
-		if (DEV_MODE) event = getMockStreamOnlineEvent(streamerUser.id)
 		if (event.broadcasterId !== streamerUser.id) return // Just to be safe
 		onNewStream(event.id)
-		// let downtime = Infinity
-		// // TODO: Move this to a method in streamRecord.ts
-		// let parentStreamID: string | undefined = undefined
-		// const otherStreams = getStreamRecords().filter(
-		// 	(sr) => sr.streamID !== event.id
-		// )
-		// const otherLiveStreams = otherStreams.filter(
-		// 	(sr) => sr.streamStatus === 'live'
-		// )
-		// if (otherLiveStreams.length > 0) {
-		// 	const parentStream = otherLiveStreams.find((sr) => !sr.parentStreamID)
-		// 	if (parentStream) parentStreamID = parentStream.streamID
-		// 	downtime = 0
-		// } else {
-		// 	const latestStream = otherStreams.at(-1)
-		// 	if (latestStream)
-		// 		downtime = event.startDate.getTime() - latestStream.endTime!
-		// }
-		// if (downtime < 30 * 60 * 1000) {
-		// }
-		// TwitchEvents.emit('streamOnline', {
-		// 	id: event.id,
-		// 	displayName: event.broadcasterDisplayName,
-		// 	downtime,
-		// })
 	})
 	listener.onStreamOffline(streamerUser, async (event) => {
 		if (!DEV_MODE && event.broadcasterId !== streamerUser.id) return // Just to be safe
-		StreamEvents.emit('streamOffline', {
-			displayName: event.broadcasterDisplayName,
-		})
+		// It's so annoying that the stream ID isn't part of this event 😤
+		onStreamOffline()
 	})
 	listener.onUserAuthorizationRevoke(
 		process.env.TWITCH_CLIENT_ID,
@@ -138,11 +104,6 @@ async function initGlobalEventSubs(listener: EventSubListener) {
 				AuthEvents.emit('authRevoke', { method: 'disconnect', accountType })
 		}
 	)
-	// TODO: Use admin panel instead
-	// if (DEV_MODE) {
-	// 	console.log(await streamOnlineSub.getCliTestCommand())
-	// 	console.log(await streamOfflineSub.getCliTestCommand())
-	// }
 }
 
 async function initScopedEventSubs(listener: EventSubListener) {

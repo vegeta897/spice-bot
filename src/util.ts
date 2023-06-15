@@ -32,7 +32,7 @@ export const sortByProp = <T, K extends keyof T>(
 		(a, b) =>
 			(propValueTransform(a[prop]) > propValueTransform(b[prop]) ? 1 : -1) *
 			(reverse ? -1 : 1)
-	)
+	) as T[]
 }
 
 export const compareArrays = (first: unknown[], second: unknown[]) => {

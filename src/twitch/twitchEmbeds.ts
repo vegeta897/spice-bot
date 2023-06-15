@@ -74,20 +74,21 @@ export function getStreamEndEmbed(
 		{
 			name: 'Watch',
 			value:
-				archiveURLs.length === 0
+				archiveURLs.length === 1
 					? `[Archive](${archiveURLs[0]})`
 					: archiveURLs.map((u, i) => `[Part ${i + 1}](${u})`).join('\n'),
 			inline: true,
 		},
 	]
 	fields.push({
-		name: 'Duration',
+		name: archiveURLs.length > 1 ? 'Total Duration' : 'Duration',
 		value: formatDuration(getTotalDuration(parentStream || streamRecord)),
 		inline: true,
 	})
 	embed.addFields(fields)
-	if (video.title) embed.setDescription(video.title)
-	if (streamRecord.thumbnailURL) embed.setThumbnail(streamRecord.thumbnailURL)
+	embed.setDescription((parentStream || streamRecord).title || video.title)
+	const thumbnailURL = (parentStream || streamRecord).thumbnailURL
+	if (thumbnailURL) embed.setThumbnail(thumbnailURL)
 	return embed
 }
 

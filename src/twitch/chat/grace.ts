@@ -1,5 +1,5 @@
 import { randomElement } from '../../util.js'
-import { StreamEvents } from '../eventSub.js'
+import { StreamEvents } from '../streams.js'
 import { Emotes, canUseEmote } from './emotes.js'
 import { TrainEvents, OverlayData } from './trains.js'
 import { formatPoints } from './graceScore.js'

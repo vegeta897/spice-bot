@@ -1,5 +1,5 @@
 import { ChatEvents, sendChatMessage } from './twitchChat.js'
-import { StreamEvents } from '../eventSub.js'
+import { StreamEvents } from '../streams.js'
 
 type Message = { text: string; date: Date; userID: string }
 const recentMessages: Message[] = []

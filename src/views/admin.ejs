@@ -43,8 +43,15 @@
     <h3>Test events</h3>
     <p class="button-row">
       <% for(const event of testEvents) { %>
-      <a class="button button-small" href="#" onclick="fetch('test?event=<%= event %>',{method:'POST'})">Test <%= event %></a>
-      <% } %>
+      <% if(event ==='stream-online') { %>
+    <form action="test?event=stream-online" method="post" enctype="multipart/form-data">
+      <input name="streamID" type="number" required value="1">
+      <input type="submit" value="Test stream-online" class="button button-small" />
+    </form>
+    <% } else { %>
+    <a class="button button-small" href="#" onclick="fetch('test?event=<%= event %>',{method:'POST'})">Test <%= event %></a>
+    <% } %>
+    <% } %>
     </p>
     <% } %>
     <h3>Logging</h3>
@@ -56,7 +63,8 @@
     <% if(bot.authed) { %>
     <h3>Chat</h3>
     <form action="test?chat=send" method="post" enctype="multipart/form-data">
-      <input name="message" type="text" required><input type="submit" value="Send" class="button button-small">
+      <input name="message" type="text" required>
+      <input type="submit" value="Send" class="button button-small">
     </form>
     <% } %>
     <details>

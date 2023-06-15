@@ -1,5 +1,5 @@
 import { type PrivateMessage } from '@twurple/chat'
-import { StreamEvents } from '../eventSub.js'
+import { StreamEvents } from '../streams.js'
 import { getBotSub } from '../twitchApi.js'
 import { Emotes } from './emotes.js'
 import { makeTextGraceTrainSafe } from './grace.js'

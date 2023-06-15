@@ -25,6 +25,11 @@ import { type PrivateMessage } from '@twurple/chat'
 import { updateUserColor } from './chat/userColors.js'
 import multer from 'multer'
 import { testHypeEnd, testHypeProgress } from './chat/hype.js'
+import {
+	testStreamOnline,
+	testStreamOffline,
+	testChangeGame,
+} from './mockStreams.js'
 
 const SCOPES: Record<AccountType, string[]> = {
 	bot: [
@@ -159,6 +164,8 @@ export function initTwitchOAuthServer(app: Express) {
 			testEvents: [
 				'stream-online',
 				'stream-offline',
+				'stream-offline-late',
+				'change-game',
 				'grace',
 				'hype-progress',
 				'hype-end',
@@ -211,8 +218,13 @@ export function initTwitchOAuthServer(app: Express) {
 		}
 		if (event) {
 			timestampLog(`Testing ${event} event`)
-			// if(event ==='stream-online') testStreamOnline()
-			// if(event ==='stream-offline') testStreamOffline()
+			if (event === 'stream-online') {
+				testStreamOnline(+req.body.streamID!)
+				return res.redirect('admin')
+			}
+			if (event === 'stream-offline') testStreamOffline()
+			if (event === 'stream-offline-late') testStreamOffline(true)
+			if (event === 'change-game') testChangeGame()
 			if (event === 'grace')
 				ChatEvents.emit('redemption', {
 					username: process.env.TWITCH_ADMIN_USERNAME,

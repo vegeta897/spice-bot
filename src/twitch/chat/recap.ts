@@ -1,7 +1,7 @@
 import { getEmoteByName, getUsableEmotes, Emotes } from './emotes.js'
 import { GRACE } from './grace.js'
 import { ChatEvents, sendChatMessage } from './twitchChat.js'
-import { StreamEvents } from '../eventSub.js'
+import { StreamEvents } from '../streams.js'
 import { getData, modifyData } from '../../db.js'
 import { DEV_MODE, timestampLog } from '../../util.js'
 import { parseChatMessage } from '@twurple/common'

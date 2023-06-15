@@ -6,11 +6,7 @@ import {
 } from '@twurple/api'
 import { type BaseMessageOptions } from 'discord.js'
 import { modifyData } from '../db.js'
-import {
-	getMockInitialVideos,
-	getMockStream,
-	getMockVideosAfterStream,
-} from './mockStreams.js'
+import { getMockStream, getMockVideos } from './mockStreams.js'
 import {
 	createStreamMessage,
 	deleteStreamMessage,
@@ -19,7 +15,6 @@ import {
 import { getTwitchPingButtons, getTwitchPingRole } from '../pings.js'
 import { DEV_MODE, sleep, timestampLog } from '../util.js'
 import { getStreamEndEmbed, getStreamStartEmbed } from './twitchEmbeds.js'
-import { StreamEvents } from './eventSub.js'
 import { getUserByAccountType } from './twitchApi.js'
 import {
 	getStreamRecords,
@@ -31,6 +26,12 @@ import {
 	ChildStreamRecord,
 	getChildStreams,
 } from './streamRecord.js'
+import Emittery from 'emittery'
+
+export const StreamEvents = new Emittery<{
+	streamOnline: { id: String; downtime: number }
+	streamOffline: undefined
+}>()
 
 const processingStreamOnlineEvents: Set<string> = new Set()
 
@@ -40,21 +41,17 @@ let streamerUser: HelixUser
 export function initStreams(params: { apiClient: ApiClient }) {
 	apiClient = params.apiClient
 	streamerUser = getUserByAccountType('streamer')
-	StreamEvents.on('streamOffline', (event) => {
-		timestampLog(`${event.displayName} just went offline`)
-		// It's so annoying that the stream ID isn't part of this event 😤
-		checkVideos()
-	})
 	if (!DEV_MODE) {
 		checkStreamAndVideos()
-		// Check for stream/video updates every 5 minutes
-		setInterval(() => checkStreamAndVideos(), 5 * 60 * 1000)
 	} else {
-		modifyData({
-			streams: getStreamRecords().filter((s) => s.streamID !== 'test'),
-		})
+		modifyData({ streams: [] })
 	}
+	const streamCheckInterval = DEV_MODE ? 15 * 1000 : 5 * 60 * 1000
+	setInterval(() => checkStreamAndVideos(), streamCheckInterval)
 }
+
+// Minimum time between streams to be considered a new stream
+const minDowntime = DEV_MODE ? 10 * 1000 : 20 * 60 * 1000
 
 export async function onNewStream(
 	streamID: string,
@@ -75,7 +72,7 @@ export async function onNewStream(
 			downtime = 0
 		} else {
 			downtime = Date.now() - previousStreamRecord.endTime!
-			if (downtime < 30 * 60 * 1000) linkedStreamRecord = previousStreamRecord
+			if (downtime < minDowntime) linkedStreamRecord = previousStreamRecord
 		}
 	}
 	let parentStreamID: string | undefined = undefined
@@ -92,7 +89,7 @@ export async function onNewStream(
 	let messageID: string | null = null
 	// Stream info may be null at first
 	while (!streamInfo) {
-		streamInfo = await streamerUser.getStream()
+		streamInfo = DEV_MODE ? getMockStream() : await streamerUser.getStream()
 		if (!streamInfo) {
 			getStreamAttempts++
 			if (getStreamAttempts === 2) {
@@ -118,8 +115,14 @@ export async function onNewStream(
 	if (!('parentStreamID' in streamRecord) && messageID)
 		streamRecord.messageID = messageID
 	streamRecord.thumbnailURL = streamInfo.getThumbnailUrl(360, 180)
+	updateStreamRecord(streamRecord)
 	checkVideos(streamInfo) // To end other streams
 	sendOrUpdateLiveMessage(streamRecord)
+}
+
+export function onStreamOffline() {
+	timestampLog(`${process.env.TWITCH_STREAMER_USERNAME} just went offline`)
+	checkVideos()
 }
 
 async function checkStreamAndVideos() {
@@ -140,17 +143,21 @@ function checkStream(stream: HelixStream) {
 			timestampLog('Title changed to:', stream.title)
 		const newGame = !existingRecord.games.includes(stream.gameName)
 		if (newGame) timestampLog('New game:', stream.gameName)
-		const updatedRecord = updateStreamRecord({
-			streamID: stream.id,
-			streamInfo: true,
-			startTime: stream.startDate.getTime(),
-			title: stream.title,
-			thumbnailURL: stream.getThumbnailUrl(360, 180),
-			thumbnailIndex: (existingRecord.thumbnailIndex || 0) + 1,
-			games: newGame
-				? [...existingRecord.games, stream.gameName]
-				: existingRecord.games,
-		})
+		const updatedRecord = updateStreamRecord(
+			{
+				streamID: stream.id,
+				streamStatus: 'live',
+				streamInfo: true,
+				startTime: stream.startDate.getTime(),
+				title: stream.title,
+				thumbnailURL: stream.getThumbnailUrl(360, 180),
+				thumbnailIndex: (existingRecord.thumbnailIndex || 0) + 1,
+				games: newGame
+					? [...existingRecord.games, stream.gameName]
+					: existingRecord.games,
+			} as StreamRecord,
+			['endTime']
+		)
 		sendOrUpdateLiveMessage(updatedRecord)
 	} else {
 		// Start of stream was missed
@@ -159,19 +166,14 @@ function checkStream(stream: HelixStream) {
 	}
 }
 
-let checkVideosRun = 0 // Just for dev mode stuff
-
 async function checkVideos(stream: HelixStream | null = null) {
 	const { data: videos } = DEV_MODE
-		? checkVideosRun++ === 0
-			? getMockInitialVideos()
-			: getMockVideosAfterStream()
+		? getMockVideos()
 		: await apiClient.videos.getVideosByUser(streamerUser.id, {
 				limit: 4, // A safe buffer
 				type: 'archive',
 		  })
 	if (videos.length === 0) return
-	const newestVideo = videos[0]
 	const oldestToNewest = videos.reverse()
 	for (const video of oldestToNewest) {
 		const streamRecord = video.streamId && getStreamRecord(video.streamId)
@@ -218,7 +220,7 @@ async function checkVideos(stream: HelixStream | null = null) {
 			sr.streamID !== stream?.id && // Not still going
 			!processingStreamOnlineEvents.has(sr.streamID) && // Not currently processing
 			sr.startTime < Date.now() - 5 * 60 * 1000 && // Older than 5 minutes
-			sr.streamID < newestVideo.streamId! // Older than the newest video
+			sr.streamID < videos[0].streamId! // Older than the newest video
 	)
 	for (const staleStreamRecord of staleStreamRecords) {
 		timestampLog(
@@ -275,14 +277,15 @@ async function sendOrUpdateLiveMessage(streamRecord: StreamRecord) {
 }
 
 async function endStream(streamRecord: StreamRecord, video: HelixVideo) {
-	const updatedRecord: StreamRecord = {
+	const updatedRecord = updateStreamRecord({
 		...streamRecord,
 		streamStatus: 'ended',
 		videoURL: video.url,
 		thumbnailURL: video.getThumbnailUrl(360, 180),
 		endTime: streamRecord.startTime + video.durationInSeconds * 1000,
-	}
+	}) as StreamRecord
 	const messageOptions: BaseMessageOptions = {
+		content: '', // Remove ping text
 		embeds: [getStreamEndEmbed(updatedRecord, video)],
 	}
 	let messageRecord: ParentStreamRecord
@@ -296,12 +299,12 @@ async function endStream(streamRecord: StreamRecord, video: HelixVideo) {
 		if (getTwitchPingRole()) {
 			messageOptions.components = getTwitchPingButtons()
 			updatedRecord.pingButtons = 'posted'
+			updateStreamRecord(updatedRecord)
 		}
 		messageRecord = updatedRecord
 	}
 	if (messageRecord.messageID)
 		editStreamMessage(messageRecord.messageID, messageOptions)
-	updateStreamRecord(messageRecord)
 }
 
 function cleanPingButtons(exceptStreamID?: string) {
