@@ -5,7 +5,6 @@ import {
 	type HelixVideo,
 } from '@twurple/api'
 import { type BaseMessageOptions } from 'discord.js'
-import { modifyData } from '../db.js'
 import { getMockStream, getMockVideos } from './mockStreams.js'
 import {
 	createStreamMessage,
@@ -43,9 +42,8 @@ export function initStreams(params: { apiClient: ApiClient }) {
 	streamerUser = getUserByAccountType('streamer')
 	if (!DEV_MODE) {
 		checkStreamAndVideos()
-	} else {
-		modifyData({ streams: [] })
 	}
+	cleanPingButtons()
 	const streamCheckInterval = DEV_MODE ? 15 * 1000 : 5 * 60 * 1000
 	setInterval(() => checkStreamAndVideos(), streamCheckInterval)
 }
@@ -261,7 +259,6 @@ async function sendOrUpdateLiveMessage(streamRecord: StreamRecord) {
 		return streamRecord.messageID
 	}
 	// Create new message
-	cleanPingButtons(streamRecord.streamID)
 	const twitchPingRole = getTwitchPingRole()
 	if (twitchPingRole) {
 		messageOptions.content = twitchPingRole.toString()
@@ -273,6 +270,7 @@ async function sendOrUpdateLiveMessage(streamRecord: StreamRecord) {
 		...streamRecord,
 		messageID: message.id,
 	})
+	cleanPingButtons()
 	return message.id
 }
 
@@ -307,15 +305,13 @@ async function endStream(streamRecord: StreamRecord, video: HelixVideo) {
 		editStreamMessage(messageRecord.messageID, messageOptions)
 }
 
-function cleanPingButtons(exceptStreamID?: string) {
+function cleanPingButtons() {
 	const buttonRecords = getStreamRecords().filter(
-		(sr) =>
-			'messageID' in sr &&
-			sr.pingButtons === 'posted' &&
-			sr.messageID &&
-			sr.streamID !== exceptStreamID
+		(sr) => 'messageID' in sr && sr.pingButtons === 'posted' && sr.messageID
 	) as ParentStreamRecord[]
+	const latestParentStreamRecord = buttonRecords.at(-1)
 	for (const buttonRecord of buttonRecords) {
+		if (buttonRecord === latestParentStreamRecord) continue
 		editStreamMessage(buttonRecord.messageID!, { components: [] })
 		updateStreamRecord({
 			streamID: buttonRecord.streamID,
