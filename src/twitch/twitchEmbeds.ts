@@ -73,9 +73,6 @@ export function getStreamEndEmbed(
 	const title = video?.title || streamRecord.title
 	if (title) embed.setDescription(title)
 	if (streamRecord.thumbnailURL) embed.setThumbnail(streamRecord.thumbnailURL)
-	if (video?.creationDate)
-		embed.setTimestamp(
-			video.creationDate.getTime() + video!.durationInSeconds * 1000
-		)
+	if (video?.creationDate) embed.setTimestamp(video.creationDate.getTime())
 	return embed
 }
