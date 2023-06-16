@@ -55,7 +55,11 @@ export async function onNewStream(
 	streamID: string,
 	streamInfo: HelixStream | null = null
 ) {
-	timestampLog(`${process.env.TWITCH_STREAMER_USERNAME} just went live!`)
+	timestampLog(
+		`${
+			process.env.NICKNAME || process.env.TWITCH_STREAMER_USERNAME
+		} just went live! (${streamID})`
+	)
 	if (getStreamRecord(streamID)) {
 		console.log(`Stream ID ${streamID} already recorded`)
 		return
@@ -79,6 +83,7 @@ export async function onNewStream(
 			'parentStreamID' in linkedStreamRecord
 				? linkedStreamRecord.parentStreamID
 				: linkedStreamRecord.streamID
+		console.log('Stream restart detected')
 	}
 	processingStreamOnlineEvents.add(streamID)
 	const streamRecord = createStreamRecord(streamID, parentStreamID)
