@@ -166,7 +166,7 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 		)
 	})
 
-	if (botScopes.includes('moderation:read')) {
+	if (botScopes.includes('channel:moderate')) {
 		const pubSubClient = new PubSubClient({ authProvider })
 		pubSubClient.onModAction(
 			getUserByAccountType('bot'),
