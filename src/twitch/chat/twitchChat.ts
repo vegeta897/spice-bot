@@ -166,15 +166,17 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 		)
 	})
 
-	const pubSubClient = new PubSubClient({ authProvider })
-	pubSubClient.onModAction(
-		getUserByAccountType('bot'),
-		getUserByAccountType('streamer'),
-		(event) => {
-			if (!('action' in event)) return
-			if (event.action === 'raid') ChatEvents.emit('raid')
-		}
-	)
+	if (botScopes.includes('moderation:read')) {
+		const pubSubClient = new PubSubClient({ authProvider })
+		pubSubClient.onModAction(
+			getUserByAccountType('bot'),
+			getUserByAccountType('streamer'),
+			(event) => {
+				if (!('action' in event)) return
+				if (event.action === 'raid') ChatEvents.emit('raid')
+			}
+		)
+	}
 }
 
 export function sendChatMessage(
