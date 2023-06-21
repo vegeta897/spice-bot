@@ -15,9 +15,11 @@ import { DEV_MODE, timestampLog } from '../util.js'
 const USERNAME = process.env.TWITTER_USERNAME
 const INCLUDE_RETWEETS = process.env.TWITTER_INCLUDE_RETWEETS === 'true'
 const SCRAPE_INTERVAL = 30 * 1000 // 30 seconds
+const ERROR_THRESHOLD = 5 * 60 * 1000 // 5 minutes
 
 let page: puppeteer.Page
 let checkingForTweets = false
+let firstErrorTime: number | null = null
 let tempLatestTweetID: string | null = null
 
 export async function initTwitterScraper() {
@@ -43,27 +45,37 @@ async function checkForTweets() {
 	checkingForTweets = true
 	try {
 		await page.goto(`https://twitter.com/${USERNAME}`)
-	} catch (e: any) {
-		const errorString = e instanceof Error ? e.message : String(e)
-		const message = errorString.includes('context')
-			? '(context destroyed)'
-			: errorString.includes('Page.navigate timed out') ||
-			  errorString.includes('Navigation timeout')
-			? '(timed out)'
-			: errorString
-		timestampLog(`Error navigating to twitter.com/${USERNAME}`, message)
-		checkingForTweets = false
-		return
-	}
-	try {
 		await page.waitForSelector('article')
-	} catch (e) {
-		timestampLog(
-			`No <article> element found! Does ${USERNAME} have no tweets, or are they protected?`
-		)
+	} catch (e: any) {
+		// const errorString = e instanceof Error ? e.message : String(e)
+		// const message = errorString.includes('context')
+		// 	? '(context destroyed)'
+		// 	: errorString.includes('Page.navigate timed out') ||
+		// 	  errorString.includes('Navigation timeout')
+		// 	? '(timed out)'
+		// 	: errorString
+		// timestampLog(`Error navigating to twitter.com/${USERNAME}`, message)
+		const now = Date.now()
+		firstErrorTime ||= now
+		if (now - firstErrorTime >= ERROR_THRESHOLD) {
+			timestampLog(
+				`Tweet scraper failed all attempts for 5 minutes. Does ${USERNAME} have no tweets, or are they protected?`
+			)
+			firstErrorTime = now
+		}
 		checkingForTweets = false
 		return
 	}
+	firstErrorTime = null
+	// try {
+	// 	await page.waitForSelector('article')
+	// } catch (e) {
+	// 	timestampLog(
+	// 		`No <article> element found! Does ${USERNAME} have no tweets, or are they protected?`
+	// 	)
+	// 	checkingForTweets = false
+	// 	return
+	// }
 	const recordedTweets = getTweetRecords()
 	const newestRecordedTweet = recordedTweets.at(-1)
 	const oldestRecordedTweet = recordedTweets[0]
