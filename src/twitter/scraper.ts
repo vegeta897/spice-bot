@@ -45,12 +45,12 @@ async function checkForTweets() {
 		await page.goto(`https://twitter.com/${USERNAME}`)
 	} catch (e: any) {
 		const errorString = e instanceof Error ? e.message : String(e)
-		const message = errorString.includes('context was destroyed')
+		const message = errorString.includes('context')
 			? '(context destroyed)'
 			: errorString.includes('Page.navigate timed out') ||
 			  errorString.includes('Navigation timeout')
 			? '(timed out)'
-			: e
+			: errorString
 		timestampLog(`Error navigating to twitter.com/${USERNAME}`, message)
 		checkingForTweets = false
 		return
