@@ -41,11 +41,22 @@ async function checkForTweets() {
 		)
 		return
 	}
+
+	const recordedTweets = getTweetRecords()
+	const newestRecordedTweet = recordedTweets.at(-1)
+	const oldestRecordedTweet = recordedTweets[0]
+
+	let scrapedTweets: ScrapedTweet[]
 	// if (DEV_MODE) timestampLog('checking for tweets')
 	checkingForTweets = true
+
 	try {
 		await page.goto(`https://twitter.com/${USERNAME}`)
 		await page.waitForSelector('article')
+		scrapedTweets = await scrapeTweets(
+			page,
+			tempLatestTweetID || oldestRecordedTweet?.tweet_id
+		)
 	} catch (e: any) {
 		// const errorString = e instanceof Error ? e.message : String(e)
 		// const message = errorString.includes('context')
@@ -67,31 +78,7 @@ async function checkForTweets() {
 		return
 	}
 	firstErrorTime = null
-	// try {
-	// 	await page.waitForSelector('article')
-	// } catch (e) {
-	// 	timestampLog(
-	// 		`No <article> element found! Does ${USERNAME} have no tweets, or are they protected?`
-	// 	)
-	// 	checkingForTweets = false
-	// 	return
-	// }
-	const recordedTweets = getTweetRecords()
-	const newestRecordedTweet = recordedTweets.at(-1)
-	const oldestRecordedTweet = recordedTweets[0]
 
-	let scrapedTweets: ScrapedTweet[]
-
-	try {
-		scrapedTweets = await scrapeTweets(
-			page,
-			tempLatestTweetID || oldestRecordedTweet?.tweet_id
-		)
-	} catch (e) {
-		timestampLog('Error scraping tweets:', e)
-		checkingForTweets = false
-		return
-	}
 	if (scrapedTweets.length === 0) {
 		checkingForTweets = false
 		return
