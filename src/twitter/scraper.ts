@@ -12,6 +12,7 @@ import { DEV_MODE, timestampLog } from '../util.js'
 
 // Make this a separate module on NPM?
 
+const AUTH_TOKEN = process.env.TWITTER_AUTH_TOKEN_COOKIE
 const USERNAME = process.env.TWITTER_USERNAME
 const INCLUDE_RETWEETS = process.env.TWITTER_INCLUDE_RETWEETS === 'true'
 const SCRAPE_INTERVAL = 2 * 60 * 1000 // 2 minutes
@@ -27,6 +28,13 @@ export async function initTwitterScraper() {
 	page = await browser.newPage()
 	// await setPageRequestInterceptions(page)
 	await page.setViewport({ width: 1600, height: 3000 })
+	await page.setCookie({
+		name: 'auth_token',
+		value: AUTH_TOKEN,
+		httpOnly: true,
+		secure: true,
+		domain: '.twitter.com',
+	})
 	console.log('Tweet scraper connected')
 	checkForTweets()
 	setInterval(checkForTweets, SCRAPE_INTERVAL)
@@ -58,7 +66,10 @@ async function checkForTweets() {
 			tempLatestTweetID || oldestRecordedTweet?.tweet_id
 		)
 	} catch (e: any) {
-		// const errorString = e instanceof Error ? e.message : String(e)
+		if (DEV_MODE) {
+			const errorString = e instanceof Error ? e.message : String(e)
+			console.log(errorString)
+		}
 		// const message = errorString.includes('context')
 		// 	? '(context destroyed)'
 		// 	: errorString.includes('Page.navigate timed out') ||

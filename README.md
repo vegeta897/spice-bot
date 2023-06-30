@@ -53,7 +53,8 @@ Rename or copy `.env.example` to `.env` and fill it out. All variables are requi
 | `TWITCH_BANNER_URL`          | _(optional)_ An image URL to use in stream notification embeds                                             |
 | `TWITTER_USERNAME`           | The Twitter username to watch for tweets                                                                   |
 | `TWITTER_SCRAPE_MODE`        | If "true", the Twitter API will be substituted for page scraping                                           |
-| `TWITTER_TOKEN`              | The bearer token for your Twitter app                                                                      |
+| `TWITTER_AUTH_TOKEN_COOKIE`  | _(scrape mode only)_ The value of your `auth_token` cookie while logged in at twitter.com                  |
+| `TWITTER_TOKEN`              | _(API mode only)_ The bearer token for your Twitter app                                                    |
 | `TWITTER_INCLUDE_RETWEETS`   | If set to "true", retweets will be posted (quote retweets are always be posted)                            |
 | `TWITTER_INCLUDE_REPLIES`    | If set to "true", tweet replies will be posted (self-replies are always posted)                            |
 | `DISCORD_BOT_TOKEN`          | The token of your Discord bot                                                                              |
@@ -100,6 +101,8 @@ Build Spice Bot with `npm run build` and start it with `npm start`. I recommend 
 ## Twitter API
 
 On February 2nd 2023, [Twitter announced](https://twitter.com/TwitterDev/status/1621026986784337922) that there will no longer be free access to their API, merely one week hence. This is an absurd move that I don't need to go into here. The point is, I immediately began creating a workaround which amounts to scraping Twitter with an emulated browser, with the help of the awesome library [Puppeteer](https://pptr.dev/). I am writing this before the paywall has actually gone up, so I don't know for sure if this work will be necessary, but I'm preparing for the worst.
+
+**6/30/2023 Update**: The free API officially shut down on June 10th. The scraper has been doing well. However, today on the 30th, Twitter began requiring you to be logged in to view tweets. I quickly made a patch that uses an auth cookie, and this seems to work. See the `.env` config above. Note that you will have to manually update this value when your cookie expires and you get a new one.
 
 ## About
 
