@@ -60,7 +60,8 @@
 	"overrides": {
 		"@twurple/chat": {
 			"@d-fischer/rate-limiter": "^0.7.4"
-		}
+		},
+		"semver": "7.5.2"
 	},
 	"engines": {
 		"node": ">=16.9.0"
