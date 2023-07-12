@@ -68,7 +68,7 @@
 	},
 	"type": "module",
 	"optionalDependencies": {
-		"puppeteer": "^19.8.5",
+		"puppeteer": "^19.11.1",
 		"puppeteer-autoscroll-down": "^1.1.2"
 	},
 	"repository": {

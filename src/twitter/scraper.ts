@@ -1,6 +1,7 @@
 import puppeteer from 'puppeteer'
 import { scrollPageToBottom } from 'puppeteer-autoscroll-down'
 import {
+	TweetRecord,
 	deleteTweetRecord,
 	getTweetRecords,
 	tweetIDIsAfter,
@@ -12,10 +13,12 @@ import { DEV_MODE, timestampLog } from '../util.js'
 
 // Make this a separate module on NPM?
 
+// TODO: Scrape nitter.net instead
+
 const AUTH_TOKEN = process.env.TWITTER_AUTH_TOKEN_COOKIE
 const USERNAME = process.env.TWITTER_USERNAME
 const INCLUDE_RETWEETS = process.env.TWITTER_INCLUDE_RETWEETS === 'true'
-const SCRAPE_INTERVAL = 2 * 60 * 1000 // 2 minutes
+const SCRAPE_INTERVAL = (DEV_MODE ? 1 : 2) * 60 * 1000 // 2 minutes
 const ERROR_THRESHOLD = 10 * 60 * 1000 // 10 minutes
 
 let page: puppeteer.Page
@@ -24,7 +27,7 @@ let firstErrorTime: number | null = null
 let tempLatestTweetID: string | null = null
 
 export async function initTwitterScraper() {
-	const browser = await puppeteer.launch()
+	const browser = await puppeteer.launch({ headless: 'new' })
 	page = await browser.newPage()
 	// await setPageRequestInterceptions(page)
 	await page.setViewport({ width: 1600, height: 3000 })
@@ -119,6 +122,7 @@ async function checkForTweets() {
 	}
 
 	// Check for deleted tweets
+	const tweetsToCheck: TweetRecord[] = []
 	for (const tweetRecord of recordedTweets) {
 		// Ignore tweets outside of scrape range
 		if (tweetIDIsBefore(tweetRecord.tweet_id, scrapedTweets[0].tweetID))
@@ -130,10 +134,26 @@ async function checkForTweets() {
 		)
 		if (scraped) continue
 		timestampLog(
-			`Deleting message ID ${tweetRecord.message_id} for tweet ID ${tweetRecord.tweet_id}`
+			`Recorded tweet ID ${tweetRecord.tweet_id} not found in scrape`
 		)
-		deleteTweetRecord(tweetRecord)
-		await deleteTweetMessage(tweetRecord.message_id)
+		tweetsToCheck.push(tweetRecord)
+	}
+	// Verify each missing tweet before deleting
+	if (tweetsToCheck.length > 0) {
+		for (const tweetToCheck of tweetsToCheck) {
+			const tweetExists = await doesTweetExist(page, tweetToCheck.tweet_id)
+			if (tweetExists) {
+				timestampLog(
+					`Tweet ID ${tweetToCheck.tweet_id} exists, skipping delete`
+				)
+			} else {
+				timestampLog(
+					`Deleting message ID ${tweetToCheck.message_id} for tweet ID ${tweetToCheck.tweet_id}`
+				)
+				deleteTweetRecord(tweetToCheck)
+				await deleteTweetMessage(tweetToCheck.message_id)
+			}
+		}
 	}
 	checkTweetPingButtons()
 	checkingForTweets = false
@@ -157,7 +177,7 @@ const scrapeTweets = async (
 	let oldestNonRetweet: ScrapedTweet | null = null
 	const timelineIndexMap: Map<string, number> = new Map()
 	do {
-		const { scrapedTweets, timelineIndexOffset } = await scrapePage(page, [
+		const { scrapedTweets, timelineIndexOffset } = await scrapeProfile(page, [
 			...timelineIndexMap.entries(),
 		])
 		if (timelineIndexOffset === 0 && timelineIndexMap.size > 0) {
@@ -225,7 +245,7 @@ function createNewRetweetIDs(tweets: ScrapedTweet[]) {
 	}
 }
 
-const scrapePage = (
+const scrapeProfile = (
 	page: puppeteer.Page,
 	timelineIndexes: [string, number][]
 ) =>
@@ -286,6 +306,18 @@ const scrapePage = (
 		INCLUDE_RETWEETS,
 		timelineIndexes
 	)
+
+const doesTweetExist = async (page: puppeteer.Page, tweetID: string) => {
+	await page.goto(`https://twitter.com/${USERNAME}/status/${tweetID}`)
+	await page.waitForNetworkIdle()
+	return await page.$$eval(
+		'div',
+		(divElements) =>
+			!divElements.some(
+				(div) => div.getAttribute('data-testid') === 'error-detail'
+			)
+	)
+}
 
 type ScrapedTweet = {
 	tweetID: string
