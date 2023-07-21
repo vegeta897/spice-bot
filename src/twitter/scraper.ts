@@ -18,8 +18,8 @@ import { DEV_MODE, timestampLog } from '../util.js'
 const AUTH_TOKEN = process.env.TWITTER_AUTH_TOKEN_COOKIE
 const USERNAME = process.env.TWITTER_USERNAME
 const INCLUDE_RETWEETS = process.env.TWITTER_INCLUDE_RETWEETS === 'true'
-const SCRAPE_INTERVAL = (DEV_MODE ? 1 : 2) * 60 * 1000 // 2 minutes
-const ERROR_THRESHOLD = 10 * 60 * 1000 // 10 minutes
+const SCRAPE_INTERVAL = (DEV_MODE ? 1 : 3) * 60 * 1000 // 3 minutes
+const ERROR_THRESHOLD = 30 * 60 * 1000 // 30 minutes
 
 let page: puppeteer.Page
 let checkingForTweets = false
@@ -84,7 +84,7 @@ async function checkForTweets() {
 		firstErrorTime ||= now
 		if (now - firstErrorTime >= ERROR_THRESHOLD) {
 			timestampLog(
-				`Tweet scraper failed all attempts for 10 minutes. Does ${USERNAME} have no tweets, or are they protected?`
+				`Tweet scraper failed all attempts for 30 minutes. Does ${USERNAME} have no tweets, or are they protected?`
 			)
 			firstErrorTime = now
 		}
