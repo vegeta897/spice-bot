@@ -14,6 +14,8 @@ export function getUserColor(userID: string) {
 	return userColors.get(userID) || updateUserColor(userID, null)
 }
 
+export const getRandomUserColor = () => randomElement(defaultColors)
+
 // These are the default twitch colors, but maybe we could use prettier ones?
 const defaultColors = [
 	'#FF0000',

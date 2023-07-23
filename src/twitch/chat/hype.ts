@@ -17,7 +17,7 @@ import {
 	endHypeTrain,
 	startHypeTrain,
 } from './trains.js'
-import { getUserColor } from './userColors.js'
+import { getRandomUserColor, getUserColor } from './userColors.js'
 import randomstring from 'randomstring'
 
 export const HypeEvents = new Emittery<{
@@ -46,21 +46,23 @@ let endedHypeTrainID: string | null = null
 HypeEvents.on('begin', (event) => {
 	timestampLog(
 		`Hype Train ID ${event.id} begin!
-Goal: ${event.goal}
-Level: ${event.level}
-Progress: ${event.progress}
-Total: ${event.total}
+Goal: ${event.goal} | Level: ${event.level} | Progress: ${
+			event.progress
+		} | Total: ${event.total}
 Top Contribs: ${listHypeContributions(event.topContributors)}`
 	)
-	// Ignore this event, because the first progress event will start the train
+	// This event doesn't necessarily come before the initial batch of progress events
+	// But we use it to see if it contains any unique contributions
+	hypeStats ||= createHypeStats(event.id)
+	updateStats(event)
+	if (hypeStats.state === 'starting') handleInitialHypeEvent(event)
 })
 
 HypeEvents.on('progress', (event) => {
 	timestampLog(`Hype Train ID ${event.id} progress
-Goal: ${event.goal}
-Level: ${event.level}
-Progress: ${event.progress}
-Total: ${event.total}
+	Goal: ${event.goal} | Level: ${event.level} | Progress: ${
+		event.progress
+	} | Total: ${event.total}
 Last Contrib: ${formatHypeContribution(event.lastContribution)}
 Top Contribs: ${listHypeContributions(event.topContributors)}`)
 	if (event.id === endedHypeTrainID) {
@@ -69,28 +71,20 @@ Top Contribs: ${listHypeContributions(event.topContributors)}`)
 	}
 	const newTrain = !hypeStats
 	hypeStats ||= createHypeStats(event.id)
-	const statsUpdated = eventStatsAreNewer(event)
-	if (statsUpdated) {
-		hypeStats.level = event.level
-		hypeStats.total = event.total
-		hypeStats.progress = event.progress
-		hypeStats.goal = event.goal
-		if (!newTrain && hypeStats.state === 'starting') {
-			clearTimeout(hypeStats.initialContributionTimeout)
-			beginHypeTrain()
-		}
+	const { statsWereUpdated } = updateStats(event)
+	if (!newTrain && statsWereUpdated && hypeStats.state === 'starting') {
+		clearTimeout(hypeStats.initialContributionTimeout)
+		beginHypeTrain()
 	}
 	if (hypeStats.state === 'starting') {
-		updateInitialContributions(event)
-		clearTimeout(hypeStats.initialContributionTimeout)
-		hypeStats.initialContributionTimeout = setTimeout(beginHypeTrain, 1000)
+		handleInitialHypeEvent(event)
 		return
 	}
 	if (event.lastContribution.total >= 100) {
 		const contribution = createHypeContribution(event.lastContribution)
 		hypeStats.contributions.push(contribution)
 		addToHypeTrain({ ...getHypeTrainBaseData(hypeStats), contribution })
-	} else if (statsUpdated) {
+	} else if (statsWereUpdated) {
 		// Update stats but don't include the contribution if less than 100 bits
 		addToHypeTrain(getHypeTrainBaseData(hypeStats))
 	}
@@ -98,8 +92,7 @@ Top Contribs: ${listHypeContributions(event.topContributors)}`)
 
 HypeEvents.on('end', (event) => {
 	timestampLog(`Hype Train ID ${event.id} end!
-Level: ${event.level}
-Total: ${event.total}
+Level: ${event.level} | Total: ${event.total}
 Top Contribs: ${listHypeContributions(event.topContributors)}`)
 	if (!hypeStats) return
 	hypeStats.level = event.level
@@ -127,9 +120,20 @@ function createHypeStats(id: string): HypeStats {
 	}
 }
 
+function handleInitialHypeEvent(
+	event:
+		| EventSubChannelHypeTrainProgressEvent
+		| EventSubChannelHypeTrainBeginEvent
+) {
+	updateInitialContributions(event)
+	clearTimeout(hypeStats!.initialContributionTimeout)
+	hypeStats!.initialContributionTimeout = setTimeout(beginHypeTrain, 1000)
+}
+
 function beginHypeTrain() {
 	if (!hypeStats || hypeStats.state !== 'starting') return
 	hypeStats.state = 'started'
+	let initialTotal = 0
 	for (const [key, contribution] of hypeStats.initialContributions) {
 		const [type, userId] = key.split(':')
 		hypeStats.contributions.push(
@@ -139,6 +143,16 @@ function beginHypeTrain() {
 				userId,
 			} as EventSubChannelHypeTrainContribution)
 		)
+		initialTotal += contribution
+	}
+	// Add artificial contributions to meet total
+	while (initialTotal < hypeStats.total) {
+		const amount = Math.min(500, hypeStats.total - initialTotal)
+		if (amount < 100) break
+		initialTotal += amount
+		const color = getRandomUserColor()
+		// Add to the beginning of the train
+		hypeStats.contributions.unshift({ type: 'bits', amount, color })
 	}
 	startHypeTrain(getHypeTrainStartData(hypeStats))
 }
@@ -162,24 +176,36 @@ const getContributionKey = (
 	}`
 
 function updateInitialContributions(
-	event: EventSubChannelHypeTrainProgressEvent
+	event:
+		| EventSubChannelHypeTrainProgressEvent
+		| EventSubChannelHypeTrainBeginEvent
 ) {
-	if (!hypeStats) return
 	for (const contribution of event.topContributors) {
 		const cKey = getContributionKey(contribution)
-		hypeStats.initialContributions.set(cKey, contribution.total)
+		hypeStats!.initialContributions.set(cKey, contribution.total)
 	}
 	// Add last contribution too, in case it's missing from top contributors
 	const cKey = getContributionKey(event.lastContribution)
-	const initialContribution = hypeStats.initialContributions.get(cKey) || 0
+	const initialContribution = hypeStats!.initialContributions.get(cKey) || 0
 	if (initialContribution < event.lastContribution.total) {
-		hypeStats.initialContributions.set(cKey, event.lastContribution.total)
+		hypeStats!.initialContributions.set(cKey, event.lastContribution.total)
 	}
 }
 
-function eventStatsAreNewer(event: EventSubChannelHypeTrainProgressEvent) {
-	if (!hypeStats) return true
-	return event.total > hypeStats.total || event.level > hypeStats.level
+function updateStats(
+	event:
+		| EventSubChannelHypeTrainProgressEvent
+		| EventSubChannelHypeTrainBeginEvent
+) {
+	let statsWereUpdated = false
+	if (event.total > hypeStats!.total || event.level > hypeStats!.level) {
+		hypeStats!.level = event.level
+		hypeStats!.total = event.total
+		hypeStats!.progress = event.progress
+		hypeStats!.goal = event.goal
+		statsWereUpdated = true
+	}
+	return { statsWereUpdated }
 }
 
 export const getCurrentHypeTrain = () => {
@@ -247,15 +273,18 @@ export async function testHypeProgress() {
 			const contribution = createTestHypeContribution()
 			initialContributions.push(contribution)
 		}
+		const unaccountedPoints = 750 // Portion of total we saw no contribution data for
 		const baseEvent = {
 			id: randomstring.generate(12),
 			level: 3,
 			goal: 2200,
-			total: initialContributions.map((c) => c.total).reduce((p, c) => p + c),
+			total:
+				unaccountedPoints +
+				initialContributions.map((c) => c.total).reduce((p, c) => p + c),
 			progress: 0,
 			lastContribution: initialContributions.at(-1),
 		}
-		for (const initialContribution of initialContributions) {
+		for (const _initialContribution of initialContributions) {
 			HypeEvents.emit('progress', {
 				...baseEvent,
 				topContributors: [
@@ -334,5 +363,6 @@ UPDATE: What I learned from seeing real hype data for the first time:
 the same one contribution repeated in every event
 - The top_contributors can vary between these events, so we will keep track of
 everything in it during this period to build a list of initial contributions
+- We also want to look at the begin event, as it can contain a unique contribution
 
 */
