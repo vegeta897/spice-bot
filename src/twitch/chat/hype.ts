@@ -49,6 +49,7 @@ HypeEvents.on('begin', (event) => {
 Goal: ${event.goal} | Level: ${event.level} | Progress: ${
 			event.progress
 		} | Total: ${event.total}
+Last Contrib: ${formatHypeContribution(event.lastContribution)}
 Top Contribs: ${listHypeContributions(event.topContributors)}`
 	)
 	// This event doesn't necessarily come before the initial batch of progress events
