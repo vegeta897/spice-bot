@@ -9,7 +9,8 @@ import {
 } from './tweetRecord.js'
 import { deleteTweetMessage } from '../discord.js'
 import { checkTweetPingButtons, postTweet } from './twitter.js'
-import { DEV_MODE, timestampLog } from '../util.js'
+import { DEV_MODE } from '../util.js'
+import { timestampLog } from '../logger.js'
 
 // Make this a separate module on NPM?
 

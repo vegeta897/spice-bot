@@ -12,7 +12,8 @@ import {
 	editStreamMessage,
 } from '../discord.js'
 import { getTwitchPingButtons, getTwitchPingRole } from '../pings.js'
-import { DEV_MODE, sleep, timestampLog } from '../util.js'
+import { DEV_MODE, sleep } from '../util.js'
+import { timestampLog } from '../logger.js'
 import { getStreamEndEmbed, getStreamStartEmbed } from './twitchEmbeds.js'
 import { getUserByAccountType } from './twitchApi.js'
 import {

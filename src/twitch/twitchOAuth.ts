@@ -1,11 +1,6 @@
 import { Express } from 'express'
-import {
-	CHAT_TEST_MODE,
-	compareArrays,
-	DEV_MODE,
-	HOST_URL,
-	timestampLog,
-} from '../util.js'
+import { CHAT_TEST_MODE, compareArrays, DEV_MODE, HOST_URL } from '../util.js'
+import { timestampLog } from '../logger.js'
 import { exchangeCode, getTokenInfo, revokeToken } from '@twurple/auth'
 import {
 	type AccountType,

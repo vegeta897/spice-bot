@@ -5,12 +5,8 @@ import type {
 	EventSubChannelHypeTrainProgressEvent,
 } from '@twurple/eventsub-base'
 import Emittery from 'emittery'
-import {
-	randomElement,
-	randomIntRange,
-	sleep,
-	timestampLog,
-} from '../../util.js'
+import { randomElement, randomIntRange, sleep } from '../../util.js'
+import { timestampLog } from '../../logger.js'
 import {
 	HypeProgress,
 	addToHypeTrain,

@@ -1,5 +1,5 @@
 import { getData, modifyData } from '../../db.js'
-import { timestampLog } from '../../util.js'
+import { timestampLog } from '../../logger.js'
 import { sendTrainEndMessages } from './grace.js'
 import { startGraceTrain, addToGraceTrain, endGraceTrain } from './trains.js'
 import { updateGraceScore } from './graceScore.js'

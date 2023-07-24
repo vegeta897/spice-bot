@@ -12,7 +12,8 @@ import randomstring from 'randomstring'
 import { fileURLToPath } from 'url'
 import { getData, modifyData } from './db.js'
 import DBSessionStore from './dbSessionStore.js'
-import { DEV_MODE, timestampLog } from './util.js'
+import { DEV_MODE } from './util.js'
+import { timestampLog } from './logger.js'
 import http from 'http'
 
 const SESSION_TTL = 2 * 7 * 24 * 60 * 60 * 1000 // 2 weeks

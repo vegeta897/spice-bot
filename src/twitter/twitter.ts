@@ -19,7 +19,8 @@ import {
 	editTweetMessage,
 } from '../discord.js'
 import { getTwitterPingButtons, getTwitterPingRole } from '../pings.js'
-import { DEV_MODE, sleep, timestampLog } from '../util.js'
+import { DEV_MODE, sleep } from '../util.js'
+import { timestampLog } from '../logger.js'
 import { initTwitterScraper } from './scraper.js'
 
 const USERNAME = process.env.TWITTER_USERNAME

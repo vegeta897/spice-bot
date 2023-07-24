@@ -1,6 +1,7 @@
 import http from 'http'
 import { WebSocketServer, WebSocket } from 'ws'
-import { DEV_MODE, timestampLog } from '../../util.js'
+import { DEV_MODE } from '../../util.js'
+import { timestampLog } from '../../logger.js'
 import {
 	TrainEvents,
 	type OverlayData,

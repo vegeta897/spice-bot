@@ -8,7 +8,7 @@ import {
 	type MessageEditOptions,
 } from 'discord.js'
 import { initPings } from './pings.js'
-import { timestampLog } from './util.js'
+import { timestampLog } from './logger.js'
 
 let server: Guild
 let twitchChannel: TextChannel

@@ -1,4 +1,4 @@
-import { DateTime, Duration } from 'luxon'
+import { Duration } from 'luxon'
 
 export const DEV_MODE = process.env.NODE_ENV === 'development'
 export const CHAT_TEST_MODE = process.env.CHAT_TEST_MODE === 'true'
@@ -9,13 +9,6 @@ export const HOST_URL = DEV_MODE
 
 export const sleep = (ms: number) =>
 	new Promise((resolve) => setTimeout(resolve, ms))
-
-export const timestamp = () =>
-	DateTime.now().setZone('America/New_York').toFormat('yyyy-MM-dd, tt ZZZZ')
-
-export const timestampLog = (message?: any, ...optionalParams: any[]) => {
-	console.log(timestamp(), message, ...optionalParams)
-}
 
 export const formatDuration = (ms: number) =>
 	Duration.fromMillis(ms).toFormat(ms >= 60 * 60 * 1000 ? 'h:mm:ss' : 'm:ss')

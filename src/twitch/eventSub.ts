@@ -3,7 +3,8 @@ import {
 	EventSubHttpListener,
 	EventSubMiddleware,
 } from '@twurple/eventsub-http'
-import { DEV_MODE, timestampLog } from '../util.js'
+import { DEV_MODE } from '../util.js'
+import { timestampLog } from '../logger.js'
 import { NgrokAdapter } from '@twurple/eventsub-ngrok'
 import { getData, modifyData } from '../db.js'
 import randomstring from 'randomstring'

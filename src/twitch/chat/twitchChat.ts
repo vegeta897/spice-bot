@@ -8,7 +8,8 @@ import {
 	getUserByAccountType,
 	sendWhisper,
 } from '../twitchApi.js'
-import { CHAT_TEST_MODE, DEV_MODE, timestampLog } from '../../util.js'
+import { CHAT_TEST_MODE, DEV_MODE } from '../../util.js'
+import { timestampLog } from '../../logger.js'
 import Emittery from 'emittery'
 import { initGrace, makeTextGraceTrainSafe } from './grace.js'
 import { initRecap } from './recap.js'

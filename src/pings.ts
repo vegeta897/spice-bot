@@ -7,7 +7,7 @@ import {
 	ButtonStyle,
 	MessageActionRowComponentBuilder,
 } from 'discord.js'
-import { timestampLog } from './util.js'
+import { timestampLog } from './logger.js'
 
 let twitchPingRole: Role | undefined
 let twitterPingRole: Role | undefined

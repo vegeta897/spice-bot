@@ -8,7 +8,8 @@ import {
 	refreshUserToken,
 } from '@twurple/auth'
 import Emittery from 'emittery'
-import { DEV_MODE, HOST_URL, timestampLog } from '../util.js'
+import { DEV_MODE, HOST_URL } from '../util.js'
+import { timestampLog } from '../logger.js'
 import { setTwitchToken, getTwitchToken } from './streamRecord.js'
 import { getData } from '../db.js'
 

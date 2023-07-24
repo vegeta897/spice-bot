@@ -2,7 +2,8 @@ import 'dotenv/config.js'
 import { initDB } from './db.js'
 import { connectBot } from './discord.js'
 import { initTwitter } from './twitter/twitter.js'
-import { DEV_MODE, timestampLog } from './util.js'
+import { DEV_MODE } from './util.js'
+import { timestampLog } from './logger.js'
 import { initTwitch } from './twitch/twitch.js'
 
 if (DEV_MODE) console.log('DEV MODE ENABLED')
