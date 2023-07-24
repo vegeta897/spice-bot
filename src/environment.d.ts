@@ -21,6 +21,7 @@ declare global {
 			EXPRESS_HOSTNAME: string
 			EXPRESS_PORT: string
 			CHAT_TEST_MODE: string
+			LOG_WEBHOOK_URL: string
 			NODE_ENV?: 'development' | 'production'
 		}
 	}

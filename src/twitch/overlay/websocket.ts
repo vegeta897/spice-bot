@@ -1,7 +1,7 @@
 import http from 'http'
 import { WebSocketServer, WebSocket } from 'ws'
 import { DEV_MODE } from '../../util.js'
-import { timestampLog } from '../../logger.js'
+import { spiceLog, timestampLog } from '../../logger.js'
 import {
 	TrainEvents,
 	type OverlayData,
@@ -39,7 +39,7 @@ export function initWebsocket(server: http.Server) {
 				`Received websocket connection from ${req.headers.host} with invalid auth key (${authKey})`
 			)
 			ws.send('invalid-key', (err) => {
-				if (err) console.log(err)
+				if (err) spiceLog(err)
 				ws.terminate()
 			})
 			return

@@ -13,7 +13,7 @@ import {
 } from '../discord.js'
 import { getTwitchPingButtons, getTwitchPingRole } from '../pings.js'
 import { DEV_MODE, sleep } from '../util.js'
-import { timestampLog } from '../logger.js'
+import { spiceLog, timestampLog } from '../logger.js'
 import { getStreamEndEmbed, getStreamStartEmbed } from './twitchEmbeds.js'
 import { getUserByAccountType } from './twitchApi.js'
 import {
@@ -62,7 +62,7 @@ export async function onNewStream(
 		} just went live! (${streamID})`
 	)
 	if (getStreamRecord(streamID)) {
-		console.log(`Stream ID ${streamID} already recorded`)
+		spiceLog(`Stream ID ${streamID} already recorded`)
 		return
 	}
 	let linkedStreamRecord: StreamRecord | null = null
@@ -84,7 +84,7 @@ export async function onNewStream(
 			'parentStreamID' in linkedStreamRecord
 				? linkedStreamRecord.parentStreamID
 				: linkedStreamRecord.streamID
-		console.log('Stream restart detected')
+		spiceLog('Stream restart detected')
 	}
 	processingStreamOnlineEvents.add(streamID)
 	const streamRecord = createStreamRecord(streamID, parentStreamID)
@@ -98,7 +98,7 @@ export async function onNewStream(
 			getStreamAttempts++
 			if (getStreamAttempts === 2) {
 				// After 2 attempts, post a message without stream info
-				console.log('Posting stream message without full info')
+				spiceLog('Posting stream message without full info')
 				messageID = await sendOrUpdateLiveMessage(streamRecord)
 			}
 			if (getStreamAttempts === 60) {

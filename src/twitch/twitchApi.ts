@@ -9,7 +9,7 @@ import {
 } from '@twurple/auth'
 import Emittery from 'emittery'
 import { DEV_MODE, HOST_URL } from '../util.js'
-import { timestampLog } from '../logger.js'
+import { spiceLog, timestampLog } from '../logger.js'
 import { setTwitchToken, getTwitchToken } from './streamRecord.js'
 import { getData } from '../db.js'
 
@@ -50,7 +50,7 @@ export async function createAuthAndApiClient() {
 		},
 		onRefreshFailure: (userId) => {
 			const accountType = getAccountTypeForId(userId)
-			console.log(`WARNING: Failed to refresh token for ${accountType}`)
+			spiceLog(`WARNING: Failed to refresh token for ${accountType}`)
 		},
 	})
 	apiClient = new ApiClient({ authProvider })

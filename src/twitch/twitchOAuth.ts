@@ -1,6 +1,6 @@
 import { Express } from 'express'
 import { CHAT_TEST_MODE, compareArrays, DEV_MODE, HOST_URL } from '../util.js'
-import { timestampLog } from '../logger.js'
+import { spiceLog, timestampLog } from '../logger.js'
 import { exchangeCode, getTokenInfo, revokeToken } from '@twurple/auth'
 import {
 	type AccountType,
@@ -81,7 +81,7 @@ export function initTwitchOAuthServer(app: Express) {
 		const requiredScopes = SCOPES[accountType]
 		const { missing, extra } = compareArrays(scopes || [], requiredScopes)
 		if (missing.length > 0) {
-			console.log(
+			spiceLog(
 				`Request for ${accountType} auth is missing scope(s): ${missing.join(
 					' '
 				)}`
@@ -91,7 +91,7 @@ export function initTwitchOAuthServer(app: Express) {
 			)}`
 		}
 		if (extra.length > 0) {
-			console.log(
+			spiceLog(
 				`Request for ${accountType} auth contains extra scope(s): ${extra.join(
 					' '
 				)}`
@@ -100,7 +100,7 @@ export function initTwitchOAuthServer(app: Express) {
 		req.session.username = username
 		// Extend cookie expiration
 		req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000 // 30 days
-		console.log(username, 'successfully authorized')
+		spiceLog(username, 'successfully authorized')
 		if (accountType === 'admin') return res.redirect('admin')
 		res.redirect('success')
 	})
@@ -194,7 +194,7 @@ export function initTwitchOAuthServer(app: Express) {
 			return res.sendStatus(401)
 		}
 		const { command, event, log, chat } = req.query
-		if (log === 'event-subs') console.log(await getEventSubs())
+		if (log === 'event-subs') spiceLog(await getEventSubs())
 		if ((command || event) && !DEV_MODE && !CHAT_TEST_MODE)
 			return res.sendStatus(400)
 		if (command) {
@@ -277,11 +277,11 @@ async function doOauthFlow(code: string): Promise<{
 	if (tokenInfo.userName === null) throw 'Invalid token received'
 	const accountType = UserAccountTypes[tokenInfo.userName]
 	if (accountType) {
-		console.log(`Successfully exchanged code for ${accountType} token`)
+		spiceLog(`Successfully exchanged code for ${accountType} token`)
 		AuthEvents.emit('auth', { accountType, token: accessToken })
 		return { username: tokenInfo.userName, scopes: tokenInfo.scopes }
 	} else {
-		console.log(`Unknown user "${tokenInfo.userName}" tried to auth`)
+		spiceLog(`Unknown user "${tokenInfo.userName}" tried to auth`)
 		// Revoke token, and ignore if it fails
 		try {
 			await revokeToken(process.env.TWITCH_CLIENT_ID, accessToken.accessToken)
