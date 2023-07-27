@@ -100,7 +100,9 @@ async function checkForTweets() {
 	}
 	scrapedTweets.reverse() // Sort oldest to newest
 	if (INCLUDE_RETWEETS) createNewRetweetIDs(scrapedTweets)
-	const prevTempLatestTweetID = tempLatestTweetID
+	const afterTweetIDCheck = INCLUDE_RETWEETS
+		? tempLatestTweetID || newestRecordedTweet?.tweet_id
+		: newestRecordedTweet?.tweet_id
 	tempLatestTweetID = scrapedTweets.at(-1)!.tweetID
 
 	// Post recent unrecorded tweets
@@ -111,14 +113,10 @@ async function checkForTweets() {
 				continue
 		} else {
 			// Don't post any tweet older than the newest recorded tweet
-			if (
-				!tweetIDIsAfter(
-					tweetID,
-					prevTempLatestTweetID || newestRecordedTweet.tweet_id
-				)
-			)
-				continue
+			if (!tweetIDIsAfter(tweetID, afterTweetIDCheck!)) continue
 		}
+		// Last-ditch effort protection against reposts
+		if (recordedTweets.find((t) => t.tweet_id === tweetID)) continue
 		await postTweet(tweetID, { retweet })
 	}
 
@@ -284,7 +282,8 @@ const scrapeProfile = (
 						const existingIndex = timelineIndexesMap.get(tweetID)
 						if (existingIndex) timelineIndexOffset = existingIndex - i
 					}
-					const isPinned = socialContext?.textContent === 'Pinned Tweet'
+					const isPinned =
+						socialContext?.textContent?.startsWith('Pinned') ?? false
 					const tweet: ScrapedTweet = {
 						timestamp: timeEl.dateTime,
 						content:
