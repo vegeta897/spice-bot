@@ -138,14 +138,10 @@ async function checkRecentTweets() {
 	}
 }
 
-export async function postTweet(
-	tweetID: string,
-	options?: { retweet?: { tweetID: string } }
-) {
-	const realTweetID = options?.retweet?.tweetID || tweetID
-	timestampLog(`Posting tweet ID ${realTweetID}`)
+export async function postTweet(tweetID: string) {
+	timestampLog(`Posting tweet ID ${tweetID}`)
 	const messageOptions: MessageCreateOptions = {
-		content: `https://twitter.com/${USERNAME}/status/${realTweetID}`,
+		content: `https://vxtwitter.com/${USERNAME}/status/${tweetID}`,
 	}
 	const twitterPingRole = getTwitterPingRole()
 	if (twitterPingRole) {
@@ -163,7 +159,7 @@ export async function postTweet(
 	// Remove buttons from previous tweets
 	for (const tweetRecord of tweetRecordsWithButtons) {
 		editTweetMessage(tweetRecord.message_id, {
-			content: `https://twitter.com/${USERNAME}/status/${tweetRecord.tweet_id}`,
+			content: `https://vxtwitter.com/${USERNAME}/status/${tweetRecord.tweet_id}`,
 			components: [],
 		})
 		tweetRecord.pingButtons = 'cleaned'
@@ -173,7 +169,6 @@ export async function postTweet(
 		messageID: message.id,
 		tweetID,
 		pingButtons: !!twitterPingRole,
-		retweetOf: options?.retweet?.tweetID,
 	})
 }
 
