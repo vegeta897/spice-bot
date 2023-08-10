@@ -20,7 +20,7 @@ export function updateGraceScore(stats: GraceStats, grace: Grace) {
 	stats.currentComboUsers.add(grace.user.id)
 	let points = POINTS[grace.type]
 	if (grace.user.id === NightbotUserID) {
-		points = 10000 // Nightbot bonus!
+		points = 1000 // Nightbot bonus!
 		stats.specialUsers.add('nightbot')
 	} else if (grace.user.id === getUserByAccountType('bot').id) {
 		points = 100 // Spice bot bonus!
