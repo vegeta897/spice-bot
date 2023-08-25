@@ -8,7 +8,7 @@ import {
 	getUserByAccountType,
 	sendWhisper,
 } from '../twitchApi.js'
-import { CHAT_TEST_MODE, DEV_MODE } from '../../util.js'
+import { CHAT_TEST_MODE, DEV_MODE, sleep } from '../../util.js'
 import { timestampLog } from '../../logger.js'
 import Emittery from 'emittery'
 import { initGrace, makeTextGraceTrainSafe } from './grace.js'
@@ -83,12 +83,16 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 	})
 	chatClient.connect()
 
-	chatClient.onDisconnect((manually, reason) => {
+	chatClient.onDisconnect(async (manually, reason) => {
 		timestampLog(
 			`Chat disconnected${manually ? ' (manually)' : ''}: ${
 				reason || 'unknown reason'
 			}`
 		)
+		await sleep(5 * 1000)
+		if (chatClient.isConnected || chatClient.isConnecting) return
+		timestampLog('Client is not auto-reconnecting, now calling reconnect()')
+		chatClient.reconnect()
 	})
 
 	chatClient.onAuthenticationFailure((text, retryCount) => {
@@ -207,4 +211,13 @@ function hasRequiredScopes(scopes: string[]) {
 
 export function botInChat() {
 	return chatClient && chatClient.irc.isConnected
+}
+
+export function quitChat() {
+	if (!botInChat()) {
+		timestampLog('Tried to quit chat while not connected')
+		return
+	}
+	timestampLog('Quitting chat')
+	chatClient.quit()
 }
