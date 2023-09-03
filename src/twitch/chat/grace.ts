@@ -181,6 +181,7 @@ export async function sendTrainEndMessages({
 	} else {
 		message += '!'
 	}
+	// TODO: Maybe keep track of who has ended the most grace trains?
 	sendChatMessage(message)
 }
 

@@ -31,23 +31,22 @@ type DBData = {
 const filename = DEV_MODE ? 'db-dev.json' : 'db.json'
 const file = join(dirname(fileURLToPath(import.meta.url)), '..', filename)
 const adapter = new JSONFile<DBData>(file)
-const db = new Low<DBData>(adapter)
+const db = new Low<DBData>(adapter, {
+	tweets: [],
+	streams: [],
+	expressSessions: [],
+	expressSessionSecret: null,
+	twitchEventSubSecret: null,
+	twitchTokens: { bot: null, streamer: null, admin: null },
+	streamOverlayAuthKeys: [],
+	graceTrainRecords: [],
+	hypedGraceTrainRecords: [],
+	streamRecap: { emoteCounts: [], redeemCounts: [], graceTrainCount: 0 },
+	twitchBotLastSubbed: 0,
+})
 
 export async function initDB() {
 	await db.read()
-	db.data ||= {
-		tweets: [],
-		streams: [],
-		expressSessions: [],
-		expressSessionSecret: null,
-		twitchEventSubSecret: null,
-		twitchTokens: { bot: null, streamer: null, admin: null },
-		streamOverlayAuthKeys: [],
-		graceTrainRecords: [],
-		hypedGraceTrainRecords: [],
-		streamRecap: { emoteCounts: [], redeemCounts: [], graceTrainCount: 0 },
-		twitchBotLastSubbed: 0,
-	}
 	await writeData() // Creates the initial db file if it doesn't exist
 	console.log('Database connected')
 }

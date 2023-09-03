@@ -24,7 +24,7 @@ export const AuthEvents = new Emittery<{
 }>()
 
 const accountTypes = ['streamer', 'bot', 'admin'] as const
-export type AccountType = typeof accountTypes[number]
+export type AccountType = (typeof accountTypes)[number]
 export const UserAccountTypes: Record<string, AccountType> = {
 	[process.env.TWITCH_STREAMER_USERNAME]: 'streamer',
 	[process.env.TWITCH_BOT_USERNAME]: 'bot',
@@ -35,23 +35,6 @@ export async function createAuthAndApiClient() {
 	authProvider = new RefreshingAuthProvider({
 		clientId: process.env.TWITCH_CLIENT_ID,
 		clientSecret: process.env.TWITCH_CLIENT_SECRET,
-		onRefresh: (userId, newToken) => {
-			const accountType = getAccountTypeForId(userId)
-			if (!accountType) {
-				timestampLog(
-					`Refreshed token for unknown user ID ${userId}, ${newToken}`
-				)
-				return
-			}
-			if (DEV_MODE) timestampLog(`Refreshed token for ${accountType}`)
-			// Don't refresh token for streamer if revoked
-			if (accountType !== 'streamer' || !streamerAuthRevoked)
-				setTwitchToken(accountType, newToken)
-		},
-		onRefreshFailure: (userId) => {
-			const accountType = getAccountTypeForId(userId)
-			spiceLog(`WARNING: Failed to refresh token for ${accountType}`)
-		},
 	})
 	apiClient = new ApiClient({ authProvider })
 	helixUsers = {
@@ -67,6 +50,21 @@ export async function createAuthAndApiClient() {
 			'RECOMMENDED: Your bot is not following the streamer. Following can unlock free emotes!'
 		)
 	}
+	authProvider.onRefresh((userId, newToken) => {
+		const accountType = getAccountTypeForId(userId)
+		if (!accountType) {
+			timestampLog(`Refreshed token for unknown user ID ${userId}, ${newToken}`)
+			return
+		}
+		if (DEV_MODE) timestampLog(`Refreshed token for ${accountType}`)
+		// Don't refresh token for streamer if revoked
+		if (accountType !== 'streamer' || !streamerAuthRevoked)
+			setTwitchToken(accountType, newToken)
+	})
+	authProvider.onRefreshFailure((userId) => {
+		const accountType = getAccountTypeForId(userId)
+		spiceLog(`WARNING: Failed to refresh token for ${accountType}`)
+	})
 	AuthEvents.on('auth', ({ accountType, token }) => {
 		setTwitchToken(accountType, token)
 		addUserToAuth(accountType, token)
@@ -84,9 +82,12 @@ export async function createAuthAndApiClient() {
 		setTwitchToken(accountType, null)
 		if (accountType === 'streamer') streamerAuthRevoked = true // To true to prevent token refreshes
 	})
-	setInterval(() => {
-		accountTypes.forEach((accountType) => verifyToken(accountType))
-	}, 60 * 60 * 1000) // Verify tokens hourly
+	setInterval(
+		() => {
+			accountTypes.forEach((accountType) => verifyToken(accountType))
+		},
+		60 * 60 * 1000
+	) // Verify tokens hourly
 	if (DEV_MODE)
 		apiClient.onRequest(({ httpStatus, options, resolvedUserId }) => {
 			const userType = resolvedUserId && getAccountTypeForId(resolvedUserId)
@@ -193,10 +194,7 @@ export async function getBotSub() {
 	// Maybe replace this with a db value, updated with eventsub?
 	// Then it can be cached and not require an API call every time
 	try {
-		return await apiClient.subscriptions.checkUserSubscription(
-			helixUsers.bot,
-			helixUsers.streamer
-		)
+		return await helixUsers.bot.getSubscriptionTo(helixUsers.streamer)
 	} catch (e) {
 		timestampLog('Error fetching bot sub', e)
 		return null
@@ -212,11 +210,10 @@ function getAccountTypeForId(id: string) {
 export async function botIsFollowingStreamer() {
 	if (DEV_MODE) return true
 	try {
-		const botFollows = await apiClient.channels.getFollowedChannels(
-			helixUsers.bot,
+		const botFollow = await helixUsers.bot.getFollowedChannel(
 			helixUsers.streamer
 		)
-		return botFollows.data.length > 0
+		return !!botFollow
 	} catch (e) {
 		timestampLog('Error checking if bot follows streamer:', e)
 		return false

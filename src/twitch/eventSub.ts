@@ -49,7 +49,6 @@ export async function initTwitchEventSub(params: {
 			adapter: new NgrokAdapter(),
 			secret: eventSubSecret,
 			strictHostCheck: true,
-			legacySecrets: false,
 		})
 	} else {
 		listener = new EventSubMiddleware({
@@ -58,7 +57,6 @@ export async function initTwitchEventSub(params: {
 			pathPrefix: 'eventsub',
 			secret: eventSubSecret,
 			strictHostCheck: true,
-			legacySecrets: false,
 		})
 		listener.apply(params.expressApp)
 		await listener.markAsReady()
@@ -89,16 +87,13 @@ async function initGlobalEventSubs(listener: EventSubListener) {
 		// It's so annoying that the stream ID isn't part of this event 😤
 		onStreamOffline()
 	})
-	listener.onUserAuthorizationRevoke(
-		process.env.TWITCH_CLIENT_ID,
-		async (event) => {
-			if (!event.userName) return
-			timestampLog(`${event.userName} has revoked authorization`)
-			const accountType = UserAccountTypes[event.userName]
-			if (accountType)
-				AuthEvents.emit('authRevoke', { method: 'disconnect', accountType })
-		}
-	)
+	listener.onUserAuthorizationRevoke(async (event) => {
+		if (!event.userName) return
+		timestampLog(`${event.userName} has revoked authorization`)
+		const accountType = UserAccountTypes[event.userName]
+		if (accountType)
+			AuthEvents.emit('authRevoke', { method: 'disconnect', accountType })
+	})
 }
 
 async function initScopedEventSubs(listener: EventSubListener) {

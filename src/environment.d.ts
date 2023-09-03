@@ -22,6 +22,8 @@ declare global {
 			EXPRESS_PORT: string
 			CHAT_TEST_MODE: string
 			LOG_WEBHOOK_URL: string
+			DEPOT_URL: string
+			DEPOT_SECRET: string
 			NODE_ENV?: 'development' | 'production'
 		}
 	}

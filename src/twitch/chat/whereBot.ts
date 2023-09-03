@@ -1,4 +1,4 @@
-import { type PrivateMessage } from '@twurple/chat'
+import { type ChatMessage } from '@twurple/chat'
 import { StreamEvents } from '../streams.js'
 import { getBotSub } from '../twitchApi.js'
 import { Emotes } from './emotes.js'
@@ -18,7 +18,7 @@ export function initWhereBot() {
 	})
 }
 
-async function handleWhereBotPrompt(msg: PrivateMessage) {
+async function handleWhereBotPrompt(msg: ChatMessage) {
 	const now = Date.now()
 	if (now - lastWhereBotReplyTime < COOLDOWN) return // Too soon
 	lastWhereBotReplyTime = now

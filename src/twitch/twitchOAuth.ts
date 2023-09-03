@@ -10,13 +10,13 @@ import {
 } from './twitchApi.js'
 import { createExpressErrorHandler, sessionStore } from '../express.js'
 import randomstring from 'randomstring'
-import { ChatEvents, sendChatMessage } from './chat/twitchChat.js'
+import { ChatEvents, quitChat, sendChatMessage } from './chat/twitchChat.js'
 import { getEventSubs } from './eventSub.js'
 import { getTwitchToken } from './streamRecord.js'
 import { getCensoredJSON } from '../db.js'
 import 'highlight.js'
 import hljs from 'highlight.js/lib/core'
-import { type PrivateMessage } from '@twurple/chat'
+import { type ChatMessage } from '@twurple/chat'
 import { updateUserColor } from './chat/userColors.js'
 import multer from 'multer'
 import { testHypeEnd, testHypeProgress } from './chat/hype.js'
@@ -164,6 +164,8 @@ export function initTwitchOAuthServer(app: Express) {
 				'grace',
 				'hype-progress',
 				'hype-end',
+				'quit-chat',
+				'get-depot',
 			],
 			testLogs: ['event-subs'],
 			db: hljs.highlight(getCensoredJSON(), { language: 'json' }).value,
@@ -206,7 +208,7 @@ export function initTwitchOAuthServer(app: Express) {
 				userColor: updateUserColor(userID, null),
 				text: `!${command}`,
 				date: new Date(),
-				msg: { userInfo: { displayName: 'Somebody' } } as PrivateMessage,
+				msg: { userInfo: { displayName: 'Somebody' } } as ChatMessage,
 				mod: true,
 				self: false,
 			})
@@ -231,6 +233,18 @@ export function initTwitchOAuthServer(app: Express) {
 				})
 			if (event === 'hype-progress') testHypeProgress()
 			if (event === 'hype-end') testHypeEnd()
+			if (event === 'quit-chat') quitChat()
+			if (event === 'get-depot') {
+				try {
+					const cars = await fetch(`${process.env.DEPOT_URL}/api/user/451907`, {
+						headers: { Authorization: process.env.DEPOT_SECRET },
+					})
+					console.log(await cars.json())
+				} catch (e) {
+					console.log('fetch error')
+					console.log(e)
+				}
+			}
 			// TODO: Add more stream events, tweets, etc
 		}
 		if (chat) {

@@ -86,7 +86,7 @@ const cloneStreamRecord = <T extends StreamRecord>(
 	({
 		...streamRecord,
 		games: [...streamRecord.games],
-	} as T)
+	}) as T
 
 export const getStreamRecord = (streamID: string): StreamRecord | null => {
 	const streamRecord = getData().streams.find((sr) => sr.streamID === streamID)

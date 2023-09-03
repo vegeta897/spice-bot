@@ -5,7 +5,7 @@ import { StreamEvents } from '../streams.js'
 import { getData, modifyData } from '../../db.js'
 import { DEV_MODE } from '../../util.js'
 import { timestampLog } from '../../logger.js'
-import { parseChatMessage } from '@twurple/common'
+import { parseChatMessage } from '@twurple/chat'
 import { TrainEvents } from './trains.js'
 
 let emoteCounts: Map<string, number>

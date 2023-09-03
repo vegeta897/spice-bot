@@ -3,6 +3,7 @@
 	"prettier.semi": false,
 	"prettier.singleQuote": true,
 	"prettier.endOfLine": "lf",
+	"prettier.prettierPath": "./node_modules/prettier/index.cjs",
 	"editor.formatOnSave": true,
 	"editor.defaultFormatter": "esbenp.prettier-vscode",
 	"editor.rulers": [80],

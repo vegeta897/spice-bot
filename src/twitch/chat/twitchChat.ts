@@ -1,6 +1,11 @@
 import { type RefreshingAuthProvider } from '@twurple/auth'
-import { ChatClient, toUserName, PrivateMessage } from '@twurple/chat'
-import { parseChatMessage, ParsedMessageEmotePart } from '@twurple/common'
+import {
+	ChatClient,
+	toUserName,
+	ChatMessage,
+	parseChatMessage,
+	ParsedMessageEmotePart,
+} from '@twurple/chat'
 import {
 	AuthEvents,
 	botIsMod,
@@ -30,7 +35,7 @@ export type TwitchMessageEvent = {
 	userColor: string
 	text: string
 	date: Date
-	msg: PrivateMessage
+	msg: ChatMessage
 	mod: boolean
 	self: boolean
 }
@@ -80,6 +85,7 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 		channels: [process.env.TWITCH_STREAMER_USERNAME],
 		rejoinChannelsOnReconnect: true,
 		isAlwaysMod: await botIsMod(),
+		logger: { minLevel: 'info' },
 	})
 	chatClient.connect()
 
@@ -186,7 +192,7 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 
 export async function sendChatMessage(
 	text: string,
-	replyTo?: string | PrivateMessage
+	replyTo?: string | ChatMessage
 ) {
 	if (!chatClient) return
 	if (CHAT_TEST_MODE) {
