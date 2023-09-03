@@ -72,7 +72,7 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 		return
 	}
 	if (chatClient) {
-		chatClient.reconnect()
+		if (!chatClient.isConnected) chatClient.reconnect()
 		return
 	}
 	chatClient = new ChatClient({
@@ -184,7 +184,7 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 	}
 }
 
-export function sendChatMessage(
+export async function sendChatMessage(
 	text: string,
 	replyTo?: string | PrivateMessage
 ) {
@@ -197,7 +197,7 @@ export function sendChatMessage(
 		timestampLog('Warning: trying to send chat message while IRC not connected')
 	}
 	try {
-		return chatClient.say(process.env.TWITCH_STREAMER_USERNAME, text, {
+		return await chatClient.say(process.env.TWITCH_STREAMER_USERNAME, text, {
 			replyTo,
 		})
 	} catch (e) {
