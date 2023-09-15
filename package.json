@@ -32,6 +32,7 @@
 		"express": "^4.18.2",
 		"express-async-errors": "^3.1.1",
 		"express-session": "^1.17.3",
+		"grace-train-lib": "file:../grace-train-lib",
 		"highlight.js": "^11.8.0",
 		"lowdb": "^6.0.1",
 		"luxon": "^3.4.2",
