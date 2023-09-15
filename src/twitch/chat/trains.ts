@@ -5,11 +5,8 @@ import {
 	hypeGraceTrain,
 } from './graceStats.js'
 import { getCurrentHypeTrain, setHypeStatsGraces } from './hype.js'
+import type { GraceEventBaseData } from 'grace-train-lib/trains'
 
-type GraceEventBaseData = {
-	combo: number
-	score: number
-}
 type HypeEventBaseData = {
 	level: number
 	total: number
