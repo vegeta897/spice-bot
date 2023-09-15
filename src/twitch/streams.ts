@@ -130,9 +130,13 @@ export function onStreamOffline() {
 }
 
 async function checkStreamAndVideos() {
-	const stream = DEV_MODE ? getMockStream() : await streamerUser.getStream()
-	if (stream) checkStream(stream)
-	checkVideos(stream)
+	try {
+		const stream = DEV_MODE ? getMockStream() : await streamerUser.getStream()
+		if (stream) checkStream(stream)
+		checkVideos(stream)
+	} catch (e) {
+		timestampLog('Error checking stream/videos', e)
+	}
 }
 
 function checkStream(stream: HelixStream) {
