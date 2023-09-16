@@ -5,44 +5,24 @@ import {
 	hypeGraceTrain,
 } from './graceStats.js'
 import { getCurrentHypeTrain, setHypeStatsGraces } from './hype.js'
-import type { GraceEventBaseData } from 'grace-train-lib/trains'
-
-type HypeEventBaseData = {
-	level: number
-	total: number
-	progress: number
-	goal: number
-	graces: number
-}
-type GraceTrainData = {
-	grace: GraceEventBaseData & { colors: string[]; frog?: boolean }
-}
-type GraceTrainAddData = { grace: GraceEventBaseData & { color: string } }
-type GraceTrainEndData = { grace: GraceEventBaseData & { username: string } }
-export type HypeTrainData = {
-	hype: HypeEventBaseData & { contributions: HypeProgress[] }
-}
-export type HypeProgress = {
-	type: 'bits' | 'subs'
-	amount: number
-	color: string
-}
-type HypeTrainAddData = {
-	hype: HypeEventBaseData & { contribution?: HypeProgress }
-}
-type HypeTrainEndData = { hype: Omit<HypeEventBaseData, 'progress' | 'goal'> }
-
-type ID = { id: number }
-export type TrainStartData = ID & (GraceTrainData | HypeTrainData)
-export type TrainAddData = ID & (GraceTrainAddData | HypeTrainAddData)
-export type TrainEndData = ID & (GraceTrainEndData | HypeTrainEndData)
-export type OverlayData = { position: 'top' | 'bottom' }
+import type {
+	GraceTrainAddData,
+	GraceTrainData,
+	GraceTrainEndData,
+	HypeTrainAddData,
+	HypeTrainData,
+	HypeTrainEndData,
+	OverlayOptions,
+	TrainAddData,
+	TrainEndData,
+	TrainStartData,
+} from 'grace-train-lib/trains'
 
 export const TrainEvents = new Emittery<{
 	start: TrainStartData
 	add: TrainAddData
 	end: TrainEndData
-	overlay: OverlayData
+	overlay: OverlayOptions
 }>()
 
 let currentTrainID: number | null = null

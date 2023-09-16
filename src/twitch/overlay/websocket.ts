@@ -2,17 +2,11 @@ import http from 'http'
 import { WebSocketServer, WebSocket } from 'ws'
 import { DEV_MODE } from '../../util.js'
 import { spiceLog, timestampLog } from '../../logger.js'
-import {
-	TrainEvents,
-	type OverlayData,
-	type TrainAddData,
-	type TrainEndData,
-	type TrainStartData,
-	getCurrentTrain,
-} from '../chat/trains.js'
+import { TrainEvents, getCurrentTrain } from '../chat/trains.js'
 import { getData, modifyData } from '../../db.js'
 import randomstring from 'randomstring'
 import { getOverlayPosition } from '../chat/grace.js'
+import { TrainWSMessage } from 'grace-train-lib/trains'
 
 const version = 4
 
@@ -126,22 +120,12 @@ export function initWebsocket(server: http.Server) {
 	})
 }
 
-type Message =
-	| {
-			type: 'init'
-			data: { version: number; train: TrainStartData | false } & OverlayData
-	  }
-	| { type: 'train-start'; data: TrainStartData }
-	| { type: 'train-add'; data: TrainAddData }
-	| { type: 'train-end'; data: TrainEndData }
-	| { type: 'overlay'; data: OverlayData }
-
 type IncomingMessage = { type: 'train-query'; data: { id: string } }
 
-// For type safety
-const stringifyMessage = (message: Message) => JSON.stringify(message)
+// For type safety on message object
+const stringifyMessage = (message: TrainWSMessage) => JSON.stringify(message)
 
-function sendMessage(wss: WebSocketServer, message: Message) {
+function sendMessage(wss: WebSocketServer, message: TrainWSMessage) {
 	wss.clients.forEach((client) => {
 		if (client.readyState !== WebSocket.OPEN) return
 		client.send(stringifyMessage(message), (err) => {
