@@ -43,9 +43,9 @@ export function endGraceTrain(grace: GraceTrainEndData['grace']) {
 	currentTrainID = null
 }
 
-export function startHypeTrain(hype: HypeTrainData['hype']) {
+export async function startHypeTrain(hype: HypeTrainData['hype']) {
 	const startData: HypeTrainData = { hype }
-	const currentGrace = getCurrentGraceTrain()
+	const currentGrace = await getCurrentGraceTrain()
 	if (currentGrace) {
 		startData.hype.graces = currentGrace.combo
 		hypeGraceTrain()
@@ -67,13 +67,13 @@ export function endHypeTrain(hype: HypeTrainEndData['hype']) {
 	currentTrainID = null
 }
 
-export function getCurrentTrain() {
+export async function getCurrentTrain() {
 	if (!currentTrainID) return false
 	const hype = getCurrentHypeTrain()
 	if (hype) {
 		return { id: currentTrainID, hype } as TrainStartData
 	}
-	const grace = getCurrentGraceTrain()
+	const grace = await getCurrentGraceTrain()
 	if (grace) {
 		return { id: currentTrainID, grace } as TrainStartData
 	}

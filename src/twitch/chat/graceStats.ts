@@ -5,10 +5,13 @@ import { startGraceTrain, addToGraceTrain, endGraceTrain } from './trains.js'
 import { updateGraceScore } from './graceScore.js'
 import { addGraceToHypeTrain, getCurrentHypeTrain } from './hype.js'
 import { sendChatMessage } from './twitchChat.js'
+import { getCarFromGraceUser } from './graceDepot.js'
+
+export type GraceUser = { id: string; name: string; color: string }
 
 export type Grace = {
 	date: Date
-	user: { id: string; name: string; color: string }
+	user: GraceUser
 	type: 'redeem' | 'highlight' | 'normal'
 }
 
@@ -32,7 +35,7 @@ export type SpecialUser = 'nightbot' | 'spicebot'
 
 let graceStats: GraceStats | null = null
 
-export function onGrace({ date, user, type }: Grace) {
+export async function onGrace({ date, user, type }: Grace) {
 	graceStats ||= createGraceStats()
 	if (graceStats.graces.length > 0) {
 		// Don't add repeated user
@@ -61,12 +64,12 @@ export function onGrace({ date, user, type }: Grace) {
 			frogAppearancesThisStream++
 			frogDetectiveMessages.length = 0
 		}
-		startGraceTrain(getGraceTrainStartData(graceStats))
+		startGraceTrain(await getGraceTrainStartData(graceStats))
 	} else if (graceStats.graces.length > MIN_TRAIN_LENGTH) {
 		addToGraceTrain({
 			combo: graceStats.totalCombo,
 			score: graceStats.totalScore,
-			color: user.color,
+			car: await getCarFromGraceUser(user),
 		})
 	}
 }
@@ -155,19 +158,19 @@ function saveRecord(stats: GraceStats) {
 	modifyData({ [dataProp]: records.slice(0, 5) })
 }
 
-const getGraceTrainStartData = (stats: GraceStats) => ({
+const getGraceTrainStartData = async (stats: GraceStats) => ({
 	combo: stats.totalCombo,
 	score: stats.totalScore,
-	colors: stats.graces.map((g) => g.user.color),
+	cars: await Promise.all(stats.graces.map((g) => getCarFromGraceUser(g.user))),
 	frog: stats.frog,
 })
 
-export const getCurrentGraceTrain = () => {
+export const getCurrentGraceTrain = async () => {
 	if (
 		graceStats &&
 		(graceStats.hyped || graceStats.totalCombo >= MIN_TRAIN_LENGTH)
 	)
-		return getGraceTrainStartData(graceStats)
+		return await getGraceTrainStartData(graceStats)
 }
 
 export function clearGraceStats() {

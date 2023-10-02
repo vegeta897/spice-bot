@@ -1,7 +1,7 @@
 import { randomElement } from '../../util.js'
 import { StreamEvents } from '../streams.js'
 import { Emotes, canUseEmote } from './emotes.js'
-import { TrainEvents, OverlayData } from './trains.js'
+import { TrainEvents } from './trains.js'
 import { formatPoints } from './graceScore.js'
 import {
 	type GraceStats,
@@ -23,6 +23,7 @@ import {
 } from './twitchChat.js'
 import { getUserColor } from './userColors.js'
 import { getCurrentHypeTrain } from './hype.js'
+import { OverlayOptions } from 'grace-train-lib/trains'
 
 export const GRACE = 'GRACE'
 
@@ -50,7 +51,7 @@ export function initGrace() {
 	})
 }
 
-let overlayPosition: OverlayData['position'] = 'bottom'
+let overlayPosition: OverlayOptions['position'] = 'bottom'
 export const getOverlayPosition = () => overlayPosition
 
 function onMessage(event: TwitchMessageEvent) {

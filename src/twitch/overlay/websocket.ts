@@ -25,7 +25,7 @@ export function initWebsocket(server: http.Server) {
 	const wsMap: Map<WebSocket, { isAlive: boolean }> = new Map()
 
 	const wss = new WebSocketServer({ server })
-	wss.on('connection', function (ws, req) {
+	wss.on('connection', async function (ws, req) {
 		const params = new URLSearchParams((req.url || '').replace(/^\//g, ''))
 		const authKey = params.get('key')
 		if (!authKey || !authKeys.includes(authKey)) {
@@ -48,7 +48,7 @@ export function initWebsocket(server: http.Server) {
 				type: 'init',
 				data: {
 					version,
-					train: getCurrentTrain(),
+					train: await getCurrentTrain(),
 					position: getOverlayPosition(),
 				},
 			}),
@@ -103,11 +103,11 @@ export function initWebsocket(server: http.Server) {
 	})
 
 	TrainEvents.on('start', (event) => {
-		if (DEV_MODE) console.log('sending train start event to ws clients')
+		if (DEV_MODE) console.log('sending train start event to ws clients', event)
 		sendMessage(wss, { type: 'train-start', data: event })
 	})
 	TrainEvents.on('add', (event) => {
-		if (DEV_MODE) console.log('sending train add event to ws clients')
+		if (DEV_MODE) console.log('sending train add event to ws clients', event)
 		sendMessage(wss, { type: 'train-add', data: event })
 	})
 	TrainEvents.on('end', (event) => {
@@ -134,8 +134,8 @@ function sendMessage(wss: WebSocketServer, message: TrainWSMessage) {
 	})
 }
 
-function sendTrainIfExists(ws: WebSocket) {
-	const trainInProgress = getCurrentTrain()
+async function sendTrainIfExists(ws: WebSocket) {
+	const trainInProgress = await getCurrentTrain()
 	if (!trainInProgress) return
 	timestampLog('Sending grace train in progress')
 	ws.send(stringifyMessage({ type: 'train-start', data: trainInProgress }))
