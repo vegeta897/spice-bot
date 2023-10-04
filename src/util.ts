@@ -48,6 +48,43 @@ export const randomIntRange = (minOrMax: number, max?: number) => {
 export const randomElement = <T>(arr: T[]): T =>
 	arr[randomIntRange(0, arr.length - 1)]
 
+type Callable = () => any | Promise<any>
+
+export class AsyncQueue {
+	private working = false
+	private queue: {
+		task: Callable
+		resolve: (v: any) => void
+		reject: (r?: any) => void
+	}[] = []
+	enqueue<T extends Callable>(task: T): Promise<ReturnType<T>> {
+		return new Promise((resolve, reject) => {
+			this.queue.push({ task, resolve, reject })
+			this.startNextTask()
+		})
+	}
+	private async startNextTask() {
+		if (this.working) return
+		this.working = true
+		const nextTask = this.queue.shift()
+		if (!nextTask) {
+			this.working = false
+			return
+		}
+		try {
+			const taskResult = await nextTask.task()
+			nextTask.resolve(taskResult)
+		} catch (e) {
+			nextTask.reject(e)
+		} finally {
+			this.working = false
+			if (this.queue.length > 0) {
+				this.startNextTask()
+			}
+		}
+	}
+}
+
 // https://stackoverflow.com/a/59700012/2612679
 export type DeepReadonly<T> = T extends Function // eslint-disable-line @typescript-eslint/ban-types
 	? T

@@ -83,10 +83,10 @@ function onMessage(event: TwitchMessageEvent) {
 			},
 			type: event.msg.isHighlight ? 'highlight' : 'normal',
 		})
-		return
+	} else {
+		const hypeTrain = getCurrentHypeTrain()
+		if (!hypeTrain) breakGraceTrain(event.msg.userInfo.displayName)
 	}
-	const hypeTrain = getCurrentHypeTrain()
-	if (!hypeTrain) breakGraceTrain(event.msg.userInfo.displayName)
 }
 
 function parsePositionCommand(event: TwitchMessageEvent) {
