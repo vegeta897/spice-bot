@@ -7,14 +7,10 @@ import type {
 import Emittery from 'emittery'
 import { randomElement, randomIntRange, sleep } from '../../util.js'
 import { timestampLog } from '../../logger.js'
-import {
-	HypeProgress,
-	addToHypeTrain,
-	endHypeTrain,
-	startHypeTrain,
-} from './trains.js'
+import { addToHypeTrain, endHypeTrain, startHypeTrain } from './trains.js'
 import { getRandomUserColor, getUserColor } from './userColors.js'
 import randomstring from 'randomstring'
+import type { HypeProgress } from 'grace-train-lib/trains'
 
 export const HypeEvents = new Emittery<{
 	begin: EventSubChannelHypeTrainBeginEvent
