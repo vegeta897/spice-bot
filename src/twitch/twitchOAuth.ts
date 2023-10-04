@@ -165,7 +165,7 @@ export function initTwitchOAuthServer(app: Express) {
 				'hype-progress',
 				'hype-end',
 				'quit-chat',
-				'get-depot',
+				'ping-depot',
 			],
 			testLogs: ['event-subs'],
 			db: hljs.highlight(getCensoredJSON(), { language: 'json' }).value,
@@ -234,12 +234,12 @@ export function initTwitchOAuthServer(app: Express) {
 			if (event === 'hype-progress') testHypeProgress()
 			if (event === 'hype-end') testHypeEnd()
 			if (event === 'quit-chat') quitChat()
-			if (event === 'get-depot') {
+			if (event === 'ping-depot') {
 				try {
-					const cars = await fetch(`${process.env.DEPOT_URL}/api/user/451907`, {
+					const cars = await fetch(`${process.env.DEPOT_URL}/api/ping`, {
 						headers: { Authorization: process.env.DEPOT_SECRET },
 					})
-					console.log(await cars.json())
+					console.log(await cars.text())
 				} catch (e) {
 					console.log('fetch error')
 					console.log(e)
