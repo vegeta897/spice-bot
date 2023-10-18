@@ -23,7 +23,7 @@ export function getStreamStartEmbed(streamRecord: StreamRecord) {
 		.setTitle(`${process.env.NICKNAME || STREAMER_USERNAME} is live!`)
 		.setURL(TWITCH_URL)
 		.setColor(0xe735c1)
-		.setTimestamp(startTime)
+	// .setTimestamp(startTime)
 	const fields: APIEmbedField[] = [
 		{
 			name: 'Watch',
@@ -66,7 +66,7 @@ export function getStreamEndEmbed(
 		.setTitle('Stream ended')
 		.setURL((parentStream || streamRecord).videoURL || ARCHIVE_URL)
 		.setColor(0x944783)
-		.setTimestamp(video.creationDate.getTime())
+	// .setTimestamp(video.creationDate.getTime())
 	const games = getAllGames(parentStream || streamRecord)
 	const archiveURLs = getAllArchiveURLs(parentStream || streamRecord)
 	const fields: APIEmbedField[] = [
