@@ -60,7 +60,7 @@ async function callDepotAPI(endpoint: 'start' | 'add' | 'end', request: any) {
 				Authorization: process.env.DEPOT_SECRET,
 				Accept: 'application/json',
 				'Content-Type': 'application/json',
-				Origin: process.env.DEPOT_URL,
+				Origin: process.env.DEPOT_HOSTNAME,
 			},
 		}
 	)
