@@ -9,7 +9,7 @@ export async function depotTrainStart(
 	request: DepotTrainStartRequest
 ): Promise<GraceTrainCar[]> {
 	try {
-		return callDepotAPI('start', request)
+		return await callDepotAPI('start', request)
 	} catch (e) {
 		console.log(e)
 		return request.graces.map((g) => g.color)
@@ -20,7 +20,7 @@ export async function depotTrainAdd(
 	request: DepotTrainAddRequest
 ): Promise<GraceTrainCar> {
 	try {
-		return callDepotAPI('add', request)
+		return await callDepotAPI('add', request)
 	} catch (e) {
 		console.log(e)
 		return request.grace.color
@@ -31,7 +31,7 @@ export async function depotTrainEnd(
 	request: DepotTrainEndRequest
 ): Promise<void> {
 	try {
-		return callDepotAPI('end', request)
+		return await callDepotAPI('end', request)
 	} catch (e) {
 		console.log(e)
 	}
