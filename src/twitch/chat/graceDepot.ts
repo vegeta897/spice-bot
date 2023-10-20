@@ -1,70 +1,70 @@
-import { GraceTrainCar } from 'grace-train-lib/trains'
-import { DEV_MODE, randomElement } from '../../util.js'
-import { GraceUser } from './graceStats.js'
-import { timestampLog } from '../../logger.js'
+import {
+	DepotTrainAddRequest,
+	DepotTrainEndRequest,
+	DepotTrainStartRequest,
+	GraceTrainCar,
+} from 'grace-train-lib/trains'
 
-type DepotUser = {
-	userId: string
-	cars: GraceTrainCar[]
-}
-type DepotUserError = {
-	error: string
-}
-
-// TODO: Caching
-// Send lastFetched timestamp for each user so depot can tell us our cache is good
-
-export async function getCarFromGraceUser(
-	graceUser: GraceUser
-): Promise<GraceTrainCar> {
-	let car: GraceTrainCar = graceUser.color
+export async function depotTrainStart(
+	request: DepotTrainStartRequest
+): Promise<GraceTrainCar[]> {
 	try {
-		const depotUser = (await getDepotUsers([graceUser.id]))[0]
-		if ('cars' in depotUser && depotUser.cars.length > 0) {
-			car = pickDepotUserCar(depotUser)
-		} else {
-			if (DEV_MODE && 'error' in depotUser) {
-				timestampLog(depotUser.error)
-			}
-		}
-	} catch (e) {
-		timestampLog('Error fetching depot user:', e)
-	}
-	return car
-}
-
-export async function getDepotUsers(
-	twitchUserIds: string[]
-): Promise<(DepotUser | DepotUserError)[]> {
-	try {
-		const response = await fetch(
-			`${process.env.DEPOT_URL}/api/users/${twitchUserIds.join(',')}`,
-			{
-				headers: { Authorization: process.env.DEPOT_SECRET },
-			}
-		)
-		const data = (await response.json()) as {
-			users: { userId: string; cars: GraceTrainCar[] }[]
-			unknownUserIds?: string[]
-		}
-		const depotUsers: (DepotUser | DepotUserError)[] = data.users
-		if (data.unknownUserIds) {
-			depotUsers.push(
-				...data.unknownUserIds.map((uid) => ({
-					error: `Twitch User ID "${uid}" not found`,
-				}))
-			)
-		}
-		return depotUsers
+		return callDepotAPI('start', request)
 	} catch (e) {
 		console.log(e)
-		throw 'error fetching depot user(s)'
+		return request.graces.map((g) => g.color)
 	}
 }
 
-export function pickDepotUserCar(user: DepotUser) {
-	console.log('picking user car from', user.cars.length)
-	return randomElement(user.cars)
+export async function depotTrainAdd(
+	request: DepotTrainAddRequest
+): Promise<GraceTrainCar> {
+	try {
+		return callDepotAPI('add', request)
+	} catch (e) {
+		console.log(e)
+		return request.grace.color
+	}
+}
+
+export async function depotTrainEnd(
+	request: DepotTrainEndRequest
+): Promise<void> {
+	try {
+		return callDepotAPI('end', request)
+	} catch (e) {
+		console.log(e)
+	}
+}
+
+async function callDepotAPI(
+	endpoint: 'start',
+	request: DepotTrainStartRequest
+): Promise<GraceTrainCar[]>
+async function callDepotAPI(
+	endpoint: 'add',
+	request: DepotTrainAddRequest
+): Promise<GraceTrainCar>
+async function callDepotAPI(
+	endpoint: 'end',
+	request: DepotTrainEndRequest
+): Promise<void>
+async function callDepotAPI(endpoint: 'start' | 'add' | 'end', request: any) {
+	console.log('callDepotAPI', endpoint, JSON.stringify(request))
+	const response = await fetch(
+		`${process.env.DEPOT_URL}/api/train/${endpoint}`,
+		{
+			body: JSON.stringify(request),
+			method: 'POST',
+			headers: {
+				Authorization: process.env.DEPOT_SECRET,
+				Accept: 'application/json',
+				'Content-Type': 'application/json',
+				Origin: process.env.DEPOT_URL,
+			},
+		}
+	)
+	return await response.json()
 }
 
 export async function pingDepot(): Promise<'pong' | 'unauthorized' | 'dead'> {
@@ -73,7 +73,6 @@ export async function pingDepot(): Promise<'pong' | 'unauthorized' | 'dead'> {
 			headers: { Authorization: process.env.DEPOT_SECRET },
 		})
 		const maybePong = await response.text()
-		console.log(maybePong)
 		if (maybePong === 'pong!') return 'pong'
 		return 'unauthorized'
 	} catch (e) {

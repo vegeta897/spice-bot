@@ -1,13 +1,18 @@
 import { getData, modifyData } from '../../db.js'
 import { timestampLog } from '../../logger.js'
 import { sendTrainEndMessages } from './grace.js'
-import { startGraceTrain, addToGraceTrain, endGraceTrain } from './trains.js'
+import { TrainEvents } from './trains.js'
 import { GraceCombo, initGraceCombo, updateGraceScore } from './graceScore.js'
 import { addGraceToHypeTrain, getCurrentHypeTrain } from './hype.js'
 import { sendChatMessage } from './twitchChat.js'
-import { getCarFromGraceUser, pingDepot } from './graceDepot.js'
+import {
+	pingDepot,
+	depotTrainStart,
+	depotTrainAdd,
+	depotTrainEnd,
+} from './graceDepot.js'
 import type { GraceTrainCar } from 'grace-train-lib/trains'
-import { AsyncQueue, DEV_MODE } from '../../util.js'
+import { AsyncQueue } from '../../util.js'
 
 export type GraceUser = { id: string; name: string; color: string }
 export type Grace = {
@@ -19,6 +24,7 @@ export type GraceWithCar = Grace & { car: GraceTrainCar }
 export type SpecialUser = 'nightbot' | 'spicebot'
 
 export type GraceStats = {
+	trainId: number
 	started: boolean
 	totalCombo: number
 	totalScore: number
@@ -30,7 +36,9 @@ export type GraceStats = {
 	lastGrace: Grace | null
 	hyped: boolean
 	frog: boolean
-	depotOnline: boolean
+	depotOnline: boolean // Not really necessary? Requests seem to fail fast
+	// But we might not want to hit /train/add API if /train/start failed
+	// And we could store high score locally instead of sending to depot?
 }
 
 // Store in db? Just need to handle storing the maps and sets
@@ -42,12 +50,12 @@ export async function onGrace({ date, user, type }: Grace) {
 	graceQueue.enqueue(async () => {
 		if (!graceStats) {
 			// Before a train begins, see if the depot is available for use
-			const pingResult = await pingDepot()
-			graceStats = createGraceStats(pingResult === 'pong')
+			const depotOnline = (await pingDepot()) === 'pong'
+			graceStats = createGraceStats({ depotOnline })
 		}
 		const hyped = getCurrentHypeTrain()
-		// Don't add repeated user unless hyped or in dev mode
-		if (!hyped && graceStats.lastGrace?.user.id === user.id && !DEV_MODE) return
+		// Allowing repeat users for now, as a trial
+		// if (!hyped && graceStats.lastGrace?.user.id === user.id && !DEV_MODE) return
 		const grace = { date, user, type }
 		// else graceStats.graces.push({ date, user, type })
 		const allUsersEntry = graceStats.allUsers.get(user.id)
@@ -71,49 +79,68 @@ export async function onGrace({ date, user, type }: Grace) {
 			graceStats.preGraces.push(grace)
 			if (graceStats.preGraces.length === MIN_TRAIN_LENGTH) {
 				graceStats.started = true
-				// TODO: Replace with batch method
-				const graces = await Promise.all(
-					graceStats.preGraces.map(async (pg) => ({
-						...pg,
-						car: await getCarFromGraceUser(pg.user),
-					}))
-				)
+				console.log('calling depotTrainStart')
+				const depotCars = await depotTrainStart({
+					trainId: graceStats.trainId,
+					score: graceStats.totalScore,
+					graces: graceStats.preGraces.map((pg) => ({
+						userId: pg.user.id,
+						color: pg.user.color,
+					})),
+				})
+				const graces = graceStats.preGraces.map((pg, i) => ({
+					...pg,
+					car: depotCars[i],
+				}))
 				graceStats.graces.push(...graces)
 				if (shouldFrogAppear()) {
 					graceStats.frog = true
 					frogAppearancesThisStream++
 					frogDetectiveMessages.length = 0
 				}
-				startGraceTrain(getGraceTrainStartData(graceStats))
+				TrainEvents.emit('start', {
+					id: graceStats.trainId,
+					grace: getGraceTrainStartData(graceStats),
+				})
 			}
 		} else {
+			const depotCar = await depotTrainAdd({
+				trainId: graceStats.trainId,
+				score: graceStats.totalScore,
+				grace: { userId: grace.user.id, color: grace.user.color },
+				index: graceStats.graces.length,
+			})
 			graceStats.graces.push({
 				...grace,
-				car: await getCarFromGraceUser(grace.user),
+				car: depotCar,
 			})
-			addToGraceTrain({
-				combo: graceStats.totalCombo,
-				score: graceStats.totalScore,
-				car: await getCarFromGraceUser(user),
+			TrainEvents.emit('add', {
+				id: graceStats.trainId,
+				grace: {
+					combo: graceStats.totalCombo,
+					score: graceStats.totalScore,
+					car: depotCar,
+				},
 			})
 		}
 	})
 }
 
-function createGraceStats(depotOnline: boolean): GraceStats {
+function createGraceStats(init: Partial<GraceStats>): GraceStats {
 	return {
-		started: false,
-		totalCombo: 0,
-		totalScore: 0,
-		combo: initGraceCombo(),
-		allUsers: new Map(),
-		specialUsers: new Set(),
-		preGraces: [],
-		graces: [],
-		lastGrace: null,
-		hyped: false,
-		frog: false,
-		depotOnline,
+		trainId: init.trainId ?? Date.now(),
+		started: init.started ?? false,
+		totalCombo: init.totalCombo ?? 0,
+		totalScore: init.totalScore ?? 0,
+		combo: init.combo ?? initGraceCombo(),
+		allUsers: init.allUsers ?? new Map(),
+		specialUsers: init.specialUsers ?? new Set(),
+		preGraces: init.preGraces ?? [],
+		graces: init.graces ?? [],
+		lastGrace: init.lastGrace ?? null,
+		hyped: init.hyped ?? false,
+		frog: init.frog ?? false,
+		depotOnline: init.depotOnline ?? false,
 	}
 }
 
@@ -122,19 +149,22 @@ const MIN_TRAIN_LENGTH = 5
 export function breakGraceTrain(endUsername: string) {
 	graceQueue.enqueue(() => {
 		if (!graceStats) return
-		if (
-			!graceStats.hyped &&
-			(graceStats.graces.length < MIN_TRAIN_LENGTH ||
-				graceStats.allUsers.size <= 1)
-		) {
+		if (!graceStats.hyped && graceStats.graces.length < MIN_TRAIN_LENGTH) {
 			clearGraceStats()
 			return
 		}
 		if (!graceStats.hyped) {
-			endGraceTrain({
-				combo: graceStats.totalCombo,
+			TrainEvents.emit('end', {
+				id: graceStats.trainId,
+				grace: {
+					combo: graceStats.totalCombo,
+					score: graceStats.totalScore,
+					username: endUsername,
+				},
+			})
+			depotTrainEnd({
+				trainId: graceStats.trainId,
 				score: graceStats.totalScore,
-				username: endUsername,
 			})
 		}
 		let topGracer: null | [string, number] = null
@@ -187,6 +217,7 @@ function saveRecord(stats: GraceStats) {
 }
 
 const getGraceTrainStartData = (stats: GraceStats) => ({
+	id: stats.trainId,
 	combo: stats.totalCombo,
 	score: stats.totalScore,
 	cars: stats.graces.map((g) => g.car),

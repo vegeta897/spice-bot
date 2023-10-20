@@ -1,5 +1,5 @@
-import { randomElement } from '../../util.js'
-import { StreamEvents } from '../streams.js'
+import { DEV_MODE, randomElement } from '../../util.js'
+import { StreamEvents, getStreamLastSeenOnline } from '../streams.js'
 import { Emotes, canUseEmote } from './emotes.js'
 import { TrainEvents } from './trains.js'
 import { formatPoints } from './graceScore.js'
@@ -31,6 +31,7 @@ export function initGrace() {
 	ChatEvents.on('message', onMessage)
 	ChatEvents.on('redemption', (event) => {
 		if (!botInChat()) return
+		if (!streamIsActive()) return
 		onGrace({
 			date: event.date,
 			user: {
@@ -42,7 +43,7 @@ export function initGrace() {
 		})
 	})
 	StreamEvents.on('streamOnline', ({ downtime }) => {
-		if (downtime > 5 * 60 * 1000) {
+		if (downtime > 10 * 60 * 1000) {
 			overlayPosition = 'bottom'
 			clearGraceStats()
 			resetFrogAppearance()
@@ -55,6 +56,7 @@ let overlayPosition: OverlayOptions['position'] = 'bottom'
 export const getOverlayPosition = () => overlayPosition
 
 function onMessage(event: TwitchMessageEvent) {
+	if (!streamIsActive()) return
 	if (event.username.toLowerCase() === 'gracebruxner') setGraceInChat()
 	const positionCommand = parsePositionCommand(event)
 	if (positionCommand) {
@@ -153,7 +155,12 @@ export async function sendTrainEndMessages({
 	}
 	sendChatMessage(message)
 	message = `${allUsers.size} people contributed`
-	if (bestRecord.users > 0 && allUsers.size > bestRecord.users) {
+	if (allUsers.size === 1) {
+		const theOneUser = [...allUsers.values()][0]
+		message = `${theOneUser.name} was the only one in the train!`
+		if (await canUseEmote(Emotes.THISISFINE)) message += ` ${Emotes.THISISFINE}`
+		sendChatMessage(message)
+	} else if (bestRecord.users > 0 && allUsers.size > bestRecord.users) {
 		message += ', the most yet!'
 		newRecords.users = allUsers.size
 		sendChatMessage(message)
@@ -193,4 +200,9 @@ export const makeTextGraceTrainSafe = (text: string) => {
 		'grace',
 		'GRACE',
 	])})`
+}
+
+const streamIsActive = () => {
+	if (DEV_MODE) return true
+	return Date.now() - getStreamLastSeenOnline() < 10 * 60 * 1000
 }

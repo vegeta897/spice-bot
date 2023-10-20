@@ -48,6 +48,12 @@ export const randomIntRange = (minOrMax: number, max?: number) => {
 export const randomElement = <T>(arr: T[]): T =>
 	arr[randomIntRange(0, arr.length - 1)]
 
+export const pluralize = (
+	quantity: number,
+	singular: string,
+	plural?: string
+) => `${quantity} ${quantity === 1 ? singular : plural || `${singular}s`}`
+
 type Callable = () => any | Promise<any>
 
 export class AsyncQueue {

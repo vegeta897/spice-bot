@@ -37,6 +37,7 @@ const processingStreamOnlineEvents: Set<string> = new Set()
 
 let apiClient: ApiClient
 let streamerUser: HelixUser
+let streamLastSeenOnline = 0
 
 export function initStreams(params: { apiClient: ApiClient }) {
 	apiClient = params.apiClient
@@ -61,6 +62,7 @@ export async function onNewStream(
 			process.env.NICKNAME || process.env.TWITCH_STREAMER_USERNAME
 		} just went live! (${streamID})`
 	)
+	streamLastSeenOnline = Date.now()
 	if (getStreamRecord(streamID)) {
 		spiceLog(`Stream ID ${streamID} already recorded`)
 		return
@@ -132,7 +134,10 @@ export function onStreamOffline() {
 async function checkStreamAndVideos() {
 	try {
 		const stream = DEV_MODE ? getMockStream() : await streamerUser.getStream()
-		if (stream) checkStream(stream)
+		if (stream) {
+			streamLastSeenOnline = Date.now()
+			checkStream(stream)
+		}
 		checkVideos(stream)
 	} catch (e) {
 		timestampLog('Error checking stream/videos', e)
@@ -346,3 +351,5 @@ export async function checkStreamPingButtons() {
 		pingButtons: 'posted',
 	})
 }
+
+export const getStreamLastSeenOnline = () => streamLastSeenOnline
