@@ -203,6 +203,6 @@ export const makeTextGraceTrainSafe = (text: string) => {
 }
 
 const streamIsActive = () => {
-	if (DEV_MODE) return true
+	if (DEV_MODE || process.env.DEPOT_BETA_TEST === 'true') return true
 	return Date.now() - getStreamLastSeenOnline() < 10 * 60 * 1000
 }

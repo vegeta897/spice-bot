@@ -25,6 +25,7 @@ declare global {
 			DEPOT_URL: string
 			DEPOT_HOSTNAME: string
 			DEPOT_SECRET: string
+			DEPOT_BETA_TEST: string
 			NODE_ENV?: 'development' | 'production'
 		}
 	}
