@@ -29,11 +29,12 @@ export async function depotTrainAdd(
 
 export async function depotTrainEnd(
 	request: DepotTrainEndRequest
-): Promise<void> {
+): Promise<{ carDebutCount: number }> {
 	try {
 		return await callDepotAPI('end', request)
 	} catch (e) {
 		console.log(e)
+		return { carDebutCount: 0 }
 	}
 }
 
@@ -48,7 +49,7 @@ async function callDepotAPI(
 async function callDepotAPI(
 	endpoint: 'end',
 	request: DepotTrainEndRequest
-): Promise<void>
+): Promise<{ carDebutCount: number }>
 async function callDepotAPI(endpoint: 'start' | 'add' | 'end', request: any) {
 	console.log('callDepotAPI', endpoint, JSON.stringify(request))
 	const response = await fetch(

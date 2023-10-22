@@ -121,11 +121,13 @@ export async function sendTrainEndMessages({
 	totalScore,
 	bestRecord,
 	hyped,
+	carDebutCount,
 }: GraceStats & {
 	trainLength: number
 	topGracer: [string, number] | null
 	endUsername: string
 	bestRecord: GraceTrainRecord
+	carDebutCount: number
 }) {
 	const newRecords: Partial<GraceTrainRecord> = {}
 	const canPrayBee = await canUseEmote(Emotes.PRAYBEE)
@@ -173,9 +175,11 @@ export async function sendTrainEndMessages({
 	} else {
 		// Don't send message if nothing notable about the contributors
 	}
+	if (carDebutCount > 1) {
+		sendChatMessage(`There were ${carDebutCount} new car designs! ⭐`)
+	}
 	if (topGracer) {
-		message = `${topGracer[0]} added ${topGracer[1]} graces!`
-		sendChatMessage(message)
+		sendChatMessage(`${topGracer[0]} added ${topGracer[1]} graces!`)
 	}
 	message = `${hyped ? 'HYPED ' : ''}GRACE SCORE: ${formatPoints(
 		totalScore

@@ -147,12 +147,13 @@ function createGraceStats(init: Partial<GraceStats>): GraceStats {
 const MIN_TRAIN_LENGTH = 5
 
 export function breakGraceTrain(endUsername: string) {
-	graceQueue.enqueue(() => {
+	graceQueue.enqueue(async () => {
 		if (!graceStats) return
 		if (!graceStats.hyped && graceStats.graces.length < MIN_TRAIN_LENGTH) {
 			clearGraceStats()
 			return
 		}
+		let carDebutCount = 0
 		if (!graceStats.hyped) {
 			TrainEvents.emit('end', {
 				id: graceStats.trainId,
@@ -162,10 +163,11 @@ export function breakGraceTrain(endUsername: string) {
 					username: endUsername,
 				},
 			})
-			depotTrainEnd({
+			const endedDepotTrain = await depotTrainEnd({
 				trainId: graceStats.trainId,
 				score: graceStats.totalScore,
 			})
+			carDebutCount = endedDepotTrain.carDebutCount
 		}
 		let topGracer: null | [string, number] = null
 		if (graceStats.graces.length >= 15 && graceStats.allUsers.size > 3) {
@@ -180,6 +182,7 @@ export function breakGraceTrain(endUsername: string) {
 			topGracer,
 			endUsername,
 			bestRecord: getBestRecord(graceStats.hyped),
+			carDebutCount,
 		})
 		saveRecord(graceStats)
 		timestampLog(
