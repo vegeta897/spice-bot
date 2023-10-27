@@ -149,8 +149,11 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 	chatClient.onSubGift((channel, user, subInfo, msg) => {
 		if (user !== process.env.TWITCH_BOT_USERNAME) return
 		const gifter = subInfo.gifterDisplayName || 'anonymous'
-		timestampLog(`Bot received a gift sub to ${channel} from ${gifter}`)
+		timestampLog(
+			`Bot received a gift sub to ${channel} from ${gifter} for ${subInfo.giftDuration} month(s)`
+		)
 		if (toUserName(channel) !== process.env.TWITCH_STREAMER_USERNAME) return
+		// TODO: Change this to twitchBotSubbedUntil, use subInfo.giftDuration
 		modifyData({ twitchBotLastSubbed: Date.now() })
 		sendChatMessage(
 			makeTextGraceTrainSafe(
