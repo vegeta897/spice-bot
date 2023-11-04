@@ -70,7 +70,7 @@ export async function initTwitchChat(authProvider: RefreshingAuthProvider) {
 	})
 }
 
-async function initChatClient(authProvider: RefreshingAuthProvider) {
+export async function initChatClient(authProvider: RefreshingAuthProvider) {
 	const botScopes = await getAccountScopes('bot')
 	if (!hasRequiredScopes(botScopes)) {
 		console.log('WARNING: Chat bot is missing read/edit scopes!')
@@ -95,10 +95,20 @@ async function initChatClient(authProvider: RefreshingAuthProvider) {
 				reason || 'unknown reason'
 			}`
 		)
-		await sleep(5 * 1000)
-		if (chatClient.isConnected || chatClient.isConnecting) return
-		timestampLog('Client is not auto-reconnecting, now calling reconnect()')
-		chatClient.reconnect()
+		try {
+			const botUser = getUserByAccountType('bot')
+			// This will throw if access token was marked invalid by Twurple
+			// This can happen if the refresh request times out
+			await authProvider.getAccessTokenForUser(botUser)
+			await sleep(5 * 1000)
+			if (chatClient.isConnected || chatClient.isConnecting) return
+			timestampLog('Client is not auto-reconnecting, now calling reconnect()')
+			chatClient.reconnect()
+		} catch (_) {
+			timestampLog(
+				'Bot token is invalid, chat will reconnect when token refreshed'
+			)
+		}
 	})
 
 	chatClient.onAuthenticationFailure((text, retryCount) => {

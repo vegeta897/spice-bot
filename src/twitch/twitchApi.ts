@@ -8,10 +8,11 @@ import {
 	refreshUserToken,
 } from '@twurple/auth'
 import Emittery from 'emittery'
-import { DEV_MODE, HOST_URL } from '../util.js'
-import { spiceLog, timestampLog } from '../logger.js'
+import { DEV_MODE, HOST_URL, sleep } from '../util.js'
+import { timestampLog } from '../logger.js'
 import { setTwitchToken, getTwitchToken } from './streamRecord.js'
 import { getData } from '../db.js'
+import { initChatClient } from './chat/twitchChat.js'
 
 let authProvider: RefreshingAuthProvider
 let apiClient: ApiClient
@@ -61,9 +62,27 @@ export async function createAuthAndApiClient() {
 		if (accountType !== 'streamer' || !streamerAuthRevoked)
 			setTwitchToken(accountType, newToken)
 	})
-	authProvider.onRefreshFailure((userId) => {
+	authProvider.onRefreshFailure(async (userId) => {
 		const accountType = getAccountTypeForId(userId)
-		spiceLog(`WARNING: Failed to refresh token for ${accountType}`)
+		timestampLog(`WARNING: Failed to refresh token for ${accountType}`)
+		if (accountType === 'bot') {
+			// We don't know the specific reason the refresh failed,
+			// but can guess for the bot account that it was a simple request timeout,
+			// so we will automatically retry the refresh to revive the token
+			timestampLog('Attempting to revive bot token...')
+			let retryBackoff = 1
+			while (true) {
+				await sleep(15 * retryBackoff++ * 1000)
+				try {
+					const token = await verifyToken('bot', true) // Force refresh
+					if (!token) continue
+					authProvider.addUser(userId, token, ['chat'])
+					timestampLog('Bot token revived, reconnecting chat')
+					initChatClient(authProvider)
+					break
+				} catch (e) {}
+			}
+		}
 	})
 	AuthEvents.on('auth', ({ accountType, token }) => {
 		setTwitchToken(accountType, token)
@@ -143,11 +162,11 @@ async function addUserToAuth(
 	}
 }
 
-async function verifyToken(accountType: AccountType, token?: AccessToken) {
+async function verifyToken(accountType: AccountType, forceRefresh?: boolean) {
 	if (accountType === 'streamer' && streamerAuthRevoked) return false
-	token ||= getTwitchToken(accountType)
+	let token = getTwitchToken(accountType)
 	if (!token) return false
-	if (accessTokenIsExpired(token)) {
+	if (forceRefresh || accessTokenIsExpired(token)) {
 		token = await refreshUserToken(
 			process.env.TWITCH_CLIENT_ID,
 			process.env.TWITCH_CLIENT_SECRET,
