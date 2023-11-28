@@ -118,7 +118,7 @@ export async function onNewStream(
 	streamRecord.games.push(streamInfo.gameName)
 	if (!('parentStreamID' in streamRecord) && messageID)
 		streamRecord.messageID = messageID
-	streamRecord.thumbnailURL = streamInfo.getThumbnailUrl(360, 180)
+	streamRecord.thumbnailURL = streamInfo.getThumbnailUrl(320, 180)
 	updateStreamRecord(streamRecord)
 	checkVideos(streamInfo) // To end other streams
 	sendOrUpdateLiveMessage(streamRecord)
@@ -158,7 +158,7 @@ function checkStream(stream: HelixStream) {
 				streamInfo: true,
 				startTime: stream.startDate.getTime(),
 				title: stream.title,
-				thumbnailURL: stream.getThumbnailUrl(360, 180),
+				thumbnailURL: stream.getThumbnailUrl(320, 180),
 				thumbnailIndex: (existingRecord.thumbnailIndex || 0) + 1,
 				games: newGame
 					? [...existingRecord.games, stream.gameName]
@@ -187,7 +187,7 @@ async function checkVideos(stream: HelixStream | null = null) {
 		const streamRecord = video.streamId && getStreamRecord(video.streamId)
 		if (!streamRecord) continue // No record, skip it
 		// Update ended streams that have no video info or a 404 thumbnail
-		const videoThumbnail = video.getThumbnailUrl(360, 180)
+		const videoThumbnail = video.getThumbnailUrl(320, 180)
 		if (
 			'messageID' in streamRecord &&
 			streamRecord.streamStatus === 'ended' &&
@@ -289,7 +289,7 @@ async function endStream(streamRecord: StreamRecord, video: HelixVideo) {
 		...streamRecord,
 		streamStatus: 'ended',
 		videoURL: video.url,
-		thumbnailURL: video.getThumbnailUrl(360, 180),
+		thumbnailURL: video.getThumbnailUrl(320, 180),
 		endTime: streamRecord.startTime + video.durationInSeconds * 1000,
 	}) as StreamRecord
 	const messageOptions: BaseMessageOptions = {
