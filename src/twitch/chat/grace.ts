@@ -74,6 +74,10 @@ function onMessage(event: TwitchMessageEvent) {
 		sendChatMessage(`OK, moving overlay to the ${overlayPosition}`)
 		return
 	}
+	if (event.msg.text.toLowerCase().trim() === '!choochoo') {
+		sendChatMessage('Go to choochoo.fun to design your Grace Train car!')
+		return
+	}
 	checkForFrogDetective(event.text)
 	if (isGraceText(event.text)) {
 		onGrace({
