@@ -1,5 +1,5 @@
 import { getUserByAccountType } from '../twitchApi.js'
-import { type Grace, type GraceStats } from './graceStats.js'
+import { type GraceRedeem, type GraceStats } from './graceStats.js'
 
 export type GraceCombo = {
 	currentComboBasePoints: number
@@ -9,14 +9,14 @@ export type GraceCombo = {
 	endedCombosScore: number
 }
 
-const POINTS: Record<Grace['type'], number> = {
+const POINTS: Record<GraceRedeem['type'], number> = {
 	redeem: 10,
 	highlight: 5,
 	normal: 1,
 }
 const NightbotUserID = '19264788'
 
-export function updateGraceScore(stats: GraceStats, grace: Grace) {
+export function updateGraceScore(stats: GraceStats, grace: GraceRedeem) {
 	stats.totalCombo++
 	if (stats.lastGrace && stats.lastGrace.type !== grace.type) {
 		const endedCombosScore = stats.combo.currentComboScore

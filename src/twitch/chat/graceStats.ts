@@ -11,16 +11,15 @@ import {
 	depotTrainAdd,
 	depotTrainEnd,
 } from './graceDepot.js'
-import type { GraceTrainCar } from 'grace-train-lib/trains'
+import type { GraceTrainCar, GraceTrainData } from 'grace-train-lib/trains'
 import { AsyncQueue } from '../../util.js'
 
 export type GraceUser = { id: string; name: string; color: string }
-export type Grace = {
+export type GraceRedeem = {
 	date: Date
 	user: GraceUser
 	type: 'redeem' | 'highlight' | 'normal'
 }
-export type GraceWithCar = Grace & { car: GraceTrainCar }
 export type SpecialUser = 'nightbot' | 'spicebot'
 
 export type GraceStats = {
@@ -31,9 +30,9 @@ export type GraceStats = {
 	combo: GraceCombo
 	allUsers: Map<string, { name: string; count: number }>
 	specialUsers: Set<SpecialUser>
-	preGraces: Grace[]
-	graces: GraceWithCar[]
-	lastGrace: Grace | null
+	initialGraces: GraceRedeem[]
+	graces: (GraceRedeem & { car: GraceTrainCar })[]
+	lastGrace: GraceRedeem | null
 	hyped: boolean
 	frog: boolean
 	depotOnline: boolean // Not really necessary? Requests seem to fail fast
@@ -46,7 +45,7 @@ let graceStats: GraceStats | null = null
 
 const graceQueue = new AsyncQueue()
 
-export async function onGrace({ date, user, type }: Grace) {
+export async function onGrace({ date, user, type }: GraceRedeem) {
 	graceQueue.enqueue(async () => {
 		if (!graceStats) {
 			// Before a train begins, see if the depot is available for use
@@ -76,19 +75,19 @@ export async function onGrace({ date, user, type }: Grace) {
 			return
 		}
 		if (!graceStats.started) {
-			graceStats.preGraces.push(grace)
-			if (graceStats.preGraces.length === MIN_TRAIN_LENGTH) {
+			graceStats.initialGraces.push(grace)
+			if (graceStats.initialGraces.length === MIN_TRAIN_LENGTH) {
 				graceStats.started = true
 				console.log('calling depotTrainStart')
 				const depotCars = await depotTrainStart({
 					trainId: graceStats.trainId,
 					score: graceStats.totalScore,
-					graces: graceStats.preGraces.map((pg) => ({
+					graces: graceStats.initialGraces.map((pg) => ({
 						userId: pg.user.id,
 						color: pg.user.color,
 					})),
 				})
-				const graces = graceStats.preGraces.map((pg, i) => ({
+				const graces = graceStats.initialGraces.map((pg, i) => ({
 					...pg,
 					car: depotCars[i],
 				}))
@@ -98,28 +97,22 @@ export async function onGrace({ date, user, type }: Grace) {
 					frogAppearancesThisStream++
 					frogDetectiveMessages.length = 0
 				}
-				TrainEvents.emit('start', {
-					id: graceStats.trainId,
-					grace: getGraceTrainStartData(graceStats),
-				})
+				TrainEvents.emit('start', getGraceTrainStartData(graceStats))
 			}
 		} else {
-			const depotCar = await depotTrainAdd({
+			const car = await depotTrainAdd({
 				trainId: graceStats.trainId,
 				score: graceStats.totalScore,
 				grace: { userId: grace.user.id, color: grace.user.color },
 				index: graceStats.graces.length,
 			})
-			graceStats.graces.push({
-				...grace,
-				car: depotCar,
-			})
+			graceStats.graces.push({ ...grace, car })
 			TrainEvents.emit('add', {
 				id: graceStats.trainId,
 				grace: {
 					combo: graceStats.totalCombo,
 					score: graceStats.totalScore,
-					car: depotCar,
+					grace: { userId: grace.user.id, ...car },
 				},
 			})
 		}
@@ -135,7 +128,7 @@ function createGraceStats(init: Partial<GraceStats>): GraceStats {
 		combo: init.combo ?? initGraceCombo(),
 		allUsers: init.allUsers ?? new Map(),
 		specialUsers: init.specialUsers ?? new Set(),
-		preGraces: init.preGraces ?? [],
+		initialGraces: init.initialGraces ?? [],
 		graces: init.graces ?? [],
 		lastGrace: init.lastGrace ?? null,
 		hyped: init.hyped ?? false,
@@ -219,12 +212,19 @@ function saveRecord(stats: GraceStats) {
 	modifyData({ [dataProp]: records.slice(0, 5) })
 }
 
-const getGraceTrainStartData = (stats: GraceStats) => ({
+const getGraceTrainStartData = (
+	stats: GraceStats
+): { id: number } & GraceTrainData => ({
 	id: stats.trainId,
-	combo: stats.totalCombo,
-	score: stats.totalScore,
-	cars: stats.graces.map((g) => g.car),
-	frog: stats.frog,
+	grace: {
+		combo: stats.totalCombo,
+		score: stats.totalScore,
+		graces: stats.graces.map((grace) => ({
+			...grace.car,
+			userId: grace.user.id,
+		})),
+		frog: stats.frog,
+	},
 })
 
 export const getCurrentGraceTrain = async () => {

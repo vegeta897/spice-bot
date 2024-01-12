@@ -13,7 +13,7 @@ export async function depotTrainStart(
 		return await callDepotAPI('start', request)
 	} catch (e) {
 		console.log('error calling "start" on depot api', e)
-		return request.graces.map((g) => g.color)
+		return request.graces
 	}
 }
 
@@ -24,7 +24,7 @@ export async function depotTrainAdd(
 		return await callDepotAPI('add', request)
 	} catch (e) {
 		console.log('error calling "add" on depot api', e)
-		return request.grace.color
+		return request.grace
 	}
 }
 
