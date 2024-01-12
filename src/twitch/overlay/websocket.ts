@@ -118,6 +118,10 @@ export function initWebsocket(server: http.Server) {
 		if (DEV_MODE) console.log('sending overlay event to ws clients')
 		sendMessage(wss, { type: 'overlay', data: event })
 	})
+	TrainEvents.on('blockUser', (event) => {
+		if (DEV_MODE) console.log('sending block-user event to ws clients')
+		sendMessage(wss, { type: 'block-user', data: event })
+	})
 }
 
 type IncomingMessage = { type: 'train-query'; data: { id: string } }

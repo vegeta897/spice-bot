@@ -15,6 +15,7 @@ import DBSessionStore from './dbSessionStore.js'
 import { DEV_MODE } from './util.js'
 import { timestampLog } from './logger.js'
 import http from 'http'
+import { TrainEvents } from './twitch/chat/trains.js'
 
 const SESSION_TTL = 2 * 7 * 24 * 60 * 60 * 1000 // 2 weeks
 
@@ -54,15 +55,15 @@ export async function initExpressServer() {
 			join(dirname(fileURLToPath(import.meta.url)), '../src/public')
 		)
 	)
-	// app.get('/overlay-setup', (req, res) => {
-	// 	if (!DEV_MODE && !req.session.username) return res.redirect('/')
-	// 	// TODO: Create & pass unique key if not already exists for account type
-	// 	const overlayKey = '123abc'
-	// 	res.render('overlay-setup', {
-	// 		overlayKey,
-	// 		hostname: process.env.EXPRESS_HOSTNAME,
-	// 	})
-	// })
+	app.use(express.json())
+	app.post('/depot-user-block', async (req, res) => {
+		const { authorization } = req.headers
+		if (authorization !== process.env.DEPOT_SECRET) return res.sendStatus(401)
+		const { userId } = req.body
+		if (!userId) return res.sendStatus(400)
+		TrainEvents.emit('blockUser', { userId })
+		res.sendStatus(200)
+	})
 	return new Promise<{ expressApp: Express; server: http.Server }>(
 		(resolve) => {
 			server.listen(process.env.EXPRESS_PORT, () => {

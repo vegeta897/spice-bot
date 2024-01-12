@@ -6,6 +6,7 @@ import {
 } from './graceStats.js'
 import { getCurrentHypeTrain, setHypeStatsGraces } from './hype.js'
 import type {
+	BlockUser,
 	HypeTrainAddData,
 	HypeTrainData,
 	HypeTrainEndData,
@@ -21,7 +22,11 @@ export const TrainEvents = new Emittery<{
 	add: TrainAddData
 	end: TrainEndData
 	overlay: OverlayOptions
+	blockUser: BlockUser
 }>()
+
+// TODO: Emote train, show emote images as cars, allow any abby channel emote
+// Multiple emotes in one message stack up like boxes, dynamically
 
 let currentHypeTrainId: number | null = null
 

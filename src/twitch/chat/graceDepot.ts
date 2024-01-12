@@ -4,6 +4,7 @@ import {
 	DepotTrainStartRequest,
 	GraceTrainCar,
 } from 'grace-train-lib/trains'
+import { DEV_MODE } from '../../util.js'
 
 export async function depotTrainStart(
 	request: DepotTrainStartRequest
@@ -51,7 +52,7 @@ async function callDepotAPI(
 	request: DepotTrainEndRequest
 ): Promise<{ carDebutCount: number }>
 async function callDepotAPI(endpoint: 'start' | 'add' | 'end', request: any) {
-	console.log('callDepotAPI', endpoint, JSON.stringify(request))
+	if (DEV_MODE) console.log('callDepotAPI', endpoint, JSON.stringify(request))
 	const response = await fetch(
 		`${process.env.DEPOT_URL}/api/train/${endpoint}`,
 		{
