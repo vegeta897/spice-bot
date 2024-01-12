@@ -46,7 +46,9 @@ export async function initTwitchEventSub(params: {
 		await apiClient.eventSub.deleteAllSubscriptions()
 		listener = new EventSubHttpListener({
 			apiClient,
-			adapter: new NgrokAdapter(),
+			adapter: new NgrokAdapter({
+				ngrokConfig: { authtoken: process.env.NGROK_AUTH_TOKEN },
+			}),
 			secret: eventSubSecret,
 			strictHostCheck: true,
 		})

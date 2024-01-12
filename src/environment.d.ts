@@ -20,6 +20,7 @@ declare global {
 			NICKNAME?: string
 			EXPRESS_HOSTNAME: string
 			EXPRESS_PORT: string
+			NGROK_AUTH_TOKEN: string
 			CHAT_TEST_MODE: string
 			LOG_WEBHOOK_URL: string
 			DEPOT_URL: string
