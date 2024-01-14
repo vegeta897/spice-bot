@@ -56,12 +56,12 @@ export async function initExpressServer() {
 		)
 	)
 	app.use(express.json())
-	app.post('/depot-user-block', async (req, res) => {
+	app.post('/depot-user-hide', async (req, res) => {
 		const { authorization } = req.headers
 		if (authorization !== process.env.DEPOT_SECRET) return res.sendStatus(401)
 		const { userId } = req.body
 		if (!userId) return res.sendStatus(400)
-		TrainEvents.emit('blockUser', { userId })
+		TrainEvents.emit('hideUser', { userId })
 		res.sendStatus(200)
 	})
 	return new Promise<{ expressApp: Express; server: http.Server }>(

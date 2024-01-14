@@ -118,9 +118,9 @@ export function initWebsocket(server: http.Server) {
 		if (DEV_MODE) console.log('sending overlay event to ws clients')
 		sendMessage(wss, { type: 'overlay', data: event })
 	})
-	TrainEvents.on('blockUser', (event) => {
-		if (DEV_MODE) console.log('sending block-user event to ws clients')
-		sendMessage(wss, { type: 'block-user', data: event })
+	TrainEvents.on('hideUser', (event) => {
+		if (DEV_MODE) console.log('sending hide-user event to ws clients')
+		sendMessage(wss, { type: 'hide-user', data: event })
 	})
 }
 
