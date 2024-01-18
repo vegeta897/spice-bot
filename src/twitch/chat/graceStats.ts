@@ -66,19 +66,27 @@ export async function onGrace({ date, user, type }: GraceRedeem) {
 			graceStats.initialGraces.push(grace)
 			if (graceStats.initialGraces.length === MIN_TRAIN_LENGTH) {
 				graceStats.started = true
-				console.log('calling depotTrainStart')
-				const depotCars = await depotTrainStart({
-					trainId: graceStats.trainId,
-					score: graceStats.totalScore,
-					graces: graceStats.initialGraces.map((pg) => ({
-						userId: pg.user.id,
-						color: pg.user.color,
-					})),
-				})
-				const graces = graceStats.initialGraces.map((pg, i) => ({
-					...pg,
-					car: depotCars[i],
-				}))
+				let graces: GraceStats['graces']
+				try {
+					const depotCars = await depotTrainStart({
+						trainId: graceStats.trainId,
+						score: graceStats.totalScore,
+						graces: graceStats.initialGraces.map((grace) => ({
+							userId: grace.user.id,
+							color: grace.user.color,
+						})),
+					})
+					graces = graceStats.initialGraces.map((pg, i) => ({
+						...pg,
+						car: depotCars[i],
+					}))
+				} catch (e) {
+					console.log('Error calling depotTrainStart', e)
+					graces = graceStats.initialGraces.map((pg) => ({
+						...pg,
+						car: { color: pg.user.color },
+					}))
+				}
 				graceStats.graces.push(...graces)
 				if (shouldFrogAppear()) {
 					graceStats.frog = true
@@ -88,12 +96,18 @@ export async function onGrace({ date, user, type }: GraceRedeem) {
 				TrainEvents.emit('start', getGraceTrainStartData(graceStats))
 			}
 		} else {
-			const car = await depotTrainAdd({
-				trainId: graceStats.trainId,
-				score: graceStats.totalScore,
-				grace: { userId: grace.user.id, color: grace.user.color },
-				index: graceStats.graces.length,
-			})
+			let car: GraceTrainCar
+			try {
+				car = await depotTrainAdd({
+					trainId: graceStats.trainId,
+					score: graceStats.totalScore,
+					grace: { userId: grace.user.id, color: grace.user.color },
+					index: graceStats.graces.length,
+				})
+			} catch (e) {
+				console.log('Error calling depotTrainAdd', e)
+				car = { color: grace.user.color }
+			}
 			graceStats.graces.push({ ...grace, car })
 			TrainEvents.emit('add', {
 				id: graceStats.trainId,
@@ -143,11 +157,15 @@ export function breakGraceTrain(endUsername: string) {
 					username: endUsername,
 				},
 			})
-			const endedDepotTrain = await depotTrainEnd({
-				trainId: graceStats.trainId,
-				score: graceStats.totalScore,
-			})
-			carDebutCount = endedDepotTrain.carDebutCount
+			try {
+				const endedDepotTrain = await depotTrainEnd({
+					trainId: graceStats.trainId,
+					score: graceStats.totalScore,
+				})
+				carDebutCount = endedDepotTrain.carDebutCount
+			} catch (e) {
+				console.log('Error calling depotTrainEnd', e)
+			}
 		}
 		let topGracer: null | [string, number] = null
 		if (graceStats.graces.length >= 15 && graceStats.allUsers.size > 3) {

@@ -80,17 +80,12 @@ export async function depotTrainAdd({
 	score,
 }: DepotTrainAddRequest): Promise<GraceTrainCar> {
 	let train
-	try {
-		train = await prisma.graceTrain.update({
-			data: { score },
-			include: { cars: true },
-			where: { id: trainId },
-		})
-	} catch (e) {
-		// Update throws if record not found
-		console.log('unknown train ID', trainId)
-		return grace
-	}
+	// Update throws if record not found
+	train = await prisma.graceTrain.update({
+		data: { score },
+		include: { cars: true },
+		where: { id: trainId },
+	})
 	const user = await prisma.user.findUnique({
 		where: {
 			twitchUserId: grace.userId,
@@ -132,15 +127,11 @@ export async function depotTrainEnd({
 	trainId,
 	score,
 }: DepotTrainEndRequest): Promise<{ carDebutCount: number }> {
-	try {
-		await prisma.graceTrain.update({
-			where: { id: trainId },
-			data: { score, ended: true },
-		})
-	} catch (e) {
-		// Update throws here if train record not found
-		console.log('Error ending train ID', trainId, e)
-	}
+	// Update throws here if train record not found
+	await prisma.graceTrain.update({
+		where: { id: trainId },
+		data: { score, ended: true },
+	})
 	// Get a list of cars that debuted in this train
 	const carDebutCount = await prisma.graceTrainCarStats.count({
 		where: { lastGraceTrainId: trainId, graceTrainCount: 1 },
