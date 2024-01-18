@@ -14,6 +14,7 @@ import {
 	resetFrogAppearance,
 	resetGraceInChat,
 	setGraceInChat,
+	listenToGraceHideUser,
 } from './graceStats.js'
 import {
 	botInChat,
@@ -50,6 +51,7 @@ export function initGrace() {
 			resetGraceInChat()
 		}
 	})
+	listenToGraceHideUser()
 }
 
 let overlayPosition: OverlayOptions['position'] = 'bottom'

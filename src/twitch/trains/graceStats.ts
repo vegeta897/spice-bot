@@ -283,3 +283,12 @@ export function resetFrogAppearance() {
 let graceInChat = false
 export const setGraceInChat = () => (graceInChat = true)
 export const resetGraceInChat = () => (graceInChat = false)
+
+export function listenToGraceHideUser() {
+	TrainEvents.on('hideUser', ({ userId }) => {
+		if (!graceStats) return
+		graceStats.graces.forEach((grace) => {
+			if (grace.user.id === userId) grace.car = { color: grace.user.color }
+		})
+	})
+}
