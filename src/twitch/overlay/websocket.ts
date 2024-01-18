@@ -2,10 +2,10 @@ import http from 'http'
 import { WebSocketServer, WebSocket } from 'ws'
 import { DEV_MODE } from '../../util.js'
 import { spiceLog, timestampLog } from '../../logger.js'
-import { TrainEvents, getCurrentTrain } from '../chat/trains.js'
+import { TrainEvents, getCurrentTrain } from '../trains/trains.js'
 import { getData, modifyData } from '../../db.js'
 import randomstring from 'randomstring'
-import { getOverlayPosition } from '../chat/grace.js'
+import { getOverlayPosition } from '../trains/grace.js'
 import type { TrainWSMessage } from 'grace-train-lib/data'
 
 const version = 4

@@ -15,7 +15,7 @@ import DBSessionStore from './dbSessionStore.js'
 import { DEV_MODE } from './util.js'
 import { timestampLog } from './logger.js'
 import http from 'http'
-import { TrainEvents } from './twitch/chat/trains.js'
+import { TrainEvents } from './twitch/trains/trains.js'
 
 const SESSION_TTL = 2 * 7 * 24 * 60 * 60 * 1000 // 2 weeks
 

@@ -8,7 +8,7 @@ import { type SessionRecord } from './dbSessionStore.js'
 import { type AccountType } from './twitch/twitchApi.js'
 import { type TweetRecord } from './twitter/tweetRecord.js'
 import { type StreamRecord } from './twitch/streamRecord.js'
-import { type GraceTrainRecord } from './twitch/chat/graceStats.js'
+import { type GraceTrainRecord } from './twitch/trains/graceStats.js'
 
 type DBData = {
 	tweets: TweetRecord[]

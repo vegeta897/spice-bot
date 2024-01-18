@@ -19,7 +19,7 @@ import hljs from 'highlight.js/lib/core'
 import { type ChatMessage } from '@twurple/chat'
 import { updateUserColor } from './chat/userColors.js'
 import multer from 'multer'
-import { testHypeEnd, testHypeProgress } from './chat/hype.js'
+import { testHypeEnd, testHypeProgress } from './trains/hype.js'
 import {
 	testStreamOnline,
 	testStreamOffline,

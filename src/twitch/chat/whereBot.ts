@@ -2,7 +2,7 @@ import { type ChatMessage } from '@twurple/chat'
 import { StreamEvents } from '../streams.js'
 import { getBotSub } from '../twitchApi.js'
 import { Emotes } from './emotes.js'
-import { makeTextGraceTrainSafe } from './grace.js'
+import { makeTextGraceTrainSafe } from '../trains/grace.js'
 import { ChatEvents, sendChatMessage } from './twitchChat.js'
 
 export function initWhereBot() {
@@ -32,11 +32,11 @@ async function handleWhereBotPrompt(msg: ChatMessage) {
 	if (!reply) return // No more replies to give
 	whereBotNextReplyIndex++
 	if (typeof reply === 'string') {
-		sendChatMessage(makeTextGraceTrainSafe(reply))
+		sendChatMessage(await makeTextGraceTrainSafe(reply))
 		return
 	}
 	const sendMessageArgs: Parameters<typeof sendChatMessage> = [
-		makeTextGraceTrainSafe(reply.text),
+		await makeTextGraceTrainSafe(reply.text),
 	]
 	if (reply.emotes) {
 		const botSub = await getBotSub()

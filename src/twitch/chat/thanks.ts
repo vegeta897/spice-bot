@@ -1,10 +1,10 @@
 import { getUserByAccountType } from '../twitchApi.js'
-import { makeTextGraceTrainSafe } from './grace.js'
+import { makeTextGraceTrainSafe } from '../trains/grace.js'
 import { ChatEvents, sendChatMessage } from './twitchChat.js'
 
 export function initThanks() {
 	const botUser = getUserByAccountType('bot')
-	ChatEvents.on('message', (event) => {
+	ChatEvents.on('message', async (event) => {
 		if (event.self) return
 		const now = Date.now()
 		if (now - lastThanksTime < COOLDOWN) return
@@ -12,10 +12,16 @@ export function initThanks() {
 		const isReplyToBot = event.msg.parentMessageUserId === botUser.id
 		if (isThanks(event.text)) {
 			if (isReplyToBot || /spice[ -]?bot/gi.test(event.text)) {
-				sendChatMessage(makeTextGraceTrainSafe("You're welcome!"), event.msg.id)
+				sendChatMessage(
+					await makeTextGraceTrainSafe("You're welcome!"),
+					event.msg.id
+				)
 			}
 		} else if (isReplyToBot && /good (spice)?[ -]?bot/.test(event.text)) {
-			sendChatMessage(makeTextGraceTrainSafe('Happy to help!'), event.msg.id)
+			sendChatMessage(
+				await makeTextGraceTrainSafe('Happy to help!'),
+				event.msg.id
+			)
 		}
 	})
 }

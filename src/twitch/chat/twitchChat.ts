@@ -16,7 +16,7 @@ import {
 import { CHAT_TEST_MODE, DEV_MODE, sleep } from '../../util.js'
 import { timestampLog } from '../../logger.js'
 import Emittery from 'emittery'
-import { initGrace, makeTextGraceTrainSafe } from './grace.js'
+import { initGrace, makeTextGraceTrainSafe } from '../trains/grace.js'
 import { initRecap } from './recap.js'
 import { Emotes } from './emotes.js'
 import { initTally } from './tally.js'

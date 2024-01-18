@@ -1,12 +1,12 @@
 import { getEmoteByName, getUsableEmotes, Emotes } from './emotes.js'
-import { GRACE } from './grace.js'
+import { GRACE } from '../trains/grace.js'
 import { ChatEvents, sendChatMessage } from './twitchChat.js'
 import { StreamEvents } from '../streams.js'
 import { getData, modifyData } from '../../db.js'
 import { DEV_MODE } from '../../util.js'
 import { timestampLog } from '../../logger.js'
 import { parseChatMessage } from '@twurple/chat'
-import { TrainEvents } from './trains.js'
+import { TrainEvents } from '../trains/trains.js'
 
 let emoteCounts: Map<string, number>
 let redeemCounts: Map<string, number>

@@ -1,6 +1,6 @@
 import { DEV_MODE, randomElement } from '../../util.js'
 import { StreamEvents, getStreamLastSeenOnline } from '../streams.js'
-import { Emotes, canUseEmote } from './emotes.js'
+import { Emotes, canUseEmote } from '../chat/emotes.js'
 import { TrainEvents } from './trains.js'
 import { formatPoints } from './graceScore.js'
 import {
@@ -20,8 +20,8 @@ import {
 	ChatEvents,
 	sendChatMessage,
 	type TwitchMessageEvent,
-} from './twitchChat.js'
-import { getUserColor } from './userColors.js'
+} from '../chat/twitchChat.js'
+import { getUserColor } from '../chat/userColors.js'
 import { getCurrentHypeTrain } from './hype.js'
 import type { OverlayOptions } from 'grace-train-lib/data'
 
@@ -201,9 +201,9 @@ export async function sendTrainEndMessages({
 	sendChatMessage(message)
 }
 
-export const makeTextGraceTrainSafe = (text: string) => {
-	if (!getCurrentGraceTrain() || getCurrentHypeTrain() || isGraceText(text))
-		return text
+export const makeTextGraceTrainSafe = async (text: string) => {
+	const graceTrain = await getCurrentGraceTrain()
+	if (!graceTrain || getCurrentHypeTrain() || isGraceText(text)) return text
 	return `${text} (${randomElement(['', 'also ', 'and, '])}${randomElement([
 		'grace',
 		'GRACE',
