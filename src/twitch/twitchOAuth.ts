@@ -200,7 +200,7 @@ export function initTwitchOAuthServer(app: Express) {
 			return res.sendStatus(400)
 		if (command) {
 			timestampLog(`Testing !${command} command`)
-			const userID = `${testUserID++}`
+			const userID = `${testUserID}`
 			ChatEvents.emit('message', {
 				username: process.env.TWITCH_ADMIN_USERNAME,
 				userID,
@@ -221,7 +221,7 @@ export function initTwitchOAuthServer(app: Express) {
 			if (event === 'stream-offline') testStreamOffline()
 			if (event === 'stream-offline-late') testStreamOffline(true)
 			if (event === 'change-game') testChangeGame()
-			if (event === 'grace')
+			if (event === 'grace') {
 				ChatEvents.emit('redemption', {
 					username: process.env.TWITCH_ADMIN_USERNAME,
 					userID: `${testUserID++}`,
@@ -230,6 +230,8 @@ export function initTwitchOAuthServer(app: Express) {
 					status: '',
 					rewardText: '',
 				})
+				if (testUserID === 1005) testUserID = 1000
+			}
 			if (event === 'hype-progress') testHypeProgress()
 			if (event === 'hype-end') testHypeEnd()
 			if (event === 'quit-chat') quitChat()
