@@ -30,7 +30,7 @@ export async function depotTrainStart({
 		where: {
 			twitchUserId: { in: graces.map((g) => g.userId) },
 			trustLevel: { notIn: ['hidden', 'banned'] }, // No cars from hidden or banned users
-			cars: { some: {} }, // Only get users with at least one car
+			cars: { some: { published: true } }, // Only get users with at least one active car
 		},
 		include: userCarsIncludeQuery,
 	})
@@ -81,6 +81,7 @@ export async function depotTrainAdd({
 }: DepotTrainAddRequest): Promise<GraceTrainCar> {
 	let train
 	// Update throws if record not found
+	// TODO: Create train if not found
 	train = await prisma.graceTrain.update({
 		data: { score },
 		include: { cars: true },
