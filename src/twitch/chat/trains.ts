@@ -14,7 +14,7 @@ import type {
 	TrainAddData,
 	TrainEndData,
 	TrainStartData,
-} from 'grace-train-lib/trains'
+} from 'grace-train-lib/data'
 import { timestampLog } from '../../logger.js'
 
 export const TrainEvents = new Emittery<{

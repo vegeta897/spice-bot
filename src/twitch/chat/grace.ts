@@ -23,7 +23,7 @@ import {
 } from './twitchChat.js'
 import { getUserColor } from './userColors.js'
 import { getCurrentHypeTrain } from './hype.js'
-import { OverlayOptions } from 'grace-train-lib/trains'
+import type { OverlayOptions } from 'grace-train-lib/data'
 
 export const GRACE = 'GRACE'
 

@@ -6,7 +6,7 @@ import { TrainEvents, getCurrentTrain } from '../chat/trains.js'
 import { getData, modifyData } from '../../db.js'
 import randomstring from 'randomstring'
 import { getOverlayPosition } from '../chat/grace.js'
-import { TrainWSMessage } from 'grace-train-lib/trains'
+import type { TrainWSMessage } from 'grace-train-lib/data'
 
 const version = 4
 

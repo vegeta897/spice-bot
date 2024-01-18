@@ -10,7 +10,7 @@ import { timestampLog } from '../../logger.js'
 import { addToHypeTrain, endHypeTrain, startHypeTrain } from './trains.js'
 import { getRandomUserColor, getUserColor } from './userColors.js'
 import randomstring from 'randomstring'
-import type { HypeProgress } from 'grace-train-lib/trains'
+import type { HypeProgress } from 'grace-train-lib/data'
 
 export const HypeEvents = new Emittery<{
 	begin: EventSubChannelHypeTrainBeginEvent

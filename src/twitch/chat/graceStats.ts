@@ -5,13 +5,8 @@ import { TrainEvents } from './trains.js'
 import { GraceCombo, initGraceCombo, updateGraceScore } from './graceScore.js'
 import { addGraceToHypeTrain, getCurrentHypeTrain } from './hype.js'
 import { sendChatMessage } from './twitchChat.js'
-import {
-	pingDepot,
-	depotTrainStart,
-	depotTrainAdd,
-	depotTrainEnd,
-} from './graceDepot.js'
-import type { GraceTrainCar, GraceTrainData } from 'grace-train-lib/trains'
+import { depotTrainStart, depotTrainAdd, depotTrainEnd } from './graceDepot.js'
+import type { GraceTrainCar, GraceTrainData } from 'grace-train-lib/data'
 import { AsyncQueue } from '../../util.js'
 
 export type GraceUser = { id: string; name: string; color: string }
@@ -35,9 +30,6 @@ export type GraceStats = {
 	lastGrace: GraceRedeem | null
 	hyped: boolean
 	frog: boolean
-	depotOnline: boolean // Not really necessary? Requests seem to fail fast
-	// But we might not want to hit /train/add API if /train/start failed
-	// And we could store high score locally instead of sending to depot?
 }
 
 // Store in db? Just need to handle storing the maps and sets
@@ -47,11 +39,7 @@ const graceQueue = new AsyncQueue()
 
 export async function onGrace({ date, user, type }: GraceRedeem) {
 	graceQueue.enqueue(async () => {
-		if (!graceStats) {
-			// Before a train begins, see if the depot is available for use
-			const depotOnline = (await pingDepot()) === 'pong'
-			graceStats = createGraceStats({ depotOnline })
-		}
+		if (!graceStats) graceStats = createGraceStats()
 		const hyped = getCurrentHypeTrain()
 		// Allowing repeat users for now, as a trial
 		// if (!hyped && graceStats.lastGrace?.user.id === user.id && !DEV_MODE) return
@@ -119,7 +107,7 @@ export async function onGrace({ date, user, type }: GraceRedeem) {
 	})
 }
 
-function createGraceStats(init: Partial<GraceStats>): GraceStats {
+function createGraceStats(init: Partial<GraceStats> = {}): GraceStats {
 	return {
 		trainId: init.trainId ?? Date.now(),
 		started: init.started ?? false,
@@ -133,7 +121,6 @@ function createGraceStats(init: Partial<GraceStats>): GraceStats {
 		lastGrace: init.lastGrace ?? null,
 		hyped: init.hyped ?? false,
 		frog: init.frog ?? false,
-		depotOnline: init.depotOnline ?? false,
 	}
 }
 
