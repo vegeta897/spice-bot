@@ -1,21 +1,21 @@
 {
 	"compilerOptions": {
 		/* Language and Environment */
-		"target": "es2016" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
+		"target": "es2022" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
 		"lib": [
-			"es6",
+			"es2023",
 			"DOM",
 			"DOM.Iterable"
 		] /* Specify a set of bundled library declaration files that describe the target runtime environment. */,
 
 		/* Modules */
-		"module": "Node16" /* Specify what module code is generated. */,
+		"module": "node16" /* Specify what module code is generated. */,
 		"rootDir": "src" /* Specify the root folder within your source files. */,
-		"moduleResolution": "Node16",
+		"moduleResolution": "nodenext",
 		"resolveJsonModule": true /* Enable importing .json files. */,
 
 		/* JavaScript Support */
-		"allowJs": true /* Allow JavaScript files to be a part of your program. Use the 'checkJS' option to get errors from these files. */,
+		"allowJs": false /* Allow JavaScript files to be a part of your program. Use the 'checkJS' option to get errors from these files. */,
 
 		/* Emit */
 		"outDir": "build" /* Specify an output folder for all emitted files. */,
@@ -29,5 +29,5 @@
 		"noImplicitAny": true /* Enable error reporting for expressions and declarations with an implied 'any' type. */,
 		"skipLibCheck": true /* Skip type checking all .d.ts files. */
 	},
-	"exclude": ["src/indexOld.ts", "./build/**/*"]
+	"exclude": ["./build/**/*"]
 }
