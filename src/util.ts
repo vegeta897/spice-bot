@@ -39,15 +39,6 @@ export const compareArrays = (first: unknown[], second: unknown[]) => {
 	}
 }
 
-export const randomIntRange = (minOrMax: number, max?: number) => {
-	const min = max === undefined ? 0 : minOrMax
-	const range = max === undefined ? minOrMax : max - minOrMax
-	return Math.floor(min + Math.random() * (range + 1))
-}
-
-export const randomElement = <T>(arr: T[]): T =>
-	arr[randomIntRange(0, arr.length - 1)]
-
 export const pluralize = (
 	quantity: number,
 	singular: string,
@@ -95,7 +86,7 @@ export class AsyncQueue {
 export type DeepReadonly<T> = T extends Function // eslint-disable-line @typescript-eslint/ban-types
 	? T
 	: T extends object
-	? { readonly [K in keyof T]: DeepReadonly<T[K]> }
-	: T
+		? { readonly [K in keyof T]: DeepReadonly<T[K]> }
+		: T
 
 export type MaybeReadonly<T> = T | DeepReadonly<T>

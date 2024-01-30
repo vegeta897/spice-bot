@@ -1,7 +1,7 @@
 {
 	"compilerOptions": {
 		/* Language and Environment */
-		"target": "es2022" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
+		"target": "ES2022" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
 		"lib": [
 			"es2023",
 			"DOM",
@@ -11,7 +11,7 @@
 		/* Modules */
 		"module": "node16" /* Specify what module code is generated. */,
 		"rootDir": "src" /* Specify the root folder within your source files. */,
-		"moduleResolution": "nodenext",
+		"moduleResolution": "node16",
 		"resolveJsonModule": true /* Enable importing .json files. */,
 
 		/* JavaScript Support */

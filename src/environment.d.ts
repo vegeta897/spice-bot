@@ -23,6 +23,8 @@ declare global {
 			NGROK_AUTH_TOKEN: string
 			CHAT_TEST_MODE: string
 			LOG_WEBHOOK_URL: string
+			DEPOT_URL: string
+			DEPOT_HOSTNAME: string
 			DEPOT_SECRET: string
 			DEPOT_BETA_TEST: string
 			NODE_ENV?: 'development' | 'production'

@@ -1,4 +1,4 @@
-import { DEV_MODE, randomElement } from '../../util.js'
+import { DEV_MODE } from '../../util.js'
 import { StreamEvents, getStreamLastSeenOnline } from '../streams.js'
 import { Emotes, canUseEmote } from '../chat/emotes.js'
 import { TrainEvents } from './trains.js'
@@ -25,6 +25,7 @@ import {
 import { getUserColor } from '../chat/userColors.js'
 import { getCurrentHypeTrain } from './hype.js'
 import type { OverlayOptions } from 'grace-train-lib/data'
+import { randomElement } from '../../random.js'
 
 export const GRACE = 'GRACE'
 

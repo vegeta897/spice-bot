@@ -5,12 +5,13 @@ import type {
 	EventSubChannelHypeTrainProgressEvent,
 } from '@twurple/eventsub-base'
 import Emittery from 'emittery'
-import { randomElement, randomIntRange, sleep } from '../../util.js'
+import { sleep } from '../../util.js'
 import { timestampLog } from '../../logger.js'
 import { addToHypeTrain, endHypeTrain, startHypeTrain } from './trains.js'
 import { getRandomUserColor, getUserColor } from '../chat/userColors.js'
 import randomstring from 'randomstring'
 import type { HypeProgress } from 'grace-train-lib/data'
+import { randomElement, randomFloat, randomInt } from '../../random.js'
 
 export const HypeEvents = new Emittery<{
 	begin: EventSubChannelHypeTrainBeginEvent
@@ -285,15 +286,14 @@ export async function testHypeProgress() {
 					randomElement(initialContributions),
 				],
 			} as EventSubChannelHypeTrainProgressEvent)
-			await sleep(randomIntRange(0, 5) * 100)
+			await sleep(randomFloat(0, 500))
 		}
 	}
 }
 
 function createTestHypeContribution() {
-	const type = Math.random() < 0.7 ? 'subscription' : 'bits'
-	const total =
-		type === 'bits' ? randomIntRange(5, 30) * 10 : randomIntRange(1, 5) * 500
+	const type = randomFloat(0, 1) < 0.7 ? 'subscription' : 'bits'
+	const total = type === 'bits' ? randomInt(5, 30) * 10 : randomInt(1, 5) * 500
 	return {
 		type,
 		total,

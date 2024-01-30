@@ -69,8 +69,5 @@
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/vegeta897/spice-bot.git"
-	},
-	"prisma": {
-		"schema": "../grace-train-lib/prisma/schema.prisma"
 	}
 }

@@ -5,7 +5,12 @@ import { TrainEvents } from './trains.js'
 import { GraceCombo, initGraceCombo, updateGraceScore } from './graceScore.js'
 import { addGraceToHypeTrain, getCurrentHypeTrain } from './hype.js'
 import { sendChatMessage } from '../chat/twitchChat.js'
-import { depotTrainStart, depotTrainAdd, depotTrainEnd } from './graceDepot.js'
+import {
+	pingDepot,
+	depotTrainStart,
+	depotTrainAdd,
+	depotTrainEnd,
+} from './graceDepot.js'
 import type { GraceTrainCar, GraceTrainData } from 'grace-train-lib/data'
 import { AsyncQueue } from '../../util.js'
 
@@ -30,6 +35,10 @@ export type GraceStats = {
 	lastGrace: GraceRedeem | null
 	hyped: boolean
 	frog: boolean
+	signal: string | null
+	depotOnline: boolean // Not really necessary? Requests seem to fail fast
+	// But we might not want to hit /train/add API if /train/start failed
+	// And we could store high score locally instead of sending to depot?
 }
 
 // Store in db? Just need to handle storing the maps and sets
@@ -39,7 +48,11 @@ const graceQueue = new AsyncQueue()
 
 export async function onGrace({ date, user, type }: GraceRedeem) {
 	graceQueue.enqueue(async () => {
-		if (!graceStats) graceStats = createGraceStats()
+		if (!graceStats) {
+			// Before a train begins, see if the depot is available for use
+			const depotOnline = (await pingDepot()) === 'pong'
+			graceStats = createGraceStats({ depotOnline })
+		}
 		const hyped = getCurrentHypeTrain()
 		// Allowing repeat users for now, as a trial
 		// if (!hyped && graceStats.lastGrace?.user.id === user.id && !DEV_MODE) return
@@ -66,27 +79,18 @@ export async function onGrace({ date, user, type }: GraceRedeem) {
 			graceStats.initialGraces.push(grace)
 			if (graceStats.initialGraces.length === MIN_TRAIN_LENGTH) {
 				graceStats.started = true
-				let graces: GraceStats['graces']
-				try {
-					const depotCars = await depotTrainStart({
-						trainId: graceStats.trainId,
-						score: graceStats.totalScore,
-						graces: graceStats.initialGraces.map((grace) => ({
-							userId: grace.user.id,
-							color: grace.user.color,
-						})),
-					})
-					graces = graceStats.initialGraces.map((pg, i) => ({
-						...pg,
-						car: depotCars[i],
-					}))
-				} catch (e) {
-					console.log('Error calling depotTrainStart', e)
-					graces = graceStats.initialGraces.map((pg) => ({
-						...pg,
-						car: { color: pg.user.color },
-					}))
-				}
+				const depotCars = await depotTrainStart({
+					trainId: graceStats.trainId,
+					score: graceStats.totalScore,
+					graces: graceStats.initialGraces.map((grace) => ({
+						userId: grace.user.id,
+						color: grace.user.color,
+					})),
+				})
+				const graces = graceStats.initialGraces.map((pg, i) => ({
+					...pg,
+					car: depotCars[i],
+				}))
 				graceStats.graces.push(...graces)
 				if (shouldFrogAppear()) {
 					graceStats.frog = true
@@ -96,18 +100,12 @@ export async function onGrace({ date, user, type }: GraceRedeem) {
 				TrainEvents.emit('start', getGraceTrainStartData(graceStats))
 			}
 		} else {
-			let car: GraceTrainCar
-			try {
-				car = await depotTrainAdd({
-					trainId: graceStats.trainId,
-					score: graceStats.totalScore,
-					grace: { userId: grace.user.id, color: grace.user.color },
-					index: graceStats.graces.length,
-				})
-			} catch (e) {
-				console.log('Error calling depotTrainAdd', e)
-				car = { color: grace.user.color }
-			}
+			const car = await depotTrainAdd({
+				trainId: graceStats.trainId,
+				score: graceStats.totalScore,
+				grace: { userId: grace.user.id, color: grace.user.color },
+				index: graceStats.graces.length,
+			})
 			graceStats.graces.push({ ...grace, car })
 			TrainEvents.emit('add', {
 				id: graceStats.trainId,
@@ -135,6 +133,8 @@ function createGraceStats(init: Partial<GraceStats> = {}): GraceStats {
 		lastGrace: init.lastGrace ?? null,
 		hyped: init.hyped ?? false,
 		frog: init.frog ?? false,
+		signal: init.signal ?? null,
+		depotOnline: init.depotOnline ?? false,
 	}
 }
 
@@ -157,15 +157,11 @@ export function breakGraceTrain(endUsername: string) {
 					username: endUsername,
 				},
 			})
-			try {
-				const endedDepotTrain = await depotTrainEnd({
-					trainId: graceStats.trainId,
-					score: graceStats.totalScore,
-				})
-				carDebutCount = endedDepotTrain.carDebutCount
-			} catch (e) {
-				console.log('Error calling depotTrainEnd', e)
-			}
+			const endedDepotTrain = await depotTrainEnd({
+				trainId: graceStats.trainId,
+				score: graceStats.totalScore,
+			})
+			carDebutCount = endedDepotTrain.carDebutCount
 		}
 		let topGracer: null | [string, number] = null
 		if (graceStats.graces.length >= 15 && graceStats.allUsers.size > 3) {
