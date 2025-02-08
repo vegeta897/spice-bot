@@ -23,7 +23,6 @@ import { initTally } from './tally.js'
 import { initWhereBot } from './whereBot.js'
 import { initThanks } from './thanks.js'
 import { updateUserColor } from './userColors.js'
-import { PubSubClient } from '@twurple/pubsub'
 import { modifyData } from '../../db.js'
 
 // Idea: Detect incrementing numbers in ryan's messages for death tracker
@@ -186,18 +185,6 @@ export async function initChatClient(authProvider: RefreshingAuthProvider) {
 			} with any problems or questions`
 		)
 	})
-
-	if (botScopes.includes('channel:moderate')) {
-		const pubSubClient = new PubSubClient({ authProvider })
-		pubSubClient.onModAction(
-			getUserByAccountType('bot'),
-			getUserByAccountType('streamer'),
-			(event) => {
-				if (!('action' in event)) return
-				if (event.action === 'raid') ChatEvents.emit('raid')
-			}
-		)
-	}
 }
 
 export async function sendChatMessage(

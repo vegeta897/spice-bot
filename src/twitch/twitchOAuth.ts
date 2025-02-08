@@ -38,6 +38,13 @@ const SCOPES: Record<AccountType, string[]> = {
 		'moderator:read:chat_settings',
 		'moderator:read:chatters',
 		'moderator:read:followers',
+		'moderator:read:blocked_terms',
+		'moderator:read:unban_requests',
+		'moderator:read:banned_users',
+		'moderator:read:chat_messages',
+		'moderator:read:warnings',
+		'moderator:read:moderators',
+		'moderator:read:vips',
 	],
 	streamer: [
 		'channel:read:hype_train',
@@ -139,7 +146,7 @@ export function initTwitchOAuthServer(app: Express) {
 			!DEV_MODE &&
 			req.session.username !== process.env.TWITCH_ADMIN_USERNAME
 		) {
-			return res.redirect('/')
+			return res.redirect('/auth?admin')
 		}
 		res.render('admin', {
 			streamer: {

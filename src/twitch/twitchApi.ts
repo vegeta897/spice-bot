@@ -62,10 +62,11 @@ export async function createAuthAndApiClient() {
 		if (accountType !== 'streamer' || !streamerAuthRevoked)
 			setTwitchToken(accountType, newToken)
 	})
-	authProvider.onRefreshFailure(async (userId) => {
+	authProvider.onRefreshFailure(async (userId /* TODO: error */) => {
 		const accountType = getAccountTypeForId(userId)
 		timestampLog(`WARNING: Failed to refresh token for ${accountType}`)
 		if (accountType === 'bot') {
+			// TODO: Error object is passed in here as of new twurple version
 			// We don't know the specific reason the refresh failed,
 			// but can guess for the bot account that it was a simple request timeout,
 			// so we will automatically retry the refresh to revive the token

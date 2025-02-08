@@ -46,7 +46,9 @@ export async function initTwitchEventSub(params: {
 		await apiClient.eventSub.deleteAllSubscriptions()
 		listener = new EventSubHttpListener({
 			apiClient,
-			adapter: new NgrokAdapter(),
+			adapter: new NgrokAdapter({
+				ngrokConfig: { authtoken: process.env.NGROK_AUTH_TOKEN },
+			}),
 			secret: eventSubSecret,
 			strictHostCheck: true,
 		})
@@ -99,6 +101,7 @@ async function initGlobalEventSubs(listener: EventSubListener) {
 async function initScopedEventSubs(listener: EventSubListener) {
 	const streamerUser = getUserByAccountType('streamer')
 	const streamerScopes = await getAccountScopes('streamer')
+	const botUser = getUserByAccountType('bot')
 	const botScopes = await getAccountScopes('bot')
 	if (streamerScopes.includes('channel:read:redemptions')) {
 		scopedEventSubs.set(
@@ -118,7 +121,6 @@ async function initScopedEventSubs(listener: EventSubListener) {
 		)
 	}
 	if (DEV_MODE && botScopes.includes('moderator:read:followers')) {
-		const botUser = getUserByAccountType('bot')
 		scopedEventSubs.set(
 			'channelFollowSub',
 			listener.onChannelFollow(streamerUser, botUser, (event) => {
@@ -153,6 +155,14 @@ async function initScopedEventSubs(listener: EventSubListener) {
 			'channelHypeTrainEndSub',
 			listener.onChannelHypeTrainEnd(streamerUser, (event) => {
 				HypeEvents.emit('end', event)
+			})
+		)
+	}
+	if (botScopes.includes('moderator:read:chat_messages')) {
+		scopedEventSubs.set(
+			'channelModerateSub',
+			listener.onChannelModerate(streamerUser, botUser, (event) => {
+				if (event.moderationAction === 'raid') ChatEvents.emit('raid')
 			})
 		)
 	}
