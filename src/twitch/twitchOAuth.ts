@@ -203,7 +203,8 @@ export function initTwitchOAuthServer(app: Express) {
 			return res.sendStatus(401)
 		}
 		const { command, event, log, chat } = req.query
-		if (log === 'event-subs') spiceLog(await getEventSubs())
+		if (log === 'event-subs')
+			spiceLog(JSON.stringify(await getEventSubs(), null, 4))
 		if ((command || event) && !DEV_MODE && !CHAT_TEST_MODE)
 			return res.sendStatus(400)
 		if (command) {
