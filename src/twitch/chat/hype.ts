@@ -16,6 +16,10 @@ import {
 import { getRandomUserColor, getUserColor } from './userColors.js'
 import randomstring from 'randomstring'
 
+// TODO: Migrate to Hype Train V2 events
+// Progress events no longer have lastContribution
+// Listen for bits and subs the normal way, add to train if hype train active
+
 export const HypeEvents = new Emittery<{
 	begin: EventSubChannelHypeTrainBeginEvent
 	progress: EventSubChannelHypeTrainProgressEvent
