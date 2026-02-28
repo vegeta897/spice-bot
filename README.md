@@ -11,7 +11,7 @@ Spice Bot will automatically send stream notifications and Bluesky posts to your
   - 📰 Rich embeds with updating stream info and images
   - 🎞️ Twitch VOD archive link posted after each stream
   - 🎬 Stream restarts automatically detected and consolidated
-- 🐦 Bluesky posts
+- 🦋 Bluesky posts
   - 💬 Optionally include replies to other posts
   - 🗑️ Automatic message removal when posts are deleted
 - ♾️ Persistence
