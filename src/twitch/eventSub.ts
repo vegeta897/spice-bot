@@ -138,26 +138,26 @@ async function initScopedEventSubs(listener: EventSubListener) {
 			})
 		)
 	}
-	if (streamerScopes.includes('channel:read:hype_train')) {
-		scopedEventSubs.set(
-			'channelHypeTrainBeginSub',
-			listener.onChannelHypeTrainBegin(streamerUser, (event) => {
-				HypeEvents.emit('begin', event)
-			})
-		)
-		scopedEventSubs.set(
-			'channelHypeTrainProgressSub',
-			listener.onChannelHypeTrainProgress(streamerUser, (event) => {
-				HypeEvents.emit('progress', event)
-			})
-		)
-		scopedEventSubs.set(
-			'channelHypeTrainEndSub',
-			listener.onChannelHypeTrainEnd(streamerUser, (event) => {
-				HypeEvents.emit('end', event)
-			})
-		)
-	}
+	// if (streamerScopes.includes('channel:read:hype_train')) {
+	// 	scopedEventSubs.set(
+	// 		'channelHypeTrainBeginSub',
+	// 		listener.onChannelHypeTrainBegin(streamerUser, (event) => {
+	// 			HypeEvents.emit('begin', event)
+	// 		})
+	// 	)
+	// 	scopedEventSubs.set(
+	// 		'channelHypeTrainProgressSub',
+	// 		listener.onChannelHypeTrainProgress(streamerUser, (event) => {
+	// 			HypeEvents.emit('progress', event)
+	// 		})
+	// 	)
+	// 	scopedEventSubs.set(
+	// 		'channelHypeTrainEndSub',
+	// 		listener.onChannelHypeTrainEnd(streamerUser, (event) => {
+	// 			HypeEvents.emit('end', event)
+	// 		})
+	// 	)
+	// }
 	if (botScopes.includes('moderator:read:chat_messages')) {
 		scopedEventSubs.set(
 			'channelModerateSub',

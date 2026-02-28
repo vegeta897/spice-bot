@@ -6,14 +6,15 @@ import {
 	ButtonBuilder,
 	ButtonStyle,
 	MessageActionRowComponentBuilder,
+	MessageFlags,
 } from 'discord.js'
 import { timestampLog } from './logger.js'
 
 let twitchPingRole: Role | undefined
-let twitterPingRole: Role | undefined
+let blueskyPingRole: Role | undefined
 
 type PingConfig = {
-	type: 'twitch' | 'twitter'
+	type: 'twitch' | 'bluesky'
 	roleName: string
 	getRole: () => Role
 	btnAddID: string
@@ -36,16 +37,16 @@ const pingConfigs: Record<PingConfig['type'], PingConfig> = {
 		responseVerb: 'streams',
 		collectiveNoun: 'streams',
 	},
-	twitter: {
-		type: 'twitter',
-		roleName: 'tweet-pings',
-		getRole: () => twitterPingRole!,
-		btnAddID: 'btnTwitterPingAdd',
-		btnRemoveID: 'btnTwitterPingRemove',
-		name: process.env.NICKNAME || process.env.TWITTER_USERNAME,
-		buttonVerb: 'tweets',
-		responseVerb: 'tweets',
-		collectiveNoun: 'tweets',
+	bluesky: {
+		type: 'bluesky',
+		roleName: 'bluesky-pings',
+		getRole: () => blueskyPingRole!,
+		btnAddID: 'btnBlueskyPingAdd',
+		btnRemoveID: 'btnBlueskyPingRemove',
+		name: process.env.NICKNAME || process.env.BLUESKY_USERNAME,
+		buttonVerb: 'posts on Bluesky',
+		responseVerb: 'posts on Bluesky',
+		collectiveNoun: 'Bluesky posts',
 	},
 } as const
 
@@ -56,10 +57,10 @@ function getPingConfig(customId: string) {
 	)
 		return pingConfigs.twitch
 	if (
-		customId === pingConfigs.twitter.btnAddID ||
-		customId === pingConfigs.twitter.btnRemoveID
+		customId === pingConfigs.bluesky.btnAddID ||
+		customId === pingConfigs.bluesky.btnRemoveID
 	)
-		return pingConfigs.twitter
+		return pingConfigs.bluesky
 }
 
 export async function initPings(bot: Client, server: Guild) {
@@ -75,10 +76,10 @@ export async function initPings(bot: Client, server: Guild) {
 		twitchPingRole =
 			roles.find((role) => role.name === pingConfigs.twitch.roleName) ||
 			(await server.roles.create({ name: pingConfigs.twitch.roleName }))
-		if (process.env.DISCORD_TWITTER_CHANNEL_ID !== '') {
-			twitterPingRole =
-				roles.find((role) => role.name === pingConfigs.twitter.roleName) ||
-				(await server.roles.create({ name: pingConfigs.twitter.roleName }))
+		if (process.env.DISCORD_BLUESKY_CHANNEL_ID !== '') {
+			blueskyPingRole =
+				roles.find((role) => role.name === pingConfigs.bluesky.roleName) ||
+				(await server.roles.create({ name: pingConfigs.bluesky.roleName }))
 		}
 	} catch (e) {
 		console.log(e)
@@ -99,7 +100,7 @@ export async function initPings(bot: Client, server: Guild) {
 		if (!role) {
 			interaction.reply({
 				content: 'Sorry, the ping role is broken, please tell an admin!',
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			})
 			return
 		}
@@ -109,21 +110,21 @@ export async function initPings(bot: Client, server: Guild) {
 			member.roles.add(role.id)
 			interaction.reply({
 				content: `🔔 OK, you will be pinged whenever ${pingConfig.name} ${pingConfig.responseVerb}!`,
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			})
 		} else {
 			timestampLog(`${memberName} opted out of ${pingConfig.type} pings`)
 			member.roles.remove(role.id)
 			interaction.reply({
 				content: `🔕 OK, you will no longer be pinged for ${pingConfig.collectiveNoun}`,
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			})
 		}
 	})
 }
 
 export const getTwitchPingButtons = () => getButtons(pingConfigs.twitch)
-export const getTwitterPingButtons = () => getButtons(pingConfigs.twitter)
+export const getBlueskyPingButtons = () => getButtons(pingConfigs.bluesky)
 
 function getButtons(pingConfig: PingConfig) {
 	return [
@@ -141,4 +142,4 @@ function getButtons(pingConfig: PingConfig) {
 }
 
 export const getTwitchPingRole = () => twitchPingRole
-export const getTwitterPingRole = () => twitterPingRole
+export const getBlueskyPingRole = () => blueskyPingRole

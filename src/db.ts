@@ -6,12 +6,12 @@ import { type DeepReadonly, DEV_MODE, type MaybeReadonly } from './util.js'
 import { type AccessToken } from '@twurple/auth'
 import { type SessionRecord } from './dbSessionStore.js'
 import { type AccountType } from './twitch/twitchApi.js'
-import { type TweetRecord } from './twitter/tweetRecord.js'
+import { type SkeetRecord } from './bluesky/skeetRecord.js'
 import { type StreamRecord } from './twitch/streamRecord.js'
 import { type GraceTrainRecord } from './twitch/chat/graceStats.js'
 
 type DBData = {
-	tweets: TweetRecord[]
+	skeets: SkeetRecord[]
 	streams: StreamRecord[]
 	expressSessions: SessionRecord[]
 	expressSessionSecret: string | null
@@ -32,7 +32,7 @@ const filename = DEV_MODE ? 'db-dev.json' : 'db.json'
 const file = join(dirname(fileURLToPath(import.meta.url)), '..', filename)
 const adapter = new JSONFile<DBData>(file)
 const db = new Low<DBData>(adapter, {
-	tweets: [],
+	skeets: [],
 	streams: [],
 	expressSessions: [],
 	expressSessionSecret: null,

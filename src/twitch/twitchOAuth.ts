@@ -253,7 +253,7 @@ export function initTwitchOAuthServer(app: Express) {
 					console.log(e)
 				}
 			}
-			// TODO: Add more stream events, tweets, etc
+			// TODO: Add more stream events, bluesky posts, etc
 		}
 		if (chat) {
 			const message = req.body.message

@@ -12,7 +12,7 @@ import { timestampLog } from './logger.js'
 
 let server: Guild
 let twitchChannel: TextChannel
-let twitterChannel: TextChannel
+let blueskyChannel: TextChannel
 
 const bot = new Client({ intents: [GatewayIntentBits.Guilds] })
 
@@ -26,11 +26,11 @@ export function connectBot() {
 				process.env.DISCORD_TWITCH_CHANNEL_ID
 			)) as TextChannel
 			console.log(`Found twitch channel #${twitchChannel.name}`)
-			if (process.env.DISCORD_TWITTER_CHANNEL_ID !== '') {
-				twitterChannel = (await getChannel(
-					process.env.DISCORD_TWITTER_CHANNEL_ID
+			if (process.env.DISCORD_BLUESKY_CHANNEL_ID !== '') {
+				blueskyChannel = (await getChannel(
+					process.env.DISCORD_BLUESKY_CHANNEL_ID
 				)) as TextChannel
-				console.log(`Found twitter channel #${twitterChannel.name}`)
+				console.log(`Found bluesky channel #${blueskyChannel.name}`)
 			}
 			await initPings(bot, server)
 			resolve()
@@ -44,8 +44,8 @@ export function createStreamMessage(messageOptions: MessageCreateOptions) {
 	return twitchChannel.send(messageOptions)
 }
 
-export function createTweetMessage(messageOptions: MessageCreateOptions) {
-	return twitterChannel.send(messageOptions)
+export function createSkeetMessage(messageOptions: MessageCreateOptions) {
+	return blueskyChannel.send(messageOptions)
 }
 
 async function editMessage(
@@ -65,10 +65,10 @@ export const editStreamMessage = async (
 	messageID: string,
 	messageOptions: MessageEditOptions
 ) => editMessage(twitchChannel, messageID, messageOptions)
-export const editTweetMessage = async (
+export const editSkeetMessage = async (
 	messageID: string,
 	messageOptions: MessageEditOptions
-) => editMessage(twitterChannel, messageID, messageOptions)
+) => editMessage(blueskyChannel, messageID, messageOptions)
 
 async function deleteMessage(channel: TextChannel, messageID: string) {
 	try {
@@ -80,8 +80,8 @@ async function deleteMessage(channel: TextChannel, messageID: string) {
 
 export const deleteStreamMessage = (messageID: string) =>
 	deleteMessage(twitchChannel, messageID)
-export const deleteTweetMessage = (messageID: string) =>
-	deleteMessage(twitterChannel, messageID)
+export const deleteSkeetMessage = (messageID: string) =>
+	deleteMessage(blueskyChannel, messageID)
 
 async function getChannel(id: string) {
 	const channel = await server.channels.fetch(id)
