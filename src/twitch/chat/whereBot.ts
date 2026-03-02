@@ -1,9 +1,12 @@
-import { type ChatMessage } from '@twurple/chat'
 import { StreamEvents } from '../streams.js'
 import { getBotSub } from '../twitchApi.js'
 import { Emotes } from './emotes.js'
 import { makeTextGraceTrainSafe } from './grace.js'
-import { ChatEvents, sendChatMessage } from './twitchChat.js'
+import {
+	ChatEvents,
+	sendChatMessage,
+	TwitchMessageEvent,
+} from './twitchChat.js'
 
 export function initWhereBot() {
 	// TODO: Make this function not depend on Emotes
@@ -44,7 +47,7 @@ export function initWhereBot() {
 	ChatEvents.on('message', (event) => {
 		if (event.self) return
 		if (/where('?|( i))s?( (our|that|dat))? spice[ -]?bot/gi.test(event.text)) {
-			handleWhereBotPrompt(event.msg)
+			handleWhereBotPrompt(event.msgEvent)
 			return
 		}
 	})
@@ -53,7 +56,7 @@ export function initWhereBot() {
 	})
 }
 
-async function handleWhereBotPrompt(msg: ChatMessage) {
+async function handleWhereBotPrompt(msg: TwitchMessageEvent['msgEvent']) {
 	const now = Date.now()
 	if (now - lastWhereBotReplyTime < COOLDOWN) return // Too soon
 	lastWhereBotReplyTime = now
@@ -82,7 +85,7 @@ async function handleWhereBotPrompt(msg: ChatMessage) {
 			)
 		}
 	}
-	if (reply.reply) sendMessageArgs[1] = msg.id
+	if (reply.reply) sendMessageArgs[1] = msg.messageId
 	sendChatMessage(...sendMessageArgs)
 }
 

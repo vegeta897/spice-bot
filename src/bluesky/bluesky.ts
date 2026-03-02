@@ -23,6 +23,10 @@ const USERNAME = process.env.BLUESKY_USERNAME
 const INCLUDE_REPLIES = process.env.BLUESKY_INCLUDE_REPLIES === 'true'
 
 export async function initBluesky() {
+	if (!USERNAME) {
+		console.log('Missing BLUESKY_USERNAME, skipping Bluesky module')
+		return
+	}
 	const session = new CredentialSession(new URL('https://public.api.bsky.app'))
 	const agent = new Agent(session)
 	let userID: string | undefined = undefined

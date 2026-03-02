@@ -1,8 +1,8 @@
 import type {
-	EventSubChannelHypeTrainBeginEvent,
+	EventSubChannelHypeTrainBeginV2Event,
 	EventSubChannelHypeTrainContribution,
-	EventSubChannelHypeTrainEndEvent,
-	EventSubChannelHypeTrainProgressEvent,
+	EventSubChannelHypeTrainEndV2Event,
+	EventSubChannelHypeTrainProgressV2Event,
 } from '@twurple/eventsub-base'
 import Emittery from 'emittery'
 import { randomElement, randomIntRange, sleep } from '../../util.js'
@@ -21,9 +21,9 @@ import randomstring from 'randomstring'
 // Listen for bits and subs the normal way, add to train if hype train active
 
 export const HypeEvents = new Emittery<{
-	begin: EventSubChannelHypeTrainBeginEvent
-	progress: EventSubChannelHypeTrainProgressEvent
-	end: EventSubChannelHypeTrainEndEvent
+	begin: EventSubChannelHypeTrainBeginV2Event
+	progress: EventSubChannelHypeTrainProgressV2Event
+	end: EventSubChannelHypeTrainEndV2Event
 }>()
 
 type ContributionKey = `${'bits' | 'subs'}:${string}`
@@ -49,7 +49,6 @@ HypeEvents.on('begin', (event) => {
 Goal: ${event.goal} | Level: ${event.level} | Progress: ${
 			event.progress
 		} | Total: ${event.total}
-Last Contrib: ${formatHypeContribution(event.lastContribution)}
 Top Contribs: ${listHypeContributions(event.topContributors)}`
 	)
 	// This event doesn't necessarily come before the initial batch of progress events
@@ -64,7 +63,6 @@ HypeEvents.on('progress', (event) => {
 	Goal: ${event.goal} | Level: ${event.level} | Progress: ${
 		event.progress
 	} | Total: ${event.total}
-Last Contrib: ${formatHypeContribution(event.lastContribution)}
 Top Contribs: ${listHypeContributions(event.topContributors)}`)
 	if (event.id === endedHypeTrainID) {
 		timestampLog('Ignoring hype train progress event for ended train')
@@ -81,14 +79,15 @@ Top Contribs: ${listHypeContributions(event.topContributors)}`)
 		handleInitialHypeEvent(event)
 		return
 	}
-	if (event.lastContribution.total >= 100) {
-		const contribution = createHypeContribution(event.lastContribution)
-		hypeStats.contributions.push(contribution)
-		addToHypeTrain({ ...getHypeTrainBaseData(hypeStats), contribution })
-	} else if (statsWereUpdated) {
-		// Update stats but don't include the contribution if less than 100 bits
-		addToHypeTrain(getHypeTrainBaseData(hypeStats))
-	}
+	// TODO: Send progress update
+	// if (event.lastContribution.total >= 100) {
+	// 	const contribution = createHypeContribution(event.lastContribution)
+	// 	hypeStats.contributions.push(contribution)
+	// 	addToHypeTrain({ ...getHypeTrainBaseData(hypeStats), contribution })
+	// } else if (statsWereUpdated) {
+	// 	// Update stats but don't include the contribution if less than 100 bits
+	// 	addToHypeTrain(getHypeTrainBaseData(hypeStats))
+	// }
 })
 
 HypeEvents.on('end', (event) => {
@@ -123,8 +122,8 @@ function createHypeStats(id: string): HypeStats {
 
 function handleInitialHypeEvent(
 	event:
-		| EventSubChannelHypeTrainProgressEvent
-		| EventSubChannelHypeTrainBeginEvent
+		| EventSubChannelHypeTrainProgressV2Event
+		| EventSubChannelHypeTrainBeginV2Event
 ) {
 	updateInitialContributions(event)
 	clearTimeout(hypeStats!.initialContributionTimeout)
@@ -170,7 +169,7 @@ function createHypeContribution(
 }
 
 const getContributionKey = (
-	contribution: EventSubChannelHypeTrainProgressEvent['lastContribution']
+	contribution: EventSubChannelHypeTrainBeginV2Event['topContributors'][number]
 ): ContributionKey =>
 	`${contribution.type === 'subscription' ? 'subs' : 'bits'}:${
 		contribution.userId
@@ -178,25 +177,25 @@ const getContributionKey = (
 
 function updateInitialContributions(
 	event:
-		| EventSubChannelHypeTrainProgressEvent
-		| EventSubChannelHypeTrainBeginEvent
+		| EventSubChannelHypeTrainProgressV2Event
+		| EventSubChannelHypeTrainBeginV2Event
 ) {
 	for (const contribution of event.topContributors) {
 		const cKey = getContributionKey(contribution)
 		hypeStats!.initialContributions.set(cKey, contribution.total)
 	}
 	// Add last contribution too, in case it's missing from top contributors
-	const cKey = getContributionKey(event.lastContribution)
-	const initialContribution = hypeStats!.initialContributions.get(cKey) || 0
-	if (initialContribution < event.lastContribution.total) {
-		hypeStats!.initialContributions.set(cKey, event.lastContribution.total)
-	}
+	// const cKey = getContributionKey(event.lastContribution)
+	// const initialContribution = hypeStats!.initialContributions.get(cKey) || 0
+	// if (initialContribution < event.lastContribution.total) {
+	// 	hypeStats!.initialContributions.set(cKey, event.lastContribution.total)
+	// }
 }
 
 function updateStats(
 	event:
-		| EventSubChannelHypeTrainProgressEvent
-		| EventSubChannelHypeTrainBeginEvent
+		| EventSubChannelHypeTrainProgressV2Event
+		| EventSubChannelHypeTrainBeginV2Event
 ) {
 	let statsWereUpdated = false
 	if (event.total > hypeStats!.total || event.level > hypeStats!.level) {
@@ -264,9 +263,9 @@ export async function testHypeProgress() {
 			total: hypeStats.total + lastContribution.total,
 			progress:
 				overGoal >= 0 ? overGoal : hypeStats.progress + lastContribution.total,
-			lastContribution,
+			// lastContribution,
 			topContributors: [lastContribution],
-		} as EventSubChannelHypeTrainProgressEvent)
+		} as EventSubChannelHypeTrainProgressV2Event)
 	} else {
 		// Initial train progress events
 		const initialContributions: EventSubChannelHypeTrainContribution[] = []
@@ -283,7 +282,7 @@ export async function testHypeProgress() {
 				unaccountedPoints +
 				initialContributions.map((c) => c.total).reduce((p, c) => p + c),
 			progress: 0,
-			lastContribution: initialContributions.at(-1),
+			// lastContribution: initialContributions.at(-1),
 		}
 		for (const _initialContribution of initialContributions) {
 			HypeEvents.emit('progress', {
@@ -292,7 +291,7 @@ export async function testHypeProgress() {
 					randomElement(initialContributions),
 					randomElement(initialContributions),
 				],
-			} as EventSubChannelHypeTrainProgressEvent)
+			} as EventSubChannelHypeTrainProgressV2Event)
 			await sleep(randomIntRange(0, 5) * 100)
 		}
 	}
@@ -323,7 +322,7 @@ export function testHypeEnd() {
 		total: hypeStats?.total || 4600,
 		lastContribution,
 		topContributors: [lastContribution],
-	} as unknown as EventSubChannelHypeTrainEndEvent)
+	} as unknown as EventSubChannelHypeTrainEndV2Event)
 }
 /*
 

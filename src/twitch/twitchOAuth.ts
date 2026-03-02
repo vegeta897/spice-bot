@@ -5,18 +5,21 @@ import { exchangeCode, getTokenInfo, revokeToken } from '@twurple/auth'
 import {
 	type AccountType,
 	AuthEvents,
-	botIsMod,
+	userIsMod,
 	UserAccountTypes,
 } from './twitchApi.js'
 import { createExpressErrorHandler, sessionStore } from '../express.js'
 import randomstring from 'randomstring'
-import { ChatEvents, quitChat, sendChatMessage } from './chat/twitchChat.js'
+import {
+	ChatEvents,
+	sendChatMessage,
+	TwitchMessageEvent,
+} from './chat/twitchChat.js'
 import { getEventSubs } from './eventSub.js'
 import { getTwitchToken } from './streamRecord.js'
 import { getCensoredJSON } from '../db.js'
 import 'highlight.js'
 import hljs from 'highlight.js/lib/core'
-import { type ChatMessage } from '@twurple/chat'
 import { updateUserColor } from './chat/userColors.js'
 import multer from 'multer'
 import { testHypeEnd, testHypeProgress } from './chat/hype.js'
@@ -28,12 +31,12 @@ import {
 
 const SCOPES: Record<AccountType, string[]> = {
 	bot: [
+		'user:bot',
+		'user:read:chat',
 		'user:read:follows',
 		'user:read:subscriptions',
+		'user:write:chat',
 		'channel:moderate',
-		'chat:read',
-		'chat:edit',
-		'whispers:read',
 		'user:manage:whispers',
 		'moderator:read:chat_settings',
 		'moderator:read:chatters',
@@ -64,7 +67,9 @@ export function initTwitchOAuthServer(app: Express) {
 		}
 		res.render('index', {
 			username: req.session.username,
-			botIsMod: req.session.username && (await botIsMod()),
+			botIsMod:
+				req.session.username &&
+				(await userIsMod(process.env.TWITCH_BOT_USERNAME)),
 			enableOverlay: DEV_MODE,
 		})
 	})
@@ -216,7 +221,9 @@ export function initTwitchOAuthServer(app: Express) {
 				userColor: updateUserColor(userID, null),
 				text: `!${command}`,
 				date: new Date(),
-				msg: { userInfo: { displayName: 'Somebody' } } as ChatMessage,
+				msgEvent: {
+					chatterDisplayName: 'Somebody',
+				} as TwitchMessageEvent['msgEvent'],
 				mod: true,
 				self: false,
 			})
@@ -241,7 +248,6 @@ export function initTwitchOAuthServer(app: Express) {
 				})
 			if (event === 'hype-progress') testHypeProgress()
 			if (event === 'hype-end') testHypeEnd()
-			if (event === 'quit-chat') quitChat()
 			if (event === 'get-depot') {
 				try {
 					const cars = await fetch(`${process.env.DEPOT_URL}/api/user/451907`, {

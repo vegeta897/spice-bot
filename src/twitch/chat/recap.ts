@@ -1,11 +1,15 @@
-import { getEmoteByName, getUsableEmotes, Emotes } from './emotes.js'
+import {
+	getEmoteByName,
+	getUsableEmotes,
+	Emotes,
+	getEmoteByID,
+} from './emotes.js'
 import { GRACE } from './grace.js'
 import { ChatEvents, sendChatMessage } from './twitchChat.js'
 import { StreamEvents } from '../streams.js'
 import { getData, modifyData } from '../../db.js'
 import { DEV_MODE } from '../../util.js'
 import { timestampLog } from '../../logger.js'
-import { parseChatMessage } from '@twurple/chat'
 import { TrainEvents } from './trains.js'
 
 let emoteCounts: Map<string, number>
@@ -24,11 +28,12 @@ export function initRecap() {
 			return
 		}
 		if (event.text.startsWith('!')) return // Ignore other commands
-		parseChatMessage(event.text, event.msg.emoteOffsets).forEach((msgPart) => {
+		event.msgEvent.messageParts.forEach((msgPart) => {
 			if (msgPart.type !== 'emote') return
 			// Only count channel emotes
-			if (getEmoteByName(msgPart.name)) {
-				emoteCounts.set(msgPart.name, (emoteCounts.get(msgPart.name) || 0) + 1)
+			const emote = getEmoteByID(msgPart.emote.id)
+			if (emote) {
+				emoteCounts.set(emote.name, (emoteCounts.get(emote.name) || 0) + 1)
 			}
 		})
 		saveCounts()

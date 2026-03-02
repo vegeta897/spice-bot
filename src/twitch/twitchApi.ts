@@ -1,4 +1,4 @@
-import { ApiClient, type HelixUser } from '@twurple/api'
+import { ApiClient, HelixModerator, type HelixUser } from '@twurple/api'
 import {
 	type AccessToken,
 	RefreshingAuthProvider,
@@ -12,7 +12,6 @@ import { DEV_MODE, HOST_URL, sleep } from '../util.js'
 import { timestampLog } from '../logger.js'
 import { setTwitchToken, getTwitchToken } from './streamRecord.js'
 import { getData } from '../db.js'
-import { initChatClient } from './chat/twitchChat.js'
 
 let authProvider: RefreshingAuthProvider
 let apiClient: ApiClient
@@ -32,7 +31,7 @@ export const UserAccountTypes: Record<string, AccountType> = {
 	[process.env.TWITCH_ADMIN_USERNAME]: 'admin',
 }
 
-export async function createAuthAndApiClient() {
+export async function createApiClient() {
 	authProvider = new RefreshingAuthProvider({
 		clientId: process.env.TWITCH_CLIENT_ID,
 		clientSecret: process.env.TWITCH_CLIENT_SECRET,
@@ -78,8 +77,7 @@ export async function createAuthAndApiClient() {
 					const token = await verifyToken('bot', true) // Force refresh
 					if (!token) continue
 					authProvider.addUser(userId, token, ['chat'])
-					timestampLog('Bot token revived, reconnecting chat')
-					initChatClient(authProvider)
+					timestampLog('Bot token revived')
 					break
 				} catch (e) {}
 			}
@@ -125,7 +123,7 @@ export async function createAuthAndApiClient() {
 			log += `(${httpStatus})`
 			timestampLog(log)
 		})
-	return { authProvider, apiClient }
+	return apiClient
 }
 
 async function getUser(username: string) {
@@ -191,17 +189,25 @@ export async function getAccountScopes(
 	return token?.scope || []
 }
 
-export async function botIsMod() {
-	if (streamerAuthRevoked) return false
-	const streamerToken = await authProvider.getAccessTokenForUser(
-		helixUsers.streamer
-	)
-	if (!streamerToken || !streamerToken.scope.includes('moderation:read'))
-		return false
-	const mods = await apiClient.moderation.getModerators(helixUsers.streamer)
-	return mods.data.some(
-		(mod) => mod.userName === process.env.TWITCH_BOT_USERNAME
-	)
+const cachedMods: { lastUpdated: number; mods: HelixModerator[] } = {
+	lastUpdated: 0,
+	mods: [],
+}
+
+async function getMods() {
+	const now = Date.now()
+	if (now - cachedMods.lastUpdated > 8 * 60 * 60 * 1000) {
+		cachedMods.lastUpdated = now
+		cachedMods.mods = (
+			await apiClient.moderation.getModerators(helixUsers.streamer)
+		).data
+	}
+	return cachedMods.mods
+}
+
+export async function userIsMod(username: string) {
+	const mods = await getMods()
+	return mods.some((mod) => mod.userName === username)
 }
 
 export async function getBotSub() {
@@ -237,13 +243,5 @@ export async function botIsFollowingStreamer() {
 	} catch (e) {
 		timestampLog('Error checking if bot follows streamer:', e)
 		return false
-	}
-}
-
-export async function sendWhisper(toUserID: string, text: string) {
-	try {
-		await apiClient.whispers.sendWhisper(helixUsers.bot, toUserID, text)
-	} catch (e) {
-		timestampLog('Error sending whisper', e)
 	}
 }

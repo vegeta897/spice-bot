@@ -47,6 +47,10 @@ export function getEmoteByName(name: string, emotes?: HelixChannelEmote[]) {
 	return (emotes || channelEmotes).find((emote) => emote.name === name)
 }
 
+export function getEmoteByID(id: string, emotes?: HelixChannelEmote[]) {
+	return (emotes || channelEmotes).find((emote) => emote.id === id)
+}
+
 export async function getUsableEmotes() {
 	const botIsFollowing = await botIsFollowingStreamer()
 	const botSub = await getBotSub()

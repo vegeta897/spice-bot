@@ -16,12 +16,11 @@ import {
 	setGraceInChat,
 } from './graceStats.js'
 import {
-	botInChat,
 	ChatEvents,
 	sendChatMessage,
 	type TwitchMessageEvent,
 } from './twitchChat.js'
-import { getUserColor } from './userColors.js'
+import { getRandomUserColor, getUserColor } from './userColors.js'
 import { getCurrentHypeTrain } from './hype.js'
 
 export const GRACE = 'GRACE'
@@ -29,7 +28,6 @@ export const GRACE = 'GRACE'
 export function initGrace() {
 	ChatEvents.on('message', onMessage)
 	ChatEvents.on('redemption', (event) => {
-		if (!botInChat()) return
 		onGrace({
 			date: event.date,
 			user: {
@@ -77,15 +75,18 @@ function onMessage(event: TwitchMessageEvent) {
 			date: event.date,
 			user: {
 				id: event.userID,
-				name: event.msg.userInfo.displayName,
-				color: event.userColor,
+				name: event.msgEvent.chatterDisplayName,
+				color: event.userColor || getRandomUserColor(),
 			},
-			type: event.msg.isHighlight ? 'highlight' : 'normal',
+			type:
+				event.msgEvent.messageType === 'channel_points_highlighted'
+					? 'highlight'
+					: 'normal',
 		})
 		return
 	}
 	const hypeTrain = getCurrentHypeTrain()
-	if (!hypeTrain) breakGraceTrain(event.msg.userInfo.displayName)
+	if (!hypeTrain) breakGraceTrain(event.msgEvent.chatterDisplayName)
 }
 
 function parsePositionCommand(event: TwitchMessageEvent) {

@@ -13,11 +13,14 @@ import {
 	getAccountScopes,
 	getUserByAccountType,
 	UserAccountTypes,
+	userIsMod,
 } from './twitchApi.js'
 import { Express } from 'express'
-import { ChatEvents } from './chat/twitchChat.js'
+import { ChatEvents, sendChatMessage, sendWhisper } from './chat/twitchChat.js'
 import { initStreams, onNewStream, onStreamOffline } from './streams.js'
 import { HypeEvents } from './chat/hype.js'
+import { makeTextGraceTrainSafe } from './chat/grace.js'
+import { Emotes } from './chat/emotes.js'
 
 type EventSubListener = EventSubHttpListener | EventSubMiddleware
 
@@ -138,31 +141,93 @@ async function initScopedEventSubs(listener: EventSubListener) {
 			})
 		)
 	}
-	// if (streamerScopes.includes('channel:read:hype_train')) {
-	// 	scopedEventSubs.set(
-	// 		'channelHypeTrainBeginSub',
-	// 		listener.onChannelHypeTrainBegin(streamerUser, (event) => {
-	// 			HypeEvents.emit('begin', event)
-	// 		})
-	// 	)
-	// 	scopedEventSubs.set(
-	// 		'channelHypeTrainProgressSub',
-	// 		listener.onChannelHypeTrainProgress(streamerUser, (event) => {
-	// 			HypeEvents.emit('progress', event)
-	// 		})
-	// 	)
-	// 	scopedEventSubs.set(
-	// 		'channelHypeTrainEndSub',
-	// 		listener.onChannelHypeTrainEnd(streamerUser, (event) => {
-	// 			HypeEvents.emit('end', event)
-	// 		})
-	// 	)
-	// }
+	if (streamerScopes.includes('channel:read:hype_train')) {
+		scopedEventSubs.set(
+			'channelHypeTrainBeginSub',
+			listener.onChannelHypeTrainBeginV2(streamerUser, (event) => {
+				HypeEvents.emit('begin', event)
+			})
+		)
+		scopedEventSubs.set(
+			'channelHypeTrainProgressSub',
+			listener.onChannelHypeTrainProgressV2(streamerUser, (event) => {
+				HypeEvents.emit('progress', event)
+			})
+		)
+		scopedEventSubs.set(
+			'channelHypeTrainEndSub',
+			listener.onChannelHypeTrainEndV2(streamerUser, (event) => {
+				HypeEvents.emit('end', event)
+			})
+		)
+	}
 	if (botScopes.includes('moderator:read:chat_messages')) {
 		scopedEventSubs.set(
 			'channelModerateSub',
 			listener.onChannelModerate(streamerUser, botUser, (event) => {
 				if (event.moderationAction === 'raid') ChatEvents.emit('raid')
+			})
+		)
+	}
+	if (botScopes.includes('user:read:chat')) {
+		scopedEventSubs.set(
+			'channelChatMessage',
+			listener.onChannelChatMessage(streamerUser, botUser, async (event) => {
+				ChatEvents.emit('message', {
+					username: event.chatterName,
+					userID: event.chatterId,
+					userColor: event.color,
+					text: event.messageText,
+					date: new Date(),
+					msgEvent: event,
+					mod:
+						event.chatterName === streamerUser.name ||
+						(await userIsMod(event.chatterName)),
+					self: event.chatterName === botUser.name,
+				})
+			})
+		)
+	}
+	if (botScopes.includes('user:manage:whispers')) {
+		const whispers: Map<string, number> = new Map()
+		const whisperCooldown = 30 * 1000
+		scopedEventSubs.set(
+			'userWhisper',
+			listener.onUserWhisperMessage(botUser, (event) => {
+				// Maybe use this to send debug commands?
+				timestampLog(
+					`Whisper from ${event.senderUserDisplayName}: ${event.messageText}`
+				)
+				const userID = event.senderUserId
+				if ((whispers.get(userID) || 0) + whisperCooldown > Date.now()) return
+				whispers.set(userID, Date.now())
+				sendWhisper(
+					userID,
+					`Hi, I'm Spice Bot! I do various tasks in ${
+						process.env.NICKNAME || process.env.TWITCH_STREAMER_USERNAME
+					}'s channel. Please contact ${
+						process.env.TWITCH_ADMIN_USERNAME
+					} with any problems or questions`
+				)
+			})
+		)
+	}
+
+	if (streamerScopes.includes('channel:read:subscriptions')) {
+		scopedEventSubs.set(
+			'channelSubscription',
+			listener.onChannelSubscription(streamerUser, (event) => {
+				// TODO: Send to hype train
+
+				if (event.isGift && event.userId === botUser.id) {
+					timestampLog(`Bot received a gift sub to ${event.broadcasterName}`)
+					modifyData({ twitchBotLastSubbed: Date.now() })
+					sendChatMessage(
+						makeTextGraceTrainSafe(
+							`Thank you for the gift sub! <3 ${Emotes.POGGERS} ${Emotes.POGGERS}`
+						)
+					)
+				}
 			})
 		)
 	}

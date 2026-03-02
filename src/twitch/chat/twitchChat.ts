@@ -1,29 +1,15 @@
-import { type RefreshingAuthProvider } from '@twurple/auth'
-import {
-	ChatClient,
-	toUserName,
-	ChatMessage,
-	parseChatMessage,
-	ParsedMessageEmotePart,
-} from '@twurple/chat'
-import {
-	AuthEvents,
-	botIsMod,
-	getAccountScopes,
-	getUserByAccountType,
-	sendWhisper,
-} from '../twitchApi.js'
-import { CHAT_TEST_MODE, DEV_MODE, sleep } from '../../util.js'
+import { getAccountScopes, getUserByAccountType } from '../twitchApi.js'
+import { CHAT_TEST_MODE, DEV_MODE } from '../../util.js'
 import { timestampLog } from '../../logger.js'
 import Emittery from 'emittery'
-import { initGrace, makeTextGraceTrainSafe } from './grace.js'
+import { initGrace } from './grace.js'
 import { initRecap } from './recap.js'
-import { Emotes } from './emotes.js'
 import { initTally } from './tally.js'
 import { initWhereBot } from './whereBot.js'
 import { initThanks } from './thanks.js'
 import { updateUserColor } from './userColors.js'
-import { modifyData } from '../../db.js'
+import type { ApiClient } from '@twurple/api'
+import type { EventSubHttpListener } from '@twurple/eventsub-http'
 
 // Idea: Detect incrementing numbers in ryan's messages for death tracker
 //       Then we can provide a command to check the count
@@ -31,10 +17,12 @@ import { modifyData } from '../../db.js'
 export type TwitchMessageEvent = {
 	username: string
 	userID: string
-	userColor: string
+	userColor: string | null
 	text: string
 	date: Date
-	msg: ChatMessage
+	msgEvent: Parameters<
+		Parameters<EventSubHttpListener['onChannelChatMessage']>[2]
+	>[0]
 	mod: boolean
 	self: boolean
 }
@@ -52,175 +40,69 @@ export const ChatEvents = new Emittery<{
 	raid: undefined
 }>()
 
-let chatClient: ChatClient
+let apiClient: ApiClient
 
-export async function initTwitchChat(authProvider: RefreshingAuthProvider) {
-	initChatClient(authProvider)
+export async function initTwitchChat(options: { apiClient: ApiClient }) {
+	const botScopes = await getAccountScopes('bot')
+	if (!hasRequiredScopes(botScopes)) {
+		console.log('WARNING: Chat bot is missing required scopes!')
+		return
+	}
+	apiClient = options.apiClient
 	initGrace()
 	initRecap()
 	initTally()
 	initWhereBot()
 	initThanks()
-	AuthEvents.on('auth', async ({ accountType }) => {
-		if (accountType === 'bot') initChatClient(authProvider)
-	})
-	AuthEvents.on('authRevoke', ({ accountType }) => {
-		if (accountType === 'bot') chatClient.quit()
-	})
 }
 
-export async function initChatClient(authProvider: RefreshingAuthProvider) {
-	const botScopes = await getAccountScopes('bot')
-	if (!hasRequiredScopes(botScopes)) {
-		console.log('WARNING: Chat bot is missing read/edit scopes!')
-		return
+ChatEvents.on('message', (event) => {
+	updateUserColor(event.userID, event.userColor)
+	// TODO: Send cheer bits to hype train
+	if (DEV_MODE) {
+		const messageType = event.msgEvent.messageType
+		const cheer = event.msgEvent.bits ? ` (${event.msgEvent.bits} BITS)` : ''
+		timestampLog(`(${messageType}) ${event.username}: ${event.text}${cheer}`)
 	}
-	if (chatClient) {
-		if (!chatClient.isConnected) chatClient.reconnect()
-		return
-	}
-	chatClient = new ChatClient({
-		authProvider,
-		channels: [process.env.TWITCH_STREAMER_USERNAME],
-		rejoinChannelsOnReconnect: true,
-		isAlwaysMod: await botIsMod(),
-		logger: { minLevel: 'info' },
-	})
-	chatClient.connect()
-
-	chatClient.onDisconnect(async (manually, reason) => {
-		timestampLog(
-			`Chat disconnected${manually ? ' (manually)' : ''}: ${
-				reason || 'unknown reason'
-			}`
-		)
-		try {
-			const botUser = getUserByAccountType('bot')
-			// This will throw if access token was marked invalid by Twurple
-			// This can happen if the refresh request times out
-			await authProvider.getAccessTokenForUser(botUser)
-			await sleep(5 * 1000)
-			if (chatClient.isConnected || chatClient.isConnecting) return
-			timestampLog('Client is not auto-reconnecting, now calling reconnect()')
-			chatClient.reconnect()
-		} catch (_) {
-			timestampLog(
-				'Bot token is invalid, chat will reconnect when token refreshed'
-			)
-		}
-	})
-
-	chatClient.onAuthenticationFailure((text, retryCount) => {
-		timestampLog(`Chat auth failed: ${text}. Retry #${retryCount}`)
-	})
-
-	chatClient.onAuthenticationSuccess(() => {
-		// Wait for this before performing any actions outside of onMessage
-		timestampLog('Twitch chat authenticated')
-	})
-
-	chatClient.onMessage((channel, user, text, msg) => {
-		if (toUserName(channel) !== process.env.TWITCH_STREAMER_USERNAME) return
-		// if (user === process.env.TWITCH_BOT_USERNAME) return
-		const broadcaster = msg.userInfo.isBroadcaster ? '[STREAMER] ' : ''
-		const mod = msg.userInfo.isMod ? '[MOD] ' : ''
-		const userColor = updateUserColor(
-			msg.userInfo.userId,
-			msg.userInfo.color || null
-		)
-		ChatEvents.emit('message', {
-			username: user,
-			userID: msg.userInfo.userId,
-			userColor,
-			text,
-			date: msg.date,
-			msg,
-			mod: msg.userInfo.isMod || msg.userInfo.isBroadcaster,
-			self: user === process.env.TWITCH_BOT_USERNAME,
-		})
-		const redemption = msg.isRedemption ? ' (REDEEM)' : ''
-		const highlight = msg.isHighlight ? ' (HIGHLIGHT)' : ''
-		const cheer = msg.isCheer ? ' (CHEER)' : ''
-		if (DEV_MODE) {
-			const emotes = parseChatMessage(text, msg.emoteOffsets).filter(
-				(part) => part.type === 'emote'
-			) as ParsedMessageEmotePart[]
-			const emoteList =
-				emotes.length > 0
-					? ` <EMOTES: ${emotes.map((e) => e.name).join(', ')}>`
-					: ''
-			timestampLog(
-				`${broadcaster}${mod}${user}: ${text}${redemption}${highlight}${cheer}${emoteList}`
-			)
-		}
-	})
-
-	chatClient.onSubGift((channel, user, subInfo, msg) => {
-		if (user !== process.env.TWITCH_BOT_USERNAME) return
-		const gifter = subInfo.gifterDisplayName || 'anonymous'
-		timestampLog(`Bot received a gift sub to ${channel} from ${gifter}`)
-		if (toUserName(channel) !== process.env.TWITCH_STREAMER_USERNAME) return
-		modifyData({ twitchBotLastSubbed: Date.now() })
-		sendChatMessage(
-			makeTextGraceTrainSafe(
-				`Thank you ${gifter} for the gift sub! <3 ${Emotes.POGGERS} ${Emotes.POGGERS}`
-			)
-		)
-	})
-
-	const whispers: Map<string, number> = new Map()
-	const whisperCooldown = 30 * 1000
-	chatClient.onWhisper((user, text, msg) => {
-		// Maybe use this to send debug commands?
-		timestampLog(`Whisper from ${msg.userInfo.displayName}: ${text}`)
-		const userID = msg.userInfo.userId
-		if ((whispers.get(userID) || 0) + whisperCooldown > Date.now()) return
-		whispers.set(userID, Date.now())
-		sendWhisper(
-			userID,
-			`Hi, I'm Spice Bot! I do various tasks in ${
-				process.env.NICKNAME || process.env.TWITCH_STREAMER_USERNAME
-			}'s channel. Please contact ${
-				process.env.TWITCH_ADMIN_USERNAME
-			} with any problems or questions`
-		)
-	})
-}
+})
 
 export async function sendChatMessage(
 	text: string,
-	replyTo?: string | ChatMessage
+	replyParentMessageId?: string
 ) {
-	if (!chatClient) return
+	console.log(apiClient)
+	if (!apiClient) return
 	if (CHAT_TEST_MODE) {
 		timestampLog(`Sent: ${text}`)
 		return
 	}
-	if (!chatClient.irc.isConnected) {
-		timestampLog('Warning: trying to send chat message while IRC not connected')
-	}
 	try {
-		return await chatClient.say(process.env.TWITCH_STREAMER_USERNAME, text, {
-			replyTo,
-		})
+		return await apiClient.asUser(getUserByAccountType('bot'), async (ctx) =>
+			ctx.chat.sendChatMessage(getUserByAccountType('streamer'), text, {
+				replyParentMessageId,
+			})
+		)
 	} catch (e) {
 		timestampLog('Error sending chat message', e)
 	}
 }
 
-function hasRequiredScopes(scopes: string[]) {
-	return scopes.includes('chat:read') && scopes.includes('chat:edit')
-}
-
-export function botInChat() {
-	return chatClient && chatClient.irc.isConnected
-}
-
-export function quitChat() {
-	if (!botInChat()) {
-		timestampLog('Tried to quit chat while not connected')
-		return
+export async function sendWhisper(toUserID: string, text: string) {
+	try {
+		await apiClient.whispers.sendWhisper(
+			getUserByAccountType('bot'),
+			toUserID,
+			text
+		)
+	} catch (e) {
+		timestampLog('Error sending whisper', e)
 	}
-	timestampLog('Quitting chat')
-	chatClient.quit()
+}
+
+function hasRequiredScopes(scopes: string[]) {
+	return (
+		scopes.includes('user:bot') &&
+		scopes.includes('user:read:chat') &&
+		scopes.includes('user:write:chat')
+	)
 }

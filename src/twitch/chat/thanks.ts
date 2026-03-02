@@ -9,13 +9,19 @@ export function initThanks() {
 		const now = Date.now()
 		if (now - lastThanksTime < COOLDOWN) return
 		lastThanksTime = now
-		const isReplyToBot = event.msg.parentMessageUserId === botUser.id
+		const isReplyToBot = event.msgEvent.parentMessageUserId === botUser.id
 		if (isThanks(event.text)) {
 			if (isReplyToBot || /spice[ -]?bot/gi.test(event.text)) {
-				sendChatMessage(makeTextGraceTrainSafe("You're welcome!"), event.msg.id)
+				sendChatMessage(
+					makeTextGraceTrainSafe("You're welcome!"),
+					event.msgEvent.messageId
+				)
 			}
 		} else if (isReplyToBot && /good (spice)?[ -]?bot/.test(event.text)) {
-			sendChatMessage(makeTextGraceTrainSafe('Happy to help!'), event.msg.id)
+			sendChatMessage(
+				makeTextGraceTrainSafe('Happy to help!'),
+				event.msgEvent.messageId
+			)
 		}
 	})
 }
