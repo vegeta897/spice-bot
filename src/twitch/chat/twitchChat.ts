@@ -70,7 +70,6 @@ export async function sendChatMessage(
 	text: string,
 	replyParentMessageId?: string
 ) {
-	console.log(apiClient)
 	if (!apiClient) return
 	if (CHAT_TEST_MODE) {
 		timestampLog(`Sent: ${text}`)

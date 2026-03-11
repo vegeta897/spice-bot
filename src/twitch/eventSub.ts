@@ -173,6 +173,7 @@ async function initScopedEventSubs(listener: EventSubListener) {
 		scopedEventSubs.set(
 			'channelChatMessage',
 			listener.onChannelChatMessage(streamerUser, botUser, async (event) => {
+				if (DEV_MODE) console.log(event.badges)
 				ChatEvents.emit('message', {
 					username: event.chatterName,
 					userID: event.chatterId,
@@ -182,11 +183,13 @@ async function initScopedEventSubs(listener: EventSubListener) {
 					msgEvent: event,
 					mod:
 						event.chatterName === streamerUser.name ||
-						(await userIsMod(event.chatterName)),
+						!!event.badges.moderator ||
+						!!event.badges.lead_moderator,
 					self: event.chatterName === botUser.name,
 				})
 			})
 		)
+		// TODO: Subscribe to onChannelChatNotification for subs, gifts, bits, etc to send to hype train
 	}
 	if (botScopes.includes('user:manage:whispers')) {
 		const whispers: Map<string, number> = new Map()
@@ -217,8 +220,7 @@ async function initScopedEventSubs(listener: EventSubListener) {
 		scopedEventSubs.set(
 			'channelSubscription',
 			listener.onChannelSubscription(streamerUser, (event) => {
-				// TODO: Send to hype train
-
+				// TODO: Handle this in onChannelChatNotification
 				if (event.isGift && event.userId === botUser.id) {
 					timestampLog(`Bot received a gift sub to ${event.broadcasterName}`)
 					modifyData({ twitchBotLastSubbed: Date.now() })

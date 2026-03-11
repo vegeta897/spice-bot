@@ -55,7 +55,7 @@ async function checkSkeets(agent: Agent) {
 		if (!response.success) throw `success=false ${JSON.stringify(response)}`
 		feed = response.data.feed
 	} catch (e) {
-		timestampLog('Failed to fetch feed:', e)
+		console.log('Failed to fetch feed:', e)
 	}
 	if (!feed) return
 	const recordedSkeets = getSkeetRecords()
@@ -143,7 +143,7 @@ async function checkDeletedSkeets(agent: Agent, userID: string) {
 		if (!response.success) throw `success=false ${JSON.stringify(response)}`
 		posts = response.data.posts
 	} catch (e) {
-		timestampLog(`Failed to get posts:`, e)
+		console.log(`Failed to get posts:`, e)
 	}
 	if (!posts) return
 	const deletedSkeets = recordedSkeets.filter(
