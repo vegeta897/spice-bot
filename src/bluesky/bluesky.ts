@@ -45,6 +45,8 @@ export async function initBluesky() {
 	setInterval(() => checkDeletedSkeets(agent, userID), 60 * 1000)
 }
 
+let lastSuccessfulCheck = 0
+
 async function checkSkeets(agent: Agent) {
 	let feed: AppBskyFeedDefs.FeedViewPost[] | undefined = undefined
 	try {
@@ -55,9 +57,18 @@ async function checkSkeets(agent: Agent) {
 		if (!response.success) throw `success=false ${JSON.stringify(response)}`
 		feed = response.data.feed
 	} catch (e) {
-		console.log('Failed to fetch feed:', e)
+		console.log('Failed to fetch Bluesky feed:', e)
 	}
-	if (!feed) return
+	if (!feed) {
+		const minutesFailed = Math.floor(
+			(Date.now() - lastSuccessfulCheck) / (60 * 1000)
+		)
+		if (minutesFailed > 0 && minutesFailed % 5 === 0) {
+			timestampLog(`Failed to fetch Bluesky feed for ${minutesFailed} minutes`)
+		}
+		return
+	}
+	lastSuccessfulCheck = Date.now()
 	const recordedSkeets = getSkeetRecords()
 	let latestSkeetID: null | string = null
 	let filteredFeed = feed
